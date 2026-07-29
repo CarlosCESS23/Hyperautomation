@@ -120,6 +120,12 @@ git push -u origin NOME_DA_BRANCH
 
 ---
 
+# Releases
+
+Para cada atividade completa, deve-se realizar um release dela, é por meio da release que organizaremos e entrega das atividades
+
+---
+
 # Padrão de Commits
 
 Todos os commits devem possuir mensagens claras e objetivas.
