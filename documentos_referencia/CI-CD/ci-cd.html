@@ -1,0 +1,2730 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git & GitHub Actions — Material Didático | AX Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;
+  --surface:#21262d;--surface2:#2d333b;
+  --orange:#ce0037;--orange-l:#ff3b5c;--orange-xl:#ffb3c1;
+  --green:#3fb950;--green-l:#7ee787;
+  --blue:#58a6ff;--blue-l:#a5d6ff;
+  --purple:#bc8cff;--purple-l:#d8b4fe;
+  --red:#ff7b72;--red-l:#ffa198;
+  --white:#e6edf3;--muted:#7d8590;
+  --border:rgba(240,246,252,0.1);--border2:rgba(240,246,252,0.18);
+  --radius:10px;--radius-lg:16px;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Sora',sans-serif;
+  --body:'Inter',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--white);font-family:var(--body);font-size:16px;line-height:1.7;min-height:100vh}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
+
+/* ── Sidebar ── */
+.sidebar{position:fixed;top:0;left:0;width:252px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;z-index:100;display:flex;flex-direction:column;padding-bottom:2rem}
+.sidebar-logo{padding:1.4rem 1.2rem 1rem;border-bottom:1px solid var(--border)}
+.logo-sub{font-size:.64rem;font-weight:600;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+.logo-main{font-family:var(--sans);font-size:1.1rem;font-weight:800;color:var(--orange);margin-top:.2rem;display:flex;align-items:center;gap:.45rem}
+.sidebar-progress{padding:.7rem 1.2rem;border-bottom:1px solid var(--border)}
+.prog-label{font-size:.69rem;color:var(--muted);margin-bottom:.33rem}
+.prog-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--orange-l));border-radius:2px;width:0%;transition:width .4s ease}
+.nav-sec{padding:.85rem 1.2rem .25rem;font-size:.61rem;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:.55rem;padding:.48rem 1.2rem;font-size:.8rem;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .18s;cursor:pointer}
+.nav-item:hover{color:var(--white);background:var(--surface);border-left-color:var(--orange)}
+.nav-item.active{color:var(--orange);background:rgba(206,0,55,.08);border-left-color:var(--orange);font-weight:600}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── Main ── */
+.main{margin-left:252px;min-height:100vh}
+
+/* ── Hero ── */
+.hero{background:var(--bg2);border-bottom:1px solid var(--border);padding:3rem 3rem 2.6rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:360px;height:360px;background:radial-gradient(circle,rgba(206,0,55,.1) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(206,0,55,.1);border:1px solid rgba(206,0,55,.3);color:var(--orange-l);padding:.27rem .72rem;border-radius:100px;font-size:.69rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.85rem}
+.hero h1{font-family:var(--sans);font-size:2.9rem;font-weight:800;line-height:1.1;margin-bottom:.85rem}
+.hero h1 em{font-style:normal;color:var(--orange)}
+.hero p{font-size:.98rem;color:var(--muted);max-width:580px;margin-bottom:1.7rem}
+.hero-stats{display:flex;gap:1.8rem;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column}
+.stat-num{font-family:var(--sans);font-size:1.65rem;font-weight:800;color:var(--orange);line-height:1}
+.stat-label{font-size:.7rem;color:var(--muted);margin-top:.12rem}
+.toc-pills{display:flex;flex-wrap:wrap;gap:.48rem;margin-top:1.35rem}
+.toc-pill{display:flex;align-items:center;gap:.33rem;background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:.33rem .72rem;border-radius:100px;font-size:.74rem;text-decoration:none;transition:all .18s}
+.toc-pill:hover{border-color:rgba(206,0,55,.5);color:var(--orange-l);background:rgba(206,0,55,.08)}
+.toc-pill-n{background:var(--orange);color:#000;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.61rem;font-weight:800;flex-shrink:0}
+
+/* ── Section ── */
+.section{padding:2.7rem 3rem;border-bottom:1px solid var(--border)}
+.section:last-child{border-bottom:none}
+.sec-header{display:flex;align-items:flex-start;gap:.9rem;margin-bottom:1.7rem}
+.sec-num{width:41px;height:41px;background:rgba(206,0,55,.1);border:1px solid rgba(206,0,55,.28);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:.78rem;font-weight:800;color:var(--orange);flex-shrink:0;margin-top:.1rem}
+.sec-tg h2{font-family:var(--sans);font-size:1.55rem;font-weight:800;line-height:1.2;margin-bottom:.2rem}
+.sec-tg p{font-size:.87rem;color:var(--muted)}
+
+/* ── Typography ── */
+h3{font-family:var(--sans);font-size:1.04rem;font-weight:700;color:var(--white);margin:1.65rem 0 .63rem}
+h3:first-child{margin-top:0}
+p{margin-bottom:.82rem;color:rgba(230,237,243,.83)}
+p:last-child{margin-bottom:0}
+strong{color:var(--white);font-weight:600}
+:not(pre)>code{background:var(--surface2);color:var(--orange-l);padding:.13em .38em;border-radius:4px;font-size:.85em;font-family:var(--mono)}
+
+/* ── Code blocks ── */
+.cb{background:#010409;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:1.05rem 0}
+.cb-h{background:var(--bg3);padding:.48rem .88rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.cb-lang{font-family:var(--mono);font-size:.67rem;font-weight:700;color:var(--orange);letter-spacing:.08em;text-transform:uppercase}
+.cb-copy{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.17rem .52rem;border-radius:5px;font-size:.67rem;cursor:pointer;transition:all .18s;font-family:var(--body)}
+.cb-copy:hover{border-color:var(--orange);color:var(--orange)}
+.cb-copy.copied{border-color:var(--green);color:var(--green)}
+pre{padding:1.1rem;overflow-x:auto;font-family:var(--mono);font-size:.79rem;line-height:1.75}
+/* colour tokens */
+.tg{color:#79c0ff}.to{color:#ff3b5c}.tg2{color:#3fb950}.tp{color:#d2a8ff}
+.tr{color:#ff7b72}.tb{color:#58a6ff}.ty{color:#e3b341}.tmut{color:#484f58}
+.tw{color:#e6edf3}.tc{color:#a5d6ff}.tok{color:#7ee787}
+
+/* ── Info boxes ── */
+.box{border-radius:var(--radius);padding:1rem 1.18rem;margin:1.05rem 0;display:flex;gap:.82rem}
+.bxi{font-size:1.12rem;flex-shrink:0;margin-top:.04rem}
+.bxc{flex:1}
+.bxc strong{display:block;font-size:.82rem;font-weight:700;margin-bottom:.26rem}
+.bxc p{font-size:.85rem;margin:0;color:rgba(230,237,243,.77)}
+.box.info{background:rgba(88,166,255,.06);border-left:3px solid var(--blue)}
+.box.tip{background:rgba(63,185,80,.06);border-left:3px solid var(--green)}
+.box.warn{background:rgba(206,0,55,.06);border-left:3px solid var(--orange)}
+.box.danger{background:rgba(255,123,114,.06);border-left:3px solid var(--red)}
+.box.concept{background:rgba(188,140,255,.06);border-left:3px solid var(--purple)}
+.box.info .bxi{color:var(--blue)}.box.tip .bxi{color:var(--green)}
+.box.warn .bxi{color:var(--orange)}.box.danger .bxi{color:var(--red)}
+.box.concept .bxi{color:var(--purple)}
+
+/* ── Cards ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.88rem;margin:1.05rem 0}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.05rem;transition:border-color .18s}
+.card:hover{border-color:var(--border2)}
+.card-icon{font-size:1.45rem;margin-bottom:.52rem}
+.card h4{font-family:var(--sans);font-size:.86rem;font-weight:700;color:var(--white);margin-bottom:.28rem}
+.card p{font-size:.78rem;color:var(--muted);margin:0;line-height:1.5}
+
+/* ── Steps ── */
+.steps{margin:1.05rem 0}
+.step{display:flex;gap:.88rem;margin-bottom:1.45rem;position:relative}
+.step::before{content:'';position:absolute;left:17px;top:36px;bottom:-16px;width:1px;background:var(--border)}
+.step:last-child::before{display:none}
+.step-n{width:36px;height:36px;background:var(--surface);border:1px solid rgba(206,0,55,.32);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:.75rem;font-weight:800;color:var(--orange);flex-shrink:0}
+.step-b{flex:1;padding-top:.42rem}
+.step-b h4{font-family:var(--sans);font-size:.91rem;font-weight:700;color:var(--white);margin-bottom:.32rem}
+.step-b p{font-size:.84rem;color:var(--muted);margin:0 0 .42rem}
+
+/* ── Table ── */
+.tbl{width:100%;border-collapse:collapse;margin:1.05rem 0;font-size:.84rem}
+.tbl th{background:var(--surface);padding:.62rem .88rem;text-align:left;font-family:var(--sans);font-size:.74rem;font-weight:700;color:var(--orange);border-bottom:1px solid rgba(206,0,55,.28)}
+.tbl td{padding:.58rem .88rem;border-bottom:1px solid var(--border);color:rgba(230,237,243,.8);vertical-align:top}
+.tbl tr:hover td{background:var(--bg3)}
+.tbl td:first-child{font-family:var(--mono);font-size:.77rem;color:var(--blue-l);white-space:nowrap}
+
+/* ── Badge ── */
+.badge{display:inline-flex;align-items:center;padding:.15rem .48rem;border-radius:100px;font-size:.67rem;font-weight:700;letter-spacing:.05em}
+.badge-orange{background:rgba(206,0,55,.14);color:var(--orange-l)}
+.badge-green{background:rgba(63,185,80,.14);color:var(--green-l)}
+.badge-blue{background:rgba(88,166,255,.14);color:var(--blue-l)}
+.badge-red{background:rgba(255,123,114,.14);color:var(--red-l)}
+.badge-purple{background:rgba(188,140,255,.14);color:var(--purple-l)}
+
+/* ── Practice ── */
+.practice{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:var(--radius-lg);padding:1.65rem;margin:1.8rem 0}
+.prac-hdr{display:flex;align-items:center;gap:.62rem;margin-bottom:1.05rem}
+.prac-hdr h3{margin:0;font-size:.95rem}
+.prac-badge{background:rgba(206,0,55,.13);border:1px solid rgba(206,0,55,.28);color:var(--orange-l);padding:.17rem .6rem;border-radius:100px;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+
+/* ── Two-col ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.35rem;margin:1.05rem 0}
+@media(max-width:820px){.two-col{grid-template-columns:1fr}.sidebar{transform:translateX(-100%)}.main{margin-left:0}}
+
+/* ── Challenge ── */
+.chal{border-radius:var(--radius);border:1px solid;padding:1.05rem 1.25rem;margin:.72rem 0}
+.chal.easy{border-color:rgba(63,185,80,.38);background:rgba(63,185,80,.04)}
+.chal.med{border-color:rgba(206,0,55,.38);background:rgba(206,0,55,.04)}
+.chal.hard{border-color:rgba(255,123,114,.38);background:rgba(255,123,114,.04)}
+.chal-hdr{display:flex;align-items:center;gap:.52rem;margin-bottom:.52rem}
+.chal-hdr h4{font-family:var(--sans);font-size:.87rem;font-weight:700;margin:0}
+.chal.easy .chal-hdr h4{color:var(--green-l)}
+.chal.med  .chal-hdr h4{color:var(--orange-l)}
+.chal.hard .chal-hdr h4{color:var(--red-l)}
+.chal ul{padding-left:1.12rem;font-size:.83rem;color:rgba(230,237,243,.78)}
+.chal ul li{margin-bottom:.2rem}
+
+/* ── SVG Diagrams ── */
+.svg-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin:1.2rem 0;overflow-x:auto}
+.svg-wrap svg{display:block;max-width:100%;height:auto}
+.svg-caption{text-align:center;font-size:.75rem;color:var(--muted);margin-top:.75rem}
+
+/* ── Footer ── */
+.footer{padding:1.7rem 3rem;background:var(--bg2);border-top:1px solid var(--border);text-align:center;font-size:.77rem;color:var(--muted)}
+
+/* ── Animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.section{animation:fadeUp .42s ease both}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-sub">AX Academy · DevOps</div>
+    <div class="logo-main"><span>🌿</span> Git & Actions</div>
+  </div>
+  <div class="sidebar-progress">
+    <div class="prog-label" id="progLabel">Progresso: 0%</div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+  </div>
+
+  <div class="nav-sec">Git — Fundamentos</div>
+  <a class="nav-item" href="#s01"><span class="nav-dot"></span>O que é Git?</a>
+  <a class="nav-item" href="#s02"><span class="nav-dot"></span>Instalação e Config</a>
+  <a class="nav-item" href="#s03"><span class="nav-dot"></span>Repositório e Commits</a>
+  <a class="nav-item" href="#s04"><span class="nav-dot"></span>Branches e Merge</a>
+  <a class="nav-item" href="#s05"><span class="nav-dot"></span>Rebase e Conflitos</a>
+  <a class="nav-item" href="#s06"><span class="nav-dot"></span>Stash, Tags e Log</a>
+
+  <div class="nav-sec">GitHub</div>
+  <a class="nav-item" href="#s07"><span class="nav-dot"></span>GitHub e Repositório Remoto</a>
+  <a class="nav-item" href="#s08"><span class="nav-dot"></span>Pull Requests e Code Review</a>
+  <a class="nav-item" href="#s09"><span class="nav-dot"></span>Gitflow e Estratégias</a>
+
+  <div class="nav-sec">GitHub Actions</div>
+  <a class="nav-item" href="#s10"><span class="nav-dot"></span>O que é GitHub Actions?</a>
+  <a class="nav-item" href="#s11"><span class="nav-dot"></span>Workflow YAML</a>
+  <a class="nav-item" href="#s12"><span class="nav-dot"></span>Jobs, Steps e Actions</a>
+  <a class="nav-item" href="#s13"><span class="nav-dot"></span>Secrets e Variáveis</a>
+  <a class="nav-item" href="#s14"><span class="nav-dot"></span>CI Pipeline Completo</a>
+  <a class="nav-item" href="#s15"><span class="nav-dot"></span>CD e Deploy</a>
+  <a class="nav-item" href="#s16"><span class="nav-dot"></span>Boas Práticas</a>
+  <a class="nav-item" href="#s17"><span class="nav-dot"></span>Projeto Integrador</a>
+  <a class="nav-item" href="#s18"><span class="nav-dot"></span>Referência Rápida</a>
+</nav>
+
+<!-- ══════════ MAIN ══════════ -->
+<main class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🌿 Módulos 1 & 2 · DevOps</div>
+  <h1>Git & <em>GitHub Actions</em></h1>
+  <p>Controle de versão, colaboração profissional e automação de CI/CD diretamente no GitHub. Material completo com teoria, diagramas visuais e prática hands-on.</p>
+  <div class="hero-stats">
+    <div class="stat"><span class="stat-num">18</span><span class="stat-label">Seções</span></div>
+    <div class="stat"><span class="stat-num">60+</span><span class="stat-label">Comandos</span></div>
+    <div class="stat"><span class="stat-num">12h</span><span class="stat-label">Estimado</span></div>
+    <div class="stat"><span class="stat-num">5</span><span class="stat-label">Projetos práticos</span></div>
+  </div>
+  <div class="toc-pills">
+    <a class="toc-pill" href="#s01"><span class="toc-pill-n">1</span>O que é Git</a>
+    <a class="toc-pill" href="#s02"><span class="toc-pill-n">2</span>Instalação</a>
+    <a class="toc-pill" href="#s03"><span class="toc-pill-n">3</span>Commits</a>
+    <a class="toc-pill" href="#s04"><span class="toc-pill-n">4</span>Branches</a>
+    <a class="toc-pill" href="#s05"><span class="toc-pill-n">5</span>Rebase</a>
+    <a class="toc-pill" href="#s06"><span class="toc-pill-n">6</span>Stash/Tags</a>
+    <a class="toc-pill" href="#s07"><span class="toc-pill-n">7</span>GitHub</a>
+    <a class="toc-pill" href="#s08"><span class="toc-pill-n">8</span>Pull Requests</a>
+    <a class="toc-pill" href="#s09"><span class="toc-pill-n">9</span>Gitflow</a>
+    <a class="toc-pill" href="#s10"><span class="toc-pill-n">10</span>Actions</a>
+    <a class="toc-pill" href="#s11"><span class="toc-pill-n">11</span>Workflow</a>
+    <a class="toc-pill" href="#s12"><span class="toc-pill-n">12</span>Jobs/Steps</a>
+    <a class="toc-pill" href="#s13"><span class="toc-pill-n">13</span>Secrets</a>
+    <a class="toc-pill" href="#s14"><span class="toc-pill-n">14</span>CI Pipeline</a>
+    <a class="toc-pill" href="#s15"><span class="toc-pill-n">15</span>CD/Deploy</a>
+    <a class="toc-pill" href="#s16"><span class="toc-pill-n">16</span>Boas Práticas</a>
+    <a class="toc-pill" href="#s17"><span class="toc-pill-n">17</span>Projeto</a>
+    <a class="toc-pill" href="#s18"><span class="toc-pill-n">18</span>Referência</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     S01 — O QUE É GIT
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s01">
+  <div class="sec-header">
+    <div class="sec-num">01</div>
+    <div class="sec-tg"><h2>O que é Git?</h2><p>O sistema de controle de versão mais usado no mundo</p></div>
+  </div>
+
+  <p>Git é um <strong>sistema de controle de versão distribuído</strong> criado por Linus Torvalds em 2005 para gerenciar o desenvolvimento do kernel Linux. Hoje é usado por praticamente todos os projetos de software no mundo.</p>
+
+  <div class="box concept">
+    <span class="bxi">🧠</span>
+    <div class="bxc">
+      <strong>Problema que o Git resolve</strong>
+      <p>Sem controle de versão: "projeto_final_v3_agora_vai_MESMO.zip". Com Git: histórico completo, quem mudou o quê, quando e por quê — e a capacidade de voltar a qualquer ponto.</p>
+    </div>
+  </div>
+
+  <h3>Arquitetura distribuída</h3>
+  <p>Diferente de sistemas centralizados (SVN, CVS), no Git cada desenvolvedor tem uma <strong>cópia completa</strong> do repositório — histórico incluído. Não há ponto único de falha.</p>
+
+  <!-- SVG: Git Distributed vs Centralized -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <!-- Left: Centralizado -->
+      <text x="170" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#ff7b72">Sistema Centralizado (SVN)</text>
+      <!-- server -->
+      <rect x="120" y="38" width="100" height="44" rx="8" fill="#2d333b" stroke="#ff7b72" stroke-width="1.5"/>
+      <text x="170" y="56" text-anchor="middle" font-size="11" fill="#ff7b72" font-weight="700">Servidor</text>
+      <text x="170" y="73" text-anchor="middle" font-size="10" fill="#7d8590">repositório</text>
+      <!-- devs -->
+      <rect x="40"  y="120" width="80" height="36" rx="7" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+      <rect x="130" y="120" width="80" height="36" rx="7" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+      <rect x="220" y="120" width="80" height="36" rx="7" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+      <text x="80"  y="142" text-anchor="middle" font-size="10" fill="#7d8590">Dev A</text>
+      <text x="170" y="142" text-anchor="middle" font-size="10" fill="#7d8590">Dev B</text>
+      <text x="260" y="142" text-anchor="middle" font-size="10" fill="#7d8590">Dev C</text>
+      <!-- lines -->
+      <line x1="80"  y1="120" x2="155" y2="82" stroke="#ff7b72" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <line x1="170" y1="120" x2="170" y2="82" stroke="#ff7b72" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <line x1="260" y1="120" x2="185" y2="82" stroke="#ff7b72" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <!-- warning -->
+      <rect x="100" y="185" width="140" height="32" rx="6" fill="rgba(255,123,114,0.1)" stroke="rgba(255,123,114,0.3)" stroke-width="1"/>
+      <text x="170" y="200" text-anchor="middle" font-size="10" fill="#ff7b72">⚠ Servidor fora = todos param</text>
+      <text x="170" y="213" text-anchor="middle" font-size="10" fill="#7d8590">cópia parcial apenas</text>
+
+      <!-- Divider -->
+      <line x1="340" y1="20" x2="340" y2="290" stroke="#21262d" stroke-width="2"/>
+
+      <!-- Right: Distribuído -->
+      <text x="580" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#3fb950">Sistema Distribuído (Git)</text>
+      <!-- server/remote -->
+      <rect x="530" y="38" width="100" height="44" rx="8" fill="#2d333b" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="580" y="56" text-anchor="middle" font-size="11" fill="#3fb950" font-weight="700">Remoto</text>
+      <text x="580" y="73" text-anchor="middle" font-size="10" fill="#7d8590">GitHub / GitLab</text>
+      <!-- devs com clone completo -->
+      <rect x="360" y="118" width="92" height="46" rx="7" fill="#21262d" stroke="#3fb950" stroke-width="1.2"/>
+      <rect x="474" y="118" width="92" height="46" rx="7" fill="#21262d" stroke="#3fb950" stroke-width="1.2"/>
+      <rect x="588" y="118" width="92" height="46" rx="7" fill="#21262d" stroke="#3fb950" stroke-width="1.2"/>
+      <text x="406" y="136" text-anchor="middle" font-size="10" fill="#7ee787">Dev A</text>
+      <text x="406" y="150" text-anchor="middle" font-size="9" fill="#3fb950">cópia completa</text>
+      <text x="520" y="136" text-anchor="middle" font-size="10" fill="#7ee787">Dev B</text>
+      <text x="520" y="150" text-anchor="middle" font-size="9" fill="#3fb950">cópia completa</text>
+      <text x="634" y="136" text-anchor="middle" font-size="10" fill="#7ee787">Dev C</text>
+      <text x="634" y="150" text-anchor="middle" font-size="9" fill="#3fb950">cópia completa</text>
+      <!-- lines para remote -->
+      <line x1="406" y1="118" x2="555" y2="82" stroke="#3fb950" stroke-width="1.2" opacity=".7"/>
+      <line x1="520" y1="118" x2="580" y2="82" stroke="#3fb950" stroke-width="1.2" opacity=".7"/>
+      <line x1="634" y1="118" x2="605" y2="82" stroke="#3fb950" stroke-width="1.2" opacity=".7"/>
+      <!-- dev-to-dev arrows -->
+      <line x1="454" y1="141" x2="472" y2="141" stroke="#58a6ff" stroke-width="1.2" stroke-dasharray="3,2"/>
+      <line x1="568" y1="141" x2="586" y2="141" stroke="#58a6ff" stroke-width="1.2" stroke-dasharray="3,2"/>
+      <text x="463" y="137" text-anchor="middle" font-size="8" fill="#58a6ff">↔</text>
+      <text x="577" y="137" text-anchor="middle" font-size="8" fill="#58a6ff">↔</text>
+      <!-- ok -->
+      <rect x="460" y="185" width="240" height="32" rx="6" fill="rgba(63,185,80,0.1)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+      <text x="580" y="200" text-anchor="middle" font-size="10" fill="#3fb950">✓ Remoto fora = trabalho continua</text>
+      <text x="580" y="213" text-anchor="middle" font-size="10" fill="#7d8590">histórico completo em cada clone</text>
+    </svg>
+    <p class="svg-caption">Git é distribuído: cada desenvolvedor tem uma cópia completa e pode trabalhar offline</p>
+  </div>
+
+  <h3>Os 3 estados de um arquivo no Git</h3>
+  <!-- SVG: 3 estados -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <!-- Working Directory -->
+      <rect x="20" y="30" width="200" height="140" rx="12" fill="#21262d" stroke="#484f58" stroke-width="1.5"/>
+      <rect x="20" y="30" width="200" height="38" rx="12" fill="#2d333b" stroke="#484f58" stroke-width="1.5"/>
+      <rect x="20" y="56" width="200" height="12" rx="0" fill="#2d333b"/>
+      <text x="120" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="#e6edf3">Working Directory</text>
+      <text x="120" y="80" text-anchor="middle" font-size="10" fill="#7d8590">onde você edita os arquivos</text>
+      <text x="120" y="97" text-anchor="middle" font-size="10" fill="#7d8590">no seu computador</text>
+      <!-- files -->
+      <rect x="45" y="112" width="130" height="22" rx="5" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="110" y="126" text-anchor="middle" font-size="10" fill="#ff3b5c">● app.py (modified)</text>
+      <rect x="45" y="140" width="130" height="22" rx="5" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="110" y="154" text-anchor="middle" font-size="10" fill="#ff7b72">● README (untracked)</text>
+
+      <!-- Arrow 1 -->
+      <line x1="222" y1="100" x2="280" y2="100" stroke="#ce0037" stroke-width="2"/>
+      <polygon points="280,95 292,100 280,105" fill="#ce0037"/>
+      <text x="257" y="90" text-anchor="middle" font-size="10" font-weight="700" fill="#ff3b5c">git add</text>
+
+      <!-- Staging Area -->
+      <rect x="294" y="30" width="200" height="140" rx="12" fill="#21262d" stroke="#ce0037" stroke-width="1.8"/>
+      <rect x="294" y="30" width="200" height="38" rx="12" fill="#2d333b" stroke="#ce0037" stroke-width="1.8"/>
+      <rect x="294" y="56" width="200" height="12" rx="0" fill="#2d333b"/>
+      <text x="394" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="#ff3b5c">Staging Area</text>
+      <text x="394" y="80" text-anchor="middle" font-size="10" fill="#7d8590">área de preparação</text>
+      <text x="394" y="97" text-anchor="middle" font-size="10" fill="#7d8590">arquivos prontos para commitar</text>
+      <rect x="319" y="112" width="130" height="22" rx="5" fill="#1c2128" stroke="#ce0037" stroke-width="1"/>
+      <text x="384" y="126" text-anchor="middle" font-size="10" fill="#ff3b5c">✓ app.py (staged)</text>
+      <rect x="319" y="140" width="130" height="22" rx="5" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="384" y="154" text-anchor="middle" font-size="10" fill="#484f58">  (não adicionado)</text>
+
+      <!-- Arrow 2 -->
+      <line x1="496" y1="100" x2="556" y2="100" stroke="#3fb950" stroke-width="2"/>
+      <polygon points="556,95 568,100 556,105" fill="#3fb950"/>
+      <text x="532" y="90" text-anchor="middle" font-size="10" font-weight="700" fill="#7ee787">git commit</text>
+
+      <!-- Repository -->
+      <rect x="570" y="30" width="200" height="140" rx="12" fill="#21262d" stroke="#3fb950" stroke-width="1.8"/>
+      <rect x="570" y="30" width="200" height="38" rx="12" fill="#2d333b" stroke="#3fb950" stroke-width="1.8"/>
+      <rect x="570" y="56" width="200" height="12" rx="0" fill="#2d333b"/>
+      <text x="670" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="#7ee787">Repository (.git)</text>
+      <text x="670" y="80" text-anchor="middle" font-size="10" fill="#7d8590">banco de dados permanente</text>
+      <text x="670" y="97" text-anchor="middle" font-size="10" fill="#7d8590">histórico completo</text>
+      <rect x="595" y="112" width="148" height="22" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1"/>
+      <text x="669" y="126" text-anchor="middle" font-size="10" fill="#7ee787">✓ commit a3f8b2c</text>
+      <rect x="595" y="140" width="148" height="22" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1" opacity=".5"/>
+      <text x="669" y="154" text-anchor="middle" font-size="10" fill="#3fb950" opacity=".6">✓ commit 9d2e1f4</text>
+    </svg>
+    <p class="svg-caption">O fluxo obrigatório: editar → <code>git add</code> → <code>git commit</code></p>
+  </div>
+
+  <h3>Por que todo desenvolvedor precisa de Git?</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📜</div>
+      <h4>Histórico auditável</h4>
+      <p>Cada alteração tem autor, data e mensagem explicando o porquê. Git blame mostra quem escreveu cada linha.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔀</div>
+      <h4>Trabalho em paralelo</h4>
+      <p>Branches permitem desenvolver features simultaneamente sem conflitar com outros devs.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔙</div>
+      <h4>Rollback instantâneo</h4>
+      <p>Quebrou produção? <code>git revert</code> ou <code>git reset</code> restaura qualquer versão anterior em segundos.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔗</div>
+      <h4>Base do CI/CD</h4>
+      <p>GitHub Actions, Jenkins, GitLab CI — todos dependem de eventos Git (push, PR, tag) para disparar pipelines.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S02 — INSTALAÇÃO E CONFIG
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s02">
+  <div class="sec-header">
+    <div class="sec-num">02</div>
+    <div class="sec-tg"><h2>Instalação e Configuração</h2><p>Preparando o Git em qualquer sistema operacional</p></div>
+  </div>
+
+  <h3>Instalação</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">instalação por SO</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Windows ───────────────────────────────────────────────────────</span>
+<span class="tmut"># Baixar de https://git-scm.com/download/win</span>
+<span class="tmut"># Marcar "Add to PATH" durante a instalação</span>
+<span class="tmut"># Usar Git Bash ou PowerShell após instalar</span>
+
+<span class="tmut"># ── macOS ─────────────────────────────────────────────────────────</span>
+<span class="tok">brew install git</span>
+<span class="tmut"># Ou apenas digitar "git" no Terminal e macOS oferece instalar as Xcode CLI Tools</span>
+
+<span class="tmut"># ── Linux Ubuntu/Debian ───────────────────────────────────────────</span>
+<span class="tok">sudo apt update && sudo apt install git -y</span>
+
+<span class="tmut"># ── Verificar instalação (todos os SOs) ───────────────────────────</span>
+<span class="tok">git --version</span>
+<span class="tmut"># Esperado: git version 2.4x.x</span></pre>
+  </div>
+
+  <h3>Configuração obrigatória — execute uma vez</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — configuração inicial</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Identidade (aparece em cada commit) ───────────────────────────</span>
+<span class="tok">git config --global user.name  "Seu Nome Completo"</span>
+<span class="tok">git config --global user.email "seu@email.com"</span>
+
+<span class="tmut"># ── Editor padrão (VS Code) ───────────────────────────────────────</span>
+<span class="tok">git config --global core.editor "code --wait"</span>
+
+<span class="tmut"># ── Branch padrão como 'main' (padrão atual do mercado) ──────────</span>
+<span class="tok">git config --global init.defaultBranch main</span>
+
+<span class="tmut"># ── Cores no terminal ─────────────────────────────────────────────</span>
+<span class="tok">git config --global color.ui auto</span>
+
+<span class="tmut"># ── Alias úteis — atalhos para os comandos mais longos ────────────</span>
+<span class="tok">git config --global alias.st   "status"</span>
+<span class="tok">git config --global alias.lg   "log --oneline --graph --all --decorate"</span>
+<span class="tok">git config --global alias.last "log -1 HEAD --stat"</span>
+<span class="tok">git config --global alias.undo "reset HEAD~1 --mixed"</span>
+
+<span class="tmut"># ── Confirmar todas as configurações ─────────────────────────────</span>
+<span class="tok">git config --global --list</span>
+
+<span class="tmut"># ── Onde fica o arquivo de configuração? ─────────────────────────</span>
+<span class="tmut"># Linux/Mac: ~/.gitconfig</span>
+<span class="tmut"># Windows:   C:\Users\SEU_USUARIO\.gitconfig</span></pre>
+  </div>
+
+  <h3>O arquivo .gitignore — o que nunca commitar</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">.gitignore — template Python/Node/geral</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Python ────────────────────────────────────────────────────────</span>
+<span class="tok">__pycache__/</span>
+<span class="tok">*.pyc</span>
+<span class="tok">*.pyo</span>
+<span class="tok">.venv/</span>
+<span class="tok">venv/</span>
+<span class="tok">.pytest_cache/</span>
+<span class="tok">.coverage</span>
+<span class="tok">htmlcov/</span>
+
+<span class="tmut"># ── Node.js ───────────────────────────────────────────────────────</span>
+<span class="tok">node_modules/</span>
+<span class="tok">dist/</span>
+<span class="tok">build/</span>
+<span class="tok">.next/</span>
+
+<span class="tmut"># ── NUNCA commitar — segredos e credenciais ────────────────────────</span>
+<span class="tr">.env</span>
+<span class="tr">.env.local</span>
+<span class="tr">.env.production</span>
+<span class="tr">*.key</span>
+<span class="tr">*.pem</span>
+<span class="tr">secrets.yml</span>
+<span class="tr">credentials.json</span>
+
+<span class="tmut"># ── IDEs e sistema operacional ─────────────────────────────────────</span>
+<span class="tok">.idea/</span>
+<span class="tok">.vscode/</span>
+<span class="tok">.DS_Store</span>
+<span class="tok">Thumbs.db</span>
+
+<span class="tmut"># Gerar automaticamente: https://gitignore.io</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S03 — REPOSITÓRIO E COMMITS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s03">
+  <div class="sec-header">
+    <div class="sec-num">03</div>
+    <div class="sec-tg"><h2>Repositório e Commits</h2><p>Criando e versionando seu primeiro projeto</p></div>
+  </div>
+
+  <h3>Criando um repositório</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Inicializar um repositório novo ──────────────────────────────</span>
+<span class="tok">mkdir meu-projeto && cd meu-projeto</span>
+<span class="tok">git init</span>
+<span class="tmut"># Cria a pasta oculta .git — o coração do repositório</span>
+<span class="tok">ls -la</span>
+
+<span class="tmut"># ── Clonar um repositório existente ─────────────────────────────</span>
+<span class="tok">git clone https://github.com/usuario/repositorio.git</span>
+<span class="tok">git clone https://github.com/usuario/repositorio.git minha-pasta</span>
+<span class="tmut"># Clona em pasta com nome específico</span></pre>
+  </div>
+
+  <h3>O ciclo completo: editar → add → commit</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — ciclo de trabalho</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── 1. Ver o estado atual dos arquivos ───────────────────────────</span>
+<span class="tok">git status</span>
+<span class="tmut"># Use git status SEMPRE — é seu GPS dentro do Git</span>
+
+<span class="tmut"># ── 2. Ver as diferenças antes de adicionar ──────────────────────</span>
+<span class="tok">git diff</span>              <span class="tmut"># mudanças no working directory</span>
+<span class="tok">git diff --staged</span>     <span class="tmut"># mudanças na staging area (pós git add)</span>
+
+<span class="tmut"># ── 3. Adicionar ao staging ───────────────────────────────────────</span>
+<span class="tok">git add arquivo.py</span>    <span class="tmut"># arquivo específico</span>
+<span class="tok">git add src/</span>           <span class="tmut"># todos os arquivos de uma pasta</span>
+<span class="tok">git add .</span>              <span class="tmut"># tudo no diretório atual</span>
+<span class="tok">git add -p</span>             <span class="tmut"># modo interativo — escolhe trecho por trecho</span>
+
+<span class="tmut"># ── 4. Commitar ────────────────────────────────────────────────────</span>
+<span class="tok">git commit -m "feat: adiciona endpoint de login"</span>
+<span class="tok">git commit -am "fix: corrige validação de email"</span>
+<span class="tmut"># -am = add + commit (só arquivos já rastreados)</span>
+
+<span class="tmut"># ── 5. Ver histórico ──────────────────────────────────────────────</span>
+<span class="tok">git log</span>                              <span class="tmut"># completo</span>
+<span class="tok">git log --oneline</span>                    <span class="tmut"># compacto</span>
+<span class="tok">git log --oneline --graph --all</span>      <span class="tmut"># com grafo de branches</span>
+<span class="tok">git log --oneline -10</span>                <span class="tmut"># últimos 10</span>
+<span class="tok">git log --author="Emmerson"</span>          <span class="tmut"># por autor</span>
+<span class="tok">git log --since="2025-01-01"</span>         <span class="tmut"># por data</span>
+<span class="tok">git log -S "função_buscada"</span>          <span class="tmut"># busca no conteúdo</span></pre>
+  </div>
+
+  <h3>Conventional Commits — padrão de mensagens</h3>
+  <table class="tbl">
+    <thead><tr><th>Prefixo</th><th>Quando usar</th><th>Exemplo</th></tr></thead>
+    <tbody>
+      <tr><td>feat:</td><td>Nova funcionalidade</td><td><code>feat: adiciona tela de login OAuth</code></td></tr>
+      <tr><td>fix:</td><td>Correção de bug</td><td><code>fix: corrige validação de CPF nulo</code></td></tr>
+      <tr><td>docs:</td><td>Apenas documentação</td><td><code>docs: atualiza README com exemplos</code></td></tr>
+      <tr><td>style:</td><td>Formatação, sem lógica</td><td><code>style: aplica black formatter</code></td></tr>
+      <tr><td>refactor:</td><td>Refatoração sem bug/feature</td><td><code>refactor: extrai função de cálculo</code></td></tr>
+      <tr><td>test:</td><td>Adicionar/corrigir testes</td><td><code>test: adiciona teste de integração da API</code></td></tr>
+      <tr><td>ci:</td><td>Mudanças em CI/CD</td><td><code>ci: adiciona workflow de testes</code></td></tr>
+      <tr><td>chore:</td><td>Tarefas gerais, deps</td><td><code>chore: atualiza dependências do projeto</code></td></tr>
+      <tr><td>perf:</td><td>Melhoria de performance</td><td><code>perf: usa cache Redis para consultas</code></td></tr>
+      <tr><td>revert:</td><td>Reverter commit anterior</td><td><code>revert: desfaz feat de login OAuth</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="box tip">
+    <span class="bxi">💡</span>
+    <div class="bxc">
+      <strong>Regra de ouro para mensagens de commit</strong>
+      <p>Complete a frase: <em>"Se aplicado, este commit vai <strong>___</strong>"</em>. Exemplo: "adicionar endpoint de login" → <code>feat: adiciona endpoint de login</code>. Mensagem no imperativo, sem ponto final, máximo 72 caracteres.</p>
+    </div>
+  </div>
+
+  <h3>Desfazendo alterações</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — cenários de desfazer</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Cenário 1: arquivo modificado, não adicionado ────────────────</span>
+<span class="tok">git restore arquivo.py</span>          <span class="tmut"># descarta mudanças (irreversível!)</span>
+<span class="tok">git checkout -- arquivo.py</span>      <span class="tmut"># equivalente (sintaxe antiga)</span>
+
+<span class="tmut"># ── Cenário 2: arquivo no staging (git add foi feito) ────────────</span>
+<span class="tok">git restore --staged arquivo.py</span> <span class="tmut"># remove do staging, mantém mudanças</span>
+<span class="tok">git reset HEAD arquivo.py</span>       <span class="tmut"># equivalente (sintaxe antiga)</span>
+
+<span class="tmut"># ── Cenário 3: desfazer o ÚLTIMO commit, manter mudanças ─────────</span>
+<span class="tok">git reset --soft HEAD~1</span>         <span class="tmut"># volta ao staging</span>
+<span class="tok">git reset --mixed HEAD~1</span>        <span class="tmut"># volta ao working dir (padrão)</span>
+
+<span class="tmut"># ── Cenário 4: desfazer commit E descartar mudanças ──────────────</span>
+<span class="tr">git reset --hard HEAD~1</span>         <span class="tmut"># ⚠️  DESTRUTIVO — mudanças perdidas</span>
+<span class="tmut"># NUNCA use --hard em commits já enviados ao remoto compartilhado</span>
+
+<span class="tmut"># ── Cenário 5: desfazer de forma SEGURA (recomendado em equipes) ─</span>
+<span class="tok">git revert HEAD</span>                 <span class="tmut"># cria novo commit que desfaz o último</span>
+<span class="tok">git revert a3f8b2c</span>              <span class="tmut"># reverte um commit específico pelo hash</span>
+<span class="tmut"># revert preserva o histórico — ideal para branches compartilhadas</span>
+
+<span class="tmut"># ── Ver quem escreveu cada linha ─────────────────────────────────</span>
+<span class="tok">git blame src/app.py</span>            <span class="tmut"># linha por linha: hash, autor, data</span>
+<span class="tok">git blame -L 10,25 src/app.py</span>  <span class="tmut"># apenas linhas 10-25</span></pre>
+  </div>
+
+  <div class="practice">
+    <div class="prac-hdr"><span class="prac-badge">Prática 3.1</span><h3>🧪 Seu primeiro repositório com histórico real</h3></div>
+    <div class="cb">
+      <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+      <pre><span class="tok">mkdir lab-git && cd lab-git && git init</span>
+
+<span class="tmut"># Commit 1: criar a estrutura</span>
+<span class="tok">echo "# Lab Git" > README.md</span>
+<span class="tok">git add README.md && git commit -m "docs: cria README inicial"</span>
+
+<span class="tmut"># Commit 2: adicionar código</span>
+<span class="tok">echo 'def somar(a, b): return a + b' > calc.py</span>
+<span class="tok">git add calc.py && git commit -m "feat: adiciona função de soma"</span>
+
+<span class="tmut"># Commit 3: adicionar testes</span>
+<span class="tok">echo 'assert somar(2,3) == 5, "Falhou!"' > test_calc.py</span>
+<span class="tok">echo 'print("Testes OK!")' >> test_calc.py</span>
+<span class="tok">git add test_calc.py && git commit -m "test: adiciona teste para função soma"</span>
+
+<span class="tmut"># Ver o histórico graficamente</span>
+<span class="tok">git log --oneline --graph --all --decorate</span>
+
+<span class="tmut"># Ver detalhes de um commit específico</span>
+<span class="tok">git show HEAD</span>
+<span class="tok">git show HEAD~1</span>   <span class="tmut"># penúltimo commit</span>
+
+<span class="tmut"># Ver diferença entre dois commits</span>
+<span class="tok">git diff HEAD~2 HEAD</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S04 — BRANCHES E MERGE
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s04">
+  <div class="sec-header">
+    <div class="sec-num">04</div>
+    <div class="sec-tg"><h2>Branches e Merge</h2><p>Trabalhando em paralelo sem conflitar</p></div>
+  </div>
+
+  <p>Uma <strong>branch</strong> é uma linha independente de desenvolvimento. Criar branches no Git é instantâneo e tem custo zero — são apenas ponteiros para commits.</p>
+
+  <!-- SVG: Branch e Merge visual -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#484f58"/>
+        </marker>
+        <marker id="arr-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#3fb950"/>
+        </marker>
+        <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/>
+        </marker>
+        <marker id="arr-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#ce0037"/>
+        </marker>
+      </defs>
+
+      <!-- Labels de branch -->
+      <text x="30" y="100" font-size="11" font-weight="700" fill="#7ee787">main</text>
+      <text x="30" y="165" font-size="11" font-weight="700" fill="#58a6ff">feature/login</text>
+      <text x="30" y="230" font-size="11" font-weight="700" fill="#ff3b5c">hotfix/bug</text>
+
+      <!-- main line -->
+      <line x1="80" y1="95" x2="680" y2="95" stroke="#21262d" stroke-width="2"/>
+
+      <!-- main commits -->
+      <circle cx="120" cy="95" r="14" fill="#1c2128" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="120" y="99" text-anchor="middle" font-size="9" fill="#7ee787">C1</text>
+
+      <circle cx="230" cy="95" r="14" fill="#1c2128" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="230" y="99" text-anchor="middle" font-size="9" fill="#7ee787">C2</text>
+
+      <!-- branch point -->
+      <line x1="120" y1="109" x2="230" y2="151" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="120" y1="109" x2="350" y2="221" stroke="#ff3b5c" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+      <!-- feature commits -->
+      <line x1="244" y1="160" x2="354" y2="160" stroke="#21262d" stroke-width="2"/>
+      <line x1="368" y1="160" x2="478" y2="160" stroke="#21262d" stroke-width="2"/>
+      <circle cx="258" cy="160" r="14" fill="#1c2128" stroke="#58a6ff" stroke-width="2.5"/>
+      <text x="258" y="164" text-anchor="middle" font-size="9" fill="#58a6ff">F1</text>
+      <circle cx="388" cy="160" r="14" fill="#1c2128" stroke="#58a6ff" stroke-width="2.5"/>
+      <text x="388" y="164" text-anchor="middle" font-size="9" fill="#58a6ff">F2</text>
+
+      <!-- hotfix commit -->
+      <line x1="364" y1="225" x2="464" y2="225" stroke="#21262d" stroke-width="2"/>
+      <circle cx="378" cy="225" r="14" fill="#1c2128" stroke="#ff3b5c" stroke-width="2.5"/>
+      <text x="378" y="229" text-anchor="middle" font-size="9" fill="#ff3b5c">H1</text>
+
+      <!-- main commit C3 after hotfix merge -->
+      <circle cx="510" cy="95" r="14" fill="#1c2128" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="510" y="99" text-anchor="middle" font-size="9" fill="#7ee787">C3</text>
+
+      <!-- hotfix merge into main -->
+      <line x1="392" y1="225" x2="496" y2="109" stroke="#ff3b5c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-orange)"/>
+      <text x="455" y="152" text-anchor="middle" font-size="9" fill="#ff3b5c" transform="rotate(-35 455 152)">merge hotfix</text>
+
+      <!-- main commit C4 — merge feature -->
+      <circle cx="640" cy="95" r="16" fill="#1c2128" stroke="#3fb950" stroke-width="2.5"/>
+      <rect x="624" y="79" width="32" height="32" rx="16" fill="none" stroke="#7ee787" stroke-width="1" opacity=".4"/>
+      <text x="640" y="99" text-anchor="middle" font-size="9" fill="#7ee787" font-weight="700">M</text>
+
+      <!-- feature merge into main -->
+      <line x1="402" y1="160" x2="624" y2="109" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-blue)"/>
+      <text x="530" y="128" text-anchor="middle" font-size="9" fill="#58a6ff" transform="rotate(-8 530 128)">merge feature/login</text>
+
+      <!-- line main continuation -->
+      <line x1="524" y1="95" x2="624" y2="95" stroke="#21262d" stroke-width="2"/>
+      <line x1="656" y1="95" x2="740" y2="95" stroke="#21262d" stroke-width="2" stroke-dasharray="5,4"/>
+
+      <!-- Labels de commits -->
+      <text x="120" y="122" text-anchor="middle" font-size="8" fill="#7d8590">init</text>
+      <text x="230" y="122" text-anchor="middle" font-size="8" fill="#7d8590">feat A</text>
+      <text x="510" y="122" text-anchor="middle" font-size="8" fill="#7d8590">hotfix</text>
+      <text x="640" y="122" text-anchor="middle" font-size="8" fill="#7d8590">merge commit</text>
+      <text x="258" y="187" text-anchor="middle" font-size="8" fill="#7d8590">login UI</text>
+      <text x="388" y="187" text-anchor="middle" font-size="8" fill="#7d8590">login API</text>
+      <text x="378" y="252" text-anchor="middle" font-size="8" fill="#7d8590">fix null ptr</text>
+
+      <!-- HEAD label -->
+      <rect x="662" y="70" width="44" height="18" rx="4" fill="#ce0037"/>
+      <text x="684" y="82" text-anchor="middle" font-size="9" font-weight="700" fill="#000">HEAD</text>
+    </svg>
+    <p class="svg-caption">Branches permitem trabalho paralelo — hotfix e feature evoluem independentemente e são integradas na main via merge</p>
+  </div>
+
+  <h3>Comandos de branch</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — branches</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Criar e navegar ──────────────────────────────────────────────</span>
+<span class="tok">git branch</span>                       <span class="tmut"># listar branches (* = atual)</span>
+<span class="tok">git branch -a</span>                    <span class="tmut"># incluindo remotas</span>
+<span class="tok">git switch -c feature/login</span>      <span class="tmut"># criar e entrar (modo moderno)</span>
+<span class="tok">git checkout -b feature/login</span>    <span class="tmut"># equivalente (modo clássico)</span>
+<span class="tok">git switch main</span>                  <span class="tmut"># trocar de branch</span>
+<span class="tok">git branch -d feature/login</span>      <span class="tmut"># deletar branch (após merge)</span>
+<span class="tok">git branch -D feature/login</span>      <span class="tmut"># forçar delete (sem merge)</span>
+<span class="tok">git branch -m novo-nome</span>          <span class="tmut"># renomear a branch atual</span>
+
+<span class="tmut"># ── Merge ────────────────────────────────────────────────────────</span>
+<span class="tok">git switch main</span>                  <span class="tmut"># entrar na branch de destino</span>
+<span class="tok">git merge feature/login</span>          <span class="tmut"># fast-forward ou three-way merge</span>
+<span class="tok">git merge --no-ff feature/login</span>  <span class="tmut"># forçar merge commit (preserva histórico)</span>
+<span class="tok">git merge --squash feature/login</span> <span class="tmut"># combina todos os commits em um</span>
+<span class="tok">git merge --abort</span>                <span class="tmut"># abortar merge em andamento</span></pre>
+  </div>
+
+  <h3>Fast-Forward vs Three-Way Merge</h3>
+  <!-- SVG: FF vs 3-way -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <!-- FAST FORWARD -->
+      <text x="175" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#7ee787">Fast-Forward Merge</text>
+      <text x="175" y="38" text-anchor="middle" font-size="10" fill="#7d8590">main não avançou — move o ponteiro</text>
+
+      <!-- Before FF -->
+      <text x="35" y="65" font-size="10" fill="#7d8590">Antes:</text>
+      <circle cx="80"  cy="85" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="80" cy="85" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#7ee787">C1</text>
+      <line x1="93" y1="85" x2="117" y2="85" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="130" cy="85" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="130" text-anchor="middle" y="89" font-size="9" fill="#7ee787">C2</text>
+      <rect x="114" y="65" width="32" height="14" rx="3" fill="#3fb950"/>
+      <text x="130" y="75" text-anchor="middle" font-size="8" font-weight="700" fill="#000">main</text>
+      <!-- feature branch -->
+      <line x1="143" y1="85" x2="162" y2="85" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="175" cy="85" r="13" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="175" text-anchor="middle" y="89" font-size="9" fill="#58a6ff">F1</text>
+      <line x1="188" y1="85" x2="207" y2="85" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="220" cy="85" r="13" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="220" text-anchor="middle" y="89" font-size="9" fill="#58a6ff">F2</text>
+      <rect x="200" y="65" width="40" height="14" rx="3" fill="#58a6ff"/>
+      <text x="220" y="75" text-anchor="middle" font-size="8" font-weight="700" fill="#000">feature</text>
+
+      <!-- After FF -->
+      <text x="35" y="130" font-size="10" fill="#7d8590">Depois:</text>
+      <circle cx="80"  cy="150" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="80" text-anchor="middle" y="154" font-size="9" fill="#7ee787">C1</text>
+      <line x1="93" y1="150" x2="117" y2="150" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="130" cy="150" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="130" text-anchor="middle" y="154" font-size="9" fill="#7ee787">C2</text>
+      <line x1="143" y1="150" x2="162" y2="150" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="175" cy="150" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="175" text-anchor="middle" y="154" font-size="9" fill="#7ee787">F1</text>
+      <line x1="188" y1="150" x2="207" y2="150" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="220" cy="150" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="220" text-anchor="middle" y="154" font-size="9" fill="#7ee787">F2</text>
+      <rect x="200" y="130" width="32" height="14" rx="3" fill="#3fb950"/>
+      <text x="216" y="140" text-anchor="middle" font-size="8" font-weight="700" fill="#000">main</text>
+      <text x="130" y="178" text-anchor="middle" font-size="9" fill="#7ee787">→ main avança sem commit extra</text>
+
+      <!-- Divider -->
+      <line x1="378" y1="15" x2="378" y2="220" stroke="#21262d" stroke-width="2"/>
+
+      <!-- THREE-WAY -->
+      <text x="575" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#ff3b5c">Three-Way Merge</text>
+      <text x="575" y="38" text-anchor="middle" font-size="10" fill="#7d8590">ambas as branches avançaram</text>
+
+      <!-- main e feature divergiram -->
+      <circle cx="420" cy="105" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="420" text-anchor="middle" y="109" font-size="9" fill="#7ee787">C1</text>
+      <text x="420" y="128" text-anchor="middle" font-size="8" fill="#7d8590">base</text>
+
+      <!-- main went right -->
+      <line x1="433" y1="95" x2="487" y2="72" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="500" cy="65" r="13" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="500" text-anchor="middle" y="69" font-size="9" fill="#7ee787">C2</text>
+      <rect x="483" y="45" width="34" height="14" rx="3" fill="#3fb950"/>
+      <text x="500" y="55" text-anchor="middle" font-size="8" font-weight="700" fill="#000">main</text>
+
+      <!-- feature went down -->
+      <line x1="433" y1="115" x2="487" y2="138" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="500" cy="150" r="13" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="500" text-anchor="middle" y="154" font-size="9" fill="#58a6ff">F1</text>
+      <rect x="483" y="162" width="40" height="14" rx="3" fill="#58a6ff"/>
+      <text x="503" y="172" text-anchor="middle" font-size="8" font-weight="700" fill="#000">feature</text>
+
+      <!-- merge commit -->
+      <line x1="513" y1="70" x2="577" y2="100" stroke="#484f58" stroke-width="1.5"/>
+      <line x1="513" y1="150" x2="577" y2="120" stroke="#484f58" stroke-width="1.5"/>
+      <circle cx="590" cy="108" r="16" fill="#1c2128" stroke="#7ee787" stroke-width="2.5"/>
+      <text x="590" text-anchor="middle" y="112" font-size="9" fill="#7ee787" font-weight="700">M</text>
+      <rect x="573" y="82" width="34" height="14" rx="3" fill="#3fb950"/>
+      <text x="590" y="92" text-anchor="middle" font-size="8" font-weight="700" fill="#000">main</text>
+      <text x="590" y="136" text-anchor="middle" font-size="9" fill="#7ee787">merge commit</text>
+      <text x="590" y="150" text-anchor="middle" font-size="9" fill="#7d8590">preserva todo o histórico</text>
+    </svg>
+    <p class="svg-caption">Fast-forward: simples e linear. Three-way: necessário quando ambas as branches evoluíram</p>
+  </div>
+
+  <div class="practice">
+    <div class="prac-hdr"><span class="prac-badge">Prática 4.1</span><h3>🧪 Fluxo completo de Feature Branch</h3></div>
+    <div class="cb">
+      <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+      <pre><span class="tmut"># Criar a feature branch</span>
+<span class="tok">git switch -c feature/calculadora</span>
+
+<span class="tmut"># Trabalhar na feature (2 commits)</span>
+<span class="tok">echo 'def subtrair(a,b): return a - b' >> calc.py</span>
+<span class="tok">git add calc.py && git commit -m "feat: adiciona subtração"</span>
+
+<span class="tok">echo 'def multiplicar(a,b): return a * b' >> calc.py</span>
+<span class="tok">git add calc.py && git commit -m "feat: adiciona multiplicação"</span>
+
+<span class="tmut"># Ver histórico com grafo</span>
+<span class="tok">git log --oneline --graph --all</span>
+
+<span class="tmut"># Voltar para main e fazer o merge</span>
+<span class="tok">git switch main</span>
+<span class="tok">git merge feature/calculadora</span>
+
+<span class="tmut"># Deletar a branch após o merge (boa prática)</span>
+<span class="tok">git branch -d feature/calculadora</span>
+
+<span class="tok">git log --oneline --graph --all</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S05 — REBASE E CONFLITOS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s05">
+  <div class="sec-header">
+    <div class="sec-num">05</div>
+    <div class="sec-tg"><h2>Rebase e Conflitos</h2><p>Histórico linear e resolvendo divergências</p></div>
+  </div>
+
+  <h3>Merge vs Rebase — comparação visual</h3>
+  <!-- SVG: Merge vs Rebase -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <!-- MERGE side -->
+      <text x="185" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#ff3b5c">git merge</text>
+      <text x="185" y="38" text-anchor="middle" font-size="10" fill="#7d8590">preserva histórico exato</text>
+
+      <!-- main -->
+      <circle cx="60"  cy="80" r="12" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="60"  y="84" text-anchor="middle" font-size="9" fill="#7ee787">A</text>
+      <line x1="72" y1="80" x2="98" y2="80" stroke="#3fb950" stroke-width="1.5"/>
+      <circle cx="110" cy="80" r="12" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="110" y="84" text-anchor="middle" font-size="9" fill="#7ee787">B</text>
+      <line x1="122" y1="80" x2="148" y2="80" stroke="#3fb950" stroke-width="1.5"/>
+      <circle cx="160" cy="80" r="12" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="160" y="84" text-anchor="middle" font-size="9" fill="#7ee787">C</text>
+
+      <!-- feature -->
+      <line x1="72"  y1="87" x2="108" y2="153" stroke="#484f58" stroke-width="1.2"/>
+      <circle cx="120" cy="165" r="12" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="120" y="169" text-anchor="middle" font-size="9" fill="#58a6ff">X</text>
+      <line x1="132" y1="165" x2="168" y2="165" stroke="#58a6ff" stroke-width="1.5"/>
+      <circle cx="180" cy="165" r="12" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="180" y="169" text-anchor="middle" font-size="9" fill="#58a6ff">Y</text>
+
+      <!-- merge commit -->
+      <line x1="172" y1="80"  x2="218" y2="80"  stroke="#3fb950" stroke-width="1.5"/>
+      <line x1="192" y1="165" x2="218" y2="95"  stroke="#58a6ff" stroke-width="1.2"/>
+      <circle cx="230" cy="80" r="14" fill="#1c2128" stroke="#7ee787" stroke-width="2.5"/>
+      <text x="230" y="84" text-anchor="middle" font-size="9" fill="#7ee787" font-weight="700">M</text>
+      <text x="230" y="106" text-anchor="middle" font-size="8" fill="#ff3b5c">merge commit</text>
+
+      <!-- labels -->
+      <rect x="140" y="60" width="30" height="13" rx="3" fill="#3fb950"/>
+      <text x="155" y="70" text-anchor="middle" font-size="8" font-weight="700" fill="#000">main</text>
+      <rect x="158" y="178" width="36" height="13" rx="3" fill="#58a6ff"/>
+      <text x="176" y="188" text-anchor="middle" font-size="8" font-weight="700" fill="#000">feature</text>
+
+      <text x="185" y="220" text-anchor="middle" font-size="10" fill="#ff3b5c">✓ Histórico exato — quando e como foi</text>
+      <text x="185" y="236" text-anchor="middle" font-size="10" fill="#7d8590">grafo não-linear, pode ficar complexo</text>
+
+      <!-- Divider -->
+      <line x1="390" y1="15" x2="390" y2="280" stroke="#21262d" stroke-width="2"/>
+
+      <!-- REBASE side -->
+      <text x="595" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#7ee787">git rebase</text>
+      <text x="595" y="38" text-anchor="middle" font-size="10" fill="#7d8590">reaplica commits — histórico linear</text>
+
+      <!-- main (antes) -->
+      <circle cx="430" cy="80" r="12" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="430" y="84" text-anchor="middle" font-size="9" fill="#7ee787">A</text>
+      <line x1="442" y1="80" x2="468" y2="80" stroke="#3fb950" stroke-width="1.5"/>
+      <circle cx="480" cy="80" r="12" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="480" y="84" text-anchor="middle" font-size="9" fill="#7ee787">B</text>
+      <line x1="492" y1="80" x2="518" y2="80" stroke="#3fb950" stroke-width="1.5"/>
+      <circle cx="530" cy="80" r="12" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="530" y="84" text-anchor="middle" font-size="9" fill="#7ee787">C</text>
+
+      <!-- old feature (faded) -->
+      <line x1="442" y1="87" x2="468" y2="143" stroke="#484f58" stroke-width="1" opacity=".4"/>
+      <circle cx="480" cy="155" r="12" fill="#1c2128" stroke="#484f58" stroke-width="1.5" opacity=".4"/>
+      <text x="480" y="159" text-anchor="middle" font-size="9" fill="#7d8590" opacity=".5">X</text>
+      <line x1="492" y1="155" x2="518" y2="155" stroke="#484f58" stroke-width="1" opacity=".4"/>
+      <circle cx="530" cy="155" r="12" fill="#1c2128" stroke="#484f58" stroke-width="1.5" opacity=".4"/>
+      <text x="530" y="159" text-anchor="middle" font-size="9" fill="#7d8590" opacity=".5">Y</text>
+      <text x="506" y="188" text-anchor="middle" font-size="9" fill="#484f58" opacity=".5">commits originais (descartados)</text>
+
+      <!-- rewritten commits on top of C -->
+      <line x1="542" y1="80" x2="568" y2="80" stroke="#3fb950" stroke-width="1.5"/>
+      <circle cx="580" cy="80" r="12" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="580" y="84" text-anchor="middle" font-size="9" fill="#58a6ff">X'</text>
+      <line x1="592" y1="80" x2="618" y2="80" stroke="#3fb950" stroke-width="1.5"/>
+      <circle cx="630" cy="80" r="12" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="630" y="84" text-anchor="middle" font-size="9" fill="#58a6ff">Y'</text>
+
+      <text x="580" y="108" text-anchor="middle" font-size="9" fill="#58a6ff">commits "reescritos"</text>
+      <text x="580" y="121" text-anchor="middle" font-size="9" fill="#7d8590">mesmo conteúdo, novo hash</text>
+
+      <rect x="608" y="60" width="36" height="13" rx="3" fill="#58a6ff"/>
+      <text x="626" y="70" text-anchor="middle" font-size="8" font-weight="700" fill="#000">feature</text>
+
+      <text x="595" y="220" text-anchor="middle" font-size="10" fill="#7ee787">✓ Histórico linear — fácil de ler</text>
+      <text x="595" y="236" text-anchor="middle" font-size="10" fill="#7d8590">NÃO usar em branches compartilhadas</text>
+    </svg>
+    <p class="svg-caption">Use <strong>merge</strong> para branches compartilhadas (main, develop). Use <strong>rebase</strong> para branches pessoais antes de abrir PR</p>
+  </div>
+
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — rebase</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Rebase básico ────────────────────────────────────────────────</span>
+<span class="tok">git switch feature/login</span>
+<span class="tok">git rebase main</span>          <span class="tmut"># reaplica commits da feature em cima da main</span>
+
+<span class="tmut"># ── Rebase interativo — reescrever os últimos 3 commits ──────────</span>
+<span class="tok">git rebase -i HEAD~3</span>
+
+<span class="tmut"># No editor, use os comandos:</span>
+<span class="tmut"># pick   → manter o commit como está</span>
+<span class="tmut"># reword → manter o commit, editar a mensagem</span>
+<span class="tmut"># squash → combinar com o commit anterior</span>
+<span class="tmut"># fixup  → combinar com o anterior, descartar esta mensagem</span>
+<span class="tmut"># drop   → descartar o commit completamente</span>
+
+<span class="tmut"># ── Abortar um rebase em andamento ───────────────────────────────</span>
+<span class="tok">git rebase --abort</span>
+
+<span class="tmut"># ── Continuar após resolver conflito de rebase ────────────────────</span>
+<span class="tok">git add arquivo-resolvido.py</span>
+<span class="tok">git rebase --continue</span></pre>
+  </div>
+
+  <h3>Resolvendo Conflitos — passo a passo</h3>
+  <!-- SVG: Conflict resolution flow -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 740 170" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <marker id="a2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#ce0037"/>
+        </marker>
+      </defs>
+      <!-- boxes -->
+      <rect x="10"  y="50" width="130" height="70" rx="8" fill="#21262d" stroke="#ff7b72" stroke-width="1.5"/>
+      <text x="75"  y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#ff7b72">⚠ Conflito!</text>
+      <text x="75"  y="88" text-anchor="middle" font-size="9" fill="#7d8590">git merge/rebase</text>
+      <text x="75"  y="102" text-anchor="middle" font-size="9" fill="#7d8590">detectou conflito</text>
+
+      <line x1="140" y1="85" x2="160" y2="85" stroke="#ce0037" stroke-width="2" marker-end="url(#a2)"/>
+
+      <rect x="162" y="50" width="150" height="70" rx="8" fill="#21262d" stroke="#ce0037" stroke-width="1.5"/>
+      <text x="237" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#ff3b5c">Abrir arquivo</text>
+      <text x="237" y="88" text-anchor="middle" font-size="9" fill="#7d8590">Encontrar &lt;&lt;&lt; === &gt;&gt;&gt;</text>
+      <text x="237" y="102" text-anchor="middle" font-size="9" fill="#7d8590">VS Code mostra botões</text>
+
+      <line x1="312" y1="85" x2="332" y2="85" stroke="#ce0037" stroke-width="2" marker-end="url(#a2)"/>
+
+      <rect x="334" y="50" width="150" height="70" rx="8" fill="#21262d" stroke="#ff3b5c" stroke-width="1.5"/>
+      <text x="409" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#ff3b5c">Editar e escolher</text>
+      <text x="409" y="88" text-anchor="middle" font-size="9" fill="#7d8590">remover marcadores</text>
+      <text x="409" y="102" text-anchor="middle" font-size="9" fill="#7d8590">manter código correto</text>
+
+      <line x1="484" y1="85" x2="504" y2="85" stroke="#ce0037" stroke-width="2" marker-end="url(#a2)"/>
+
+      <rect x="506" y="50" width="150" height="70" rx="8" fill="#21262d" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="581" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#7ee787">Finalizar</text>
+      <text x="581" y="88" text-anchor="middle" font-size="9" fill="#7d8590">git add arquivo</text>
+      <text x="581" y="102" text-anchor="middle" font-size="9" fill="#7d8590">git commit / continue</text>
+
+      <!-- labels abaixo -->
+      <text x="75"  y="138" text-anchor="middle" font-size="9" fill="#ff7b72">CONFLICT detected</text>
+      <text x="237" y="138" text-anchor="middle" font-size="9" fill="#ff3b5c">git status mostra</text>
+      <text x="237" y="150" text-anchor="middle" font-size="9" fill="#ff3b5c">"both modified"</text>
+      <text x="409" y="138" text-anchor="middle" font-size="9" fill="#ff3b5c">Accept Current</text>
+      <text x="409" y="150" text-anchor="middle" font-size="9" fill="#ff3b5c">Accept Incoming</text>
+      <text x="581" y="138" text-anchor="middle" font-size="9" fill="#7ee787">merge concluído!</text>
+    </svg>
+    <p class="svg-caption">Conflito não é erro — é o Git pedindo sua decisão quando duas branches alteram a mesma linha</p>
+  </div>
+
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">arquivo com conflito — o que aparece</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"><<<<<<< HEAD</span>
+<span class="tg2">titulo = "App v1.0 — Versão Estável"</span>     <span class="tmut">← SUA versão (branch atual)</span>
+<span class="tmut">=======</span>
+<span class="tg2">titulo = "App v2.0 — Nova Identidade"</span>     <span class="tmut">← versão do merge/rebase</span>
+<span class="tmut">>>>>>>> feature/rebrand</span>
+
+<span class="tmut"># RESOLVER: apagar os marcadores e deixar APENAS o que você quer:</span>
+<span class="tg2">titulo = "App v2.0 — Nova Identidade"</span>     <span class="tmut">← decisão tomada</span>
+
+<span class="tmut"># Finalizar:</span>
+<span class="tok">git add arquivo_resolvido.py</span>
+<span class="tok">git commit -m "merge: resolve conflito de título — mantém v2.0"</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S06 — STASH, TAGS E LOG
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s06">
+  <div class="sec-header">
+    <div class="sec-num">06</div>
+    <div class="sec-tg"><h2>Stash, Tags e Log</h2><p>Ferramentas do dia a dia para situações específicas</p></div>
+  </div>
+
+  <h3>Git Stash — guardar trabalho temporariamente</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — stash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># Cenário: você está no meio de algo e precisa trocar de branch urgente</span>
+<span class="tmut"># Mas não quer commitar código incompleto</span>
+
+<span class="tok">git stash</span>                                  <span class="tmut"># salva e limpa o working dir</span>
+<span class="tok">git stash push -m "WIP: tela de login"</span>     <span class="tmut"># com mensagem descritiva</span>
+<span class="tok">git stash push --include-untracked</span>         <span class="tmut"># inclui arquivos novos</span>
+
+<span class="tok">git stash list</span>                             <span class="tmut"># ver todos os stashes</span>
+<span class="tok">git stash show stash@{0}</span>                   <span class="tmut"># ver o que está no stash</span>
+
+<span class="tok">git stash pop</span>                              <span class="tmut"># restaura e remove da lista</span>
+<span class="tok">git stash apply</span>                            <span class="tmut"># restaura mas mantém na lista</span>
+<span class="tok">git stash apply stash@{1}</span>                  <span class="tmut"># restaurar stash específico</span>
+
+<span class="tok">git stash drop stash@{0}</span>                   <span class="tmut"># remover sem aplicar</span>
+<span class="tok">git stash clear</span>                            <span class="tmut"># limpar todos os stashes</span>
+
+<span class="tmut"># Criar branch a partir de um stash</span>
+<span class="tok">git stash branch feature/nova-branch stash@{0}</span></pre>
+  </div>
+
+  <h3>Git Tags — marcando versões</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — tags e versionamento semântico</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Criar tags ────────────────────────────────────────────────────</span>
+<span class="tok">git tag v1.0.0</span>                              <span class="tmut"># tag leve (só um marcador)</span>
+<span class="tok">git tag -a v1.0.0 -m "Release: v1.0.0 — versão inicial estável"</span>
+<span class="tmut"># -a = annotated tag (recomendada): inclui autor, data e mensagem</span>
+
+<span class="tmut"># Tag em um commit específico</span>
+<span class="tok">git tag -a v0.9.0 a3f8b2c -m "Release: v0.9.0 beta"</span>
+
+<span class="tmut"># ── Listar e inspecionar ──────────────────────────────────────────</span>
+<span class="tok">git tag</span>                                     <span class="tmut"># listar todas</span>
+<span class="tok">git tag -l "v1.*"</span>                           <span class="tmut"># filtrar por padrão</span>
+<span class="tok">git show v1.0.0</span>                             <span class="tmut"># detalhes da tag</span>
+
+<span class="tmut"># ── Enviar para o remoto ──────────────────────────────────────────</span>
+<span class="tok">git push origin v1.0.0</span>                      <span class="tmut"># uma tag específica</span>
+<span class="tok">git push origin --tags</span>                      <span class="tmut"># todas as tags</span>
+
+<span class="tmut"># ── Versionamento semântico (MAJOR.MINOR.PATCH) ───────────────────</span>
+<span class="tmut"># v1.0.0  → versão inicial</span>
+<span class="tmut"># v1.0.1  → bugfix</span>
+<span class="tmut"># v1.1.0  → nova feature sem breaking change</span>
+<span class="tmut"># v2.0.0  → breaking change (API incompatível)</span></pre>
+  </div>
+
+  <h3>Git Log avançado — encontrando qualquer coisa</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — git log avançado</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tok">git log --oneline --graph --all --decorate</span>  <span class="tmut"># visão completa com grafo</span>
+<span class="tok">git log -p</span>                                  <span class="tmut"># com diff de cada commit</span>
+<span class="tok">git log --stat</span>                              <span class="tmut"># arquivos alterados por commit</span>
+<span class="tok">git log --author="Emmerson"</span>
+<span class="tok">git log --since="2025-01-01" --until="2025-06-01"</span>
+<span class="tok">git log --grep="login"</span>                      <span class="tmut"># busca na mensagem</span>
+<span class="tok">git log -S "nome_da_funcao"</span>                 <span class="tmut"># busca no conteúdo do código</span>
+<span class="tok">git log main..feature/login</span>                <span class="tmut"># commits exclusivos da feature</span>
+<span class="tok">git log --no-merges</span>                         <span class="tmut"># sem commits de merge</span>
+
+<span class="tmut"># Formato personalizado</span>
+<span class="tok">git log --format="%h  %an  %ar  %s"</span>
+<span class="tmut">#                   ↑    ↑    ↑    ↑</span>
+<span class="tmut">#                 hash autor data  assunto</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S07 — GITHUB E REPOSITÓRIO REMOTO
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s07">
+  <div class="sec-header">
+    <div class="sec-num">07</div>
+    <div class="sec-tg"><h2>GitHub e Repositório Remoto</h2><p>Colaboração na nuvem</p></div>
+  </div>
+
+  <div class="box concept">
+    <span class="bxi">🧠</span>
+    <div class="bxc">
+      <strong>Git ≠ GitHub</strong>
+      <p><strong>Git</strong> é a ferramenta local de controle de versão. <strong>GitHub</strong> é a plataforma web que hospeda repositórios Git na nuvem. Analogia: Git é o Word, GitHub é o Google Drive.</p>
+    </div>
+  </div>
+
+  <!-- SVG: Git local vs GitHub remote -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <marker id="ap" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#ce0037"/>
+        </marker>
+        <marker id="ap2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/>
+        </marker>
+      </defs>
+
+      <!-- Dev A -->
+      <rect x="10" y="55" width="160" height="130" rx="10" fill="#21262d" stroke="#484f58" stroke-width="1.5"/>
+      <text x="90" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#e6edf3">Dev A (local)</text>
+      <rect x="28" y="88" width="124" height="26" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1"/>
+      <text x="90" y="104" text-anchor="middle" font-size="10" fill="#7ee787">repo + histórico</text>
+      <rect x="28" y="122" width="124" height="26" rx="5" fill="#1c2128" stroke="#ce0037" stroke-width="1"/>
+      <text x="90" y="138" text-anchor="middle" font-size="10" fill="#ff3b5c">working directory</text>
+      <rect x="28" y="155" width="124" height="22" rx="5" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="90" y="169" text-anchor="middle" font-size="10" fill="#7d8590">staging area</text>
+
+      <!-- GitHub Remote -->
+      <rect x="290" y="30" width="180" height="180" rx="12" fill="#21262d" stroke="#ce0037" stroke-width="2"/>
+      <text x="380" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#ff3b5c">GitHub (remoto)</text>
+      <rect x="310" y="68" width="140" height="26" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1"/>
+      <text x="380" y="84" text-anchor="middle" font-size="10" fill="#7ee787">repositório central</text>
+      <rect x="310" y="102" width="140" height="22" rx="5" fill="#1c2128" stroke="#ce0037" stroke-width="1"/>
+      <text x="380" y="116" text-anchor="middle" font-size="10" fill="#ff3b5c">branches remotas</text>
+      <rect x="310" y="132" width="140" height="22" rx="5" fill="#1c2128" stroke="#58a6ff" stroke-width="1"/>
+      <text x="380" y="146" text-anchor="middle" font-size="10" fill="#a5d6ff">Pull Requests</text>
+      <rect x="310" y="162" width="140" height="22" rx="5" fill="#1c2128" stroke="#d2a8ff" stroke-width="1"/>
+      <text x="380" y="176" text-anchor="middle" font-size="10" fill="#d8b4fe">Issues / Actions</text>
+
+      <!-- Dev B -->
+      <rect x="590" y="55" width="160" height="130" rx="10" fill="#21262d" stroke="#484f58" stroke-width="1.5"/>
+      <text x="670" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#e6edf3">Dev B (local)</text>
+      <rect x="608" y="88" width="124" height="26" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1"/>
+      <text x="670" y="104" text-anchor="middle" font-size="10" fill="#7ee787">repo + histórico</text>
+      <rect x="608" y="122" width="124" height="26" rx="5" fill="#1c2128" stroke="#ce0037" stroke-width="1"/>
+      <text x="670" y="138" text-anchor="middle" font-size="10" fill="#ff3b5c">working directory</text>
+      <rect x="608" y="155" width="124" height="22" rx="5" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="670" y="169" text-anchor="middle" font-size="10" fill="#7d8590">staging area</text>
+
+      <!-- Arrows: Dev A ↔ GitHub -->
+      <path d="M 170 100 C 210 90 260 75 288 85" stroke="#ce0037" stroke-width="2" fill="none" marker-end="url(#ap)"/>
+      <text x="228" y="78" text-anchor="middle" font-size="9" fill="#ff3b5c">git push</text>
+      <path d="M 288 125 C 260 135 210 140 170 135" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#ap2)"/>
+      <text x="228" y="148" text-anchor="middle" font-size="9" fill="#a5d6ff">git pull / fetch</text>
+
+      <!-- Arrows: GitHub ↔ Dev B -->
+      <path d="M 472 85 C 510 75 560 88 588 100" stroke="#ce0037" stroke-width="2" fill="none" marker-end="url(#ap)"/>
+      <text x="532" y="76" text-anchor="middle" font-size="9" fill="#ff3b5c">git push</text>
+      <path d="M 588 135 C 560 140 510 138 472 125" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#ap2)"/>
+      <text x="532" y="150" text-anchor="middle" font-size="9" fill="#a5d6ff">git pull</text>
+    </svg>
+    <p class="svg-caption">GitHub é o ponto de encontro — cada dev trabalha localmente e sincroniza via push/pull</p>
+  </div>
+
+  <h3>Conectando local ao remoto</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — remote, push, pull, fetch</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Conectar ao remoto ────────────────────────────────────────────</span>
+<span class="tok">git remote add origin https://github.com/usuario/repo.git</span>
+<span class="tok">git remote -v</span>                              <span class="tmut"># ver remotos configurados</span>
+<span class="tok">git remote set-url origin URL_NOVA</span>         <span class="tmut"># trocar URL</span>
+<span class="tok">git remote remove origin</span>
+
+<span class="tmut"># ── Primeiro push ─────────────────────────────────────────────────</span>
+<span class="tok">git push -u origin main</span>
+<span class="tmut"># -u = --set-upstream: vincula branch local com a remota</span>
+<span class="tmut"># após isso, basta: git push</span>
+
+<span class="tmut"># ── Enviar uma branch nova ────────────────────────────────────────</span>
+<span class="tok">git push origin feature/login</span>
+
+<span class="tmut"># ── Baixar atualizações ────────────────────────────────────────────</span>
+<span class="tok">git fetch origin</span>                           <span class="tmut"># busca sem integrar</span>
+<span class="tok">git pull origin main</span>                       <span class="tmut"># fetch + merge</span>
+<span class="tok">git pull --rebase origin main</span>              <span class="tmut"># fetch + rebase (histórico mais limpo)</span>
+
+<span class="tmut"># ── Clonar e trabalhar ────────────────────────────────────────────</span>
+<span class="tok">git clone https://github.com/usuario/repo.git</span>
+<span class="tok">git clone --depth 1 URL</span>                   <span class="tmut"># clone superficial (apenas último commit)</span>
+
+<span class="tmut"># ── Deletar branch remota ─────────────────────────────────────────</span>
+<span class="tok">git push origin --delete feature/login</span></pre>
+  </div>
+
+  <h3>Autenticação — PAT e SSH</h3>
+  <div class="two-col">
+    <div>
+      <h3>Personal Access Token (PAT)</h3>
+      <div class="cb">
+        <div class="cb-h"><span class="cb-lang">PAT — passo a passo</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+        <pre><span class="tmut"># GitHub → Settings → Developer Settings</span>
+<span class="tmut"># → Personal access tokens → Tokens (classic)</span>
+<span class="tmut"># → Generate new token</span>
+<span class="tmut"># Escopos: repo, workflow, read:org</span>
+<span class="tmut"># Salvar o token gerado (só aparece uma vez!)</span>
+
+<span class="tmut"># Usar o token como senha no push/pull:</span>
+<span class="tmut"># Username: seu-usuario-github</span>
+<span class="tmut"># Password: ghp_SeuTokenAqui</span>
+
+<span class="tmut"># Salvar para não digitar sempre:</span>
+<span class="tok">git config --global credential.helper store</span>
+<span class="tmut"># Mac: osxkeychain | Windows: manager</span></pre>
+      </div>
+    </div>
+    <div>
+      <h3>SSH Key (recomendado)</h3>
+      <div class="cb">
+        <div class="cb-h"><span class="cb-lang">SSH — configurar</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+        <pre><span class="tmut"># Gerar par de chaves</span>
+<span class="tok">ssh-keygen -t ed25519 -C "seu@email.com"</span>
+<span class="tmut"># Pressione Enter para aceitar o caminho padrão</span>
+
+<span class="tmut"># Copiar a chave pública</span>
+<span class="tok">cat ~/.ssh/id_ed25519.pub</span>
+<span class="tmut"># GitHub → Settings → SSH Keys → New</span>
+<span class="tmut"># Cole a chave copiada</span>
+
+<span class="tmut"># Testar conexão</span>
+<span class="tok">ssh -T git@github.com</span>
+<span class="tmut"># "Hi usuario! You've successfully authenticated"</span>
+
+<span class="tmut"># Usar SSH nas URLs dos repositórios:</span>
+<span class="tok">git remote set-url origin git@github.com:user/repo.git</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S08 — PULL REQUESTS E CODE REVIEW
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s08">
+  <div class="sec-header">
+    <div class="sec-num">08</div>
+    <div class="sec-tg"><h2>Pull Requests e Code Review</h2><p>A forma profissional de colaborar em equipe</p></div>
+  </div>
+
+  <!-- SVG: PR Flow -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 780 180" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <marker id="af" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#ce0037"/>
+        </marker>
+      </defs>
+      <!-- Steps boxes -->
+      <rect x="8"   y="50" width="105" height="80" rx="8" fill="#21262d" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="60"  y="75" text-anchor="middle" font-size="10" font-weight="700" fill="#7ee787">1. Branch</text>
+      <text x="60"  y="91" text-anchor="middle" font-size="9" fill="#7d8590">git switch -c</text>
+      <text x="60"  y="106" text-anchor="middle" font-size="9" fill="#7d8590">feature/xxx</text>
+
+      <line x1="113" y1="90" x2="133" y2="90" stroke="#ce0037" stroke-width="2" marker-end="url(#af)"/>
+
+      <rect x="135" y="50" width="105" height="80" rx="8" fill="#21262d" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="187" y="75" text-anchor="middle" font-size="10" font-weight="700" fill="#7ee787">2. Commits</text>
+      <text x="187" y="91" text-anchor="middle" font-size="9" fill="#7d8590">git add . </text>
+      <text x="187" y="106" text-anchor="middle" font-size="9" fill="#7d8590">git commit</text>
+
+      <line x1="240" y1="90" x2="260" y2="90" stroke="#ce0037" stroke-width="2" marker-end="url(#af)"/>
+
+      <rect x="262" y="50" width="105" height="80" rx="8" fill="#21262d" stroke="#ce0037" stroke-width="1.5"/>
+      <text x="314" y="75" text-anchor="middle" font-size="10" font-weight="700" fill="#ff3b5c">3. Push</text>
+      <text x="314" y="91" text-anchor="middle" font-size="9" fill="#7d8590">git push origin</text>
+      <text x="314" y="106" text-anchor="middle" font-size="9" fill="#7d8590">feature/xxx</text>
+
+      <line x1="367" y1="90" x2="387" y2="90" stroke="#ce0037" stroke-width="2" marker-end="url(#af)"/>
+
+      <rect x="389" y="50" width="105" height="80" rx="8" fill="#21262d" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="441" y="75" text-anchor="middle" font-size="10" font-weight="700" fill="#a5d6ff">4. Abrir PR</text>
+      <text x="441" y="91" text-anchor="middle" font-size="9" fill="#7d8590">título + desc</text>
+      <text x="441" y="106" text-anchor="middle" font-size="9" fill="#7d8590">no GitHub</text>
+
+      <line x1="494" y1="90" x2="514" y2="90" stroke="#ce0037" stroke-width="2" marker-end="url(#af)"/>
+
+      <rect x="516" y="50" width="105" height="80" rx="8" fill="#21262d" stroke="#d2a8ff" stroke-width="1.5"/>
+      <text x="568" y="72" text-anchor="middle" font-size="10" font-weight="700" fill="#d8b4fe">5. Review</text>
+      <text x="568" y="87" text-anchor="middle" font-size="9" fill="#7d8590">revisor aprova</text>
+      <text x="568" y="102" text-anchor="middle" font-size="9" fill="#7d8590">ou pede ajustes</text>
+      <text x="568" y="117" text-anchor="middle" font-size="9" fill="#7d8590">CI deve passar</text>
+
+      <line x1="621" y1="90" x2="641" y2="90" stroke="#ce0037" stroke-width="2" marker-end="url(#af)"/>
+
+      <rect x="643" y="50" width="118" height="80" rx="8" fill="#21262d" stroke="#7ee787" stroke-width="2"/>
+      <text x="702" y="75" text-anchor="middle" font-size="10" font-weight="700" fill="#7ee787">6. Merge!</text>
+      <text x="702" y="91" text-anchor="middle" font-size="9" fill="#7d8590">→ main</text>
+      <text x="702" y="106" text-anchor="middle" font-size="9" fill="#7d8590">deletar branch</text>
+    </svg>
+    <p class="svg-caption">O fluxo de Pull Request é o coração da colaboração profissional — código revisado antes de entrar na main</p>
+  </div>
+
+  <h3>Template de descrição de PR</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">markdown — .github/pull_request_template.md</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut">## O que este PR faz</span>
+<span class="tw">Descreva em 2-3 linhas o que foi implementado e por quê.</span>
+
+<span class="tmut">## Tipo de mudança</span>
+<span class="tw">- [ ] Bug fix</span>
+<span class="tw">- [ ] Nova feature</span>
+<span class="tw">- [ ] Refatoração</span>
+<span class="tw">- [ ] Documentação</span>
+
+<span class="tmut">## Como testar</span>
+<span class="tw">1. Faça checkout desta branch</span>
+<span class="tw">2. Execute: `python run.py`</span>
+<span class="tw">3. Acesse: `http://localhost:5000/api/pacientes/`</span>
+<span class="tw">4. Esperado: lista de pacientes retornada com status 200</span>
+
+<span class="tmut">## Checklist</span>
+<span class="tw">- [ ] Testes adicionados/atualizados</span>
+<span class="tw">- [ ] Documentação atualizada</span>
+<span class="tw">- [ ] Sem secrets ou credenciais no código</span>
+<span class="tw">- [ ] CI passou (badges verdes)</span>
+
+<span class="tmut">## Referência</span>
+<span class="tw">Closes #NUMERO_DO_ISSUE</span></pre>
+  </div>
+
+  <div class="practice">
+    <div class="prac-hdr"><span class="prac-badge">Prática 8.1</span><h3>🧪 Fluxo completo de PR (em dupla ou simulado)</h3></div>
+    <div class="cb">
+      <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+      <pre><span class="tmut"># 1. Criar branch de feature</span>
+<span class="tok">git switch -c feature/endpoint-medicos</span>
+
+<span class="tmut"># 2. Fazer mudanças e commitar</span>
+<span class="tok">echo "# endpoint de médicos" >> notas.md</span>
+<span class="tok">git add notas.md && git commit -m "feat: adiciona endpoint de médicos"</span>
+
+<span class="tmut"># 3. Push para o GitHub</span>
+<span class="tok">git push origin feature/endpoint-medicos</span>
+
+<span class="tmut"># 4. No GitHub: clicar em "Compare & pull request"</span>
+<span class="tmut"># Preencher título e descrição, atribuir revisor</span>
+
+<span class="tmut"># 5. Após aprovação do PR, voltar para main e atualizar local</span>
+<span class="tok">git switch main</span>
+<span class="tok">git pull origin main</span>
+<span class="tok">git branch -d feature/endpoint-medicos</span>
+
+<span class="tmut"># 6. Confirmar que a mudança está na main</span>
+<span class="tok">git log --oneline -5</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S09 — GITFLOW E ESTRATÉGIAS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s09">
+  <div class="sec-header">
+    <div class="sec-num">09</div>
+    <div class="sec-tg"><h2>Gitflow e Estratégias de Branch</h2><p>Organizando o desenvolvimento em equipe</p></div>
+  </div>
+
+  <!-- SVG: Gitflow diagram -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 800 310" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <!-- Branch labels (left) -->
+      <text x="5"  y="55"  font-size="10" font-weight="700" fill="#7ee787">main</text>
+      <text x="5"  y="115" font-size="10" font-weight="700" fill="#ff3b5c">release</text>
+      <text x="5"  y="175" font-size="10" font-weight="700" fill="#a5d6ff">develop</text>
+      <text x="5"  y="228" font-size="10" font-weight="700" fill="#d8b4fe">feature</text>
+      <text x="5"  y="278" font-size="10" font-weight="700" fill="#ff7b72">hotfix</text>
+
+      <!-- MAIN line -->
+      <line x1="60" y1="50" x2="760" y2="50" stroke="#1c2128" stroke-width="2"/>
+      <circle cx="80"  cy="50" r="11" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="80" y="54" text-anchor="middle" font-size="8" fill="#7ee787">v0</text>
+      <circle cx="340" cy="50" r="13" fill="#1c2128" stroke="#7ee787" stroke-width="2.5"/>
+      <text x="340" y="54" text-anchor="middle" font-size="8" fill="#7ee787" font-weight="700">v1</text>
+      <circle cx="640" cy="50" r="13" fill="#1c2128" stroke="#7ee787" stroke-width="2.5"/>
+      <text x="640" y="54" text-anchor="middle" font-size="8" fill="#7ee787" font-weight="700">v2</text>
+      <circle cx="720" cy="50" r="11" fill="#1c2128" stroke="#ff7b72" stroke-width="2"/>
+      <text x="720" y="54" text-anchor="middle" font-size="8" fill="#ff7b72">hf</text>
+      <line x1="733" y1="50" x2="760" y2="50" stroke="#1c2128" stroke-width="2" stroke-dasharray="5,4"/>
+
+      <!-- DEVELOP line -->
+      <line x1="80" y1="170" x2="660" y2="170" stroke="#1c2128" stroke-width="2"/>
+      <!-- develop branches from main -->
+      <line x1="80" y1="61" x2="80" y2="159" stroke="#a5d6ff" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <circle cx="80"  cy="170" r="10" fill="#1c2128" stroke="#58a6ff" stroke-width="1.8"/>
+      <circle cx="200" cy="170" r="10" fill="#1c2128" stroke="#58a6ff" stroke-width="1.8"/>
+      <circle cx="320" cy="170" r="10" fill="#1c2128" stroke="#58a6ff" stroke-width="1.8"/>
+      <circle cx="440" cy="170" r="10" fill="#1c2128" stroke="#58a6ff" stroke-width="1.8"/>
+      <circle cx="560" cy="170" r="10" fill="#1c2128" stroke="#58a6ff" stroke-width="1.8"/>
+
+      <!-- FEATURE branches (from develop) -->
+      <line x1="80"  y1="180" x2="120" y2="220" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <line x1="120" y1="220" x2="200" y2="220" stroke="#d2a8ff" stroke-width="1.5"/>
+      <line x1="200" y1="220" x2="200" y2="180" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <circle cx="120" cy="220" r="9" fill="#1c2128" stroke="#bc8cff" stroke-width="1.8"/>
+      <circle cx="200" cy="220" r="9" fill="#1c2128" stroke="#bc8cff" stroke-width="1.8"/>
+      <text x="160" y="240" text-anchor="middle" font-size="9" fill="#d8b4fe">feature/login</text>
+
+      <line x1="200" y1="180" x2="240" y2="220" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <line x1="240" y1="220" x2="440" y2="220" stroke="#d2a8ff" stroke-width="1.5"/>
+      <line x1="440" y1="220" x2="440" y2="180" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <circle cx="240" cy="220" r="9" fill="#1c2128" stroke="#bc8cff" stroke-width="1.8"/>
+      <circle cx="340" cy="220" r="9" fill="#1c2128" stroke="#bc8cff" stroke-width="1.8"/>
+      <circle cx="440" cy="220" r="9" fill="#1c2128" stroke="#bc8cff" stroke-width="1.8"/>
+      <text x="340" y="240" text-anchor="middle" font-size="9" fill="#d8b4fe">feature/pagamento</text>
+
+      <!-- RELEASE branch -->
+      <line x1="560" y1="170" x2="560" y2="120" stroke="#ff3b5c" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <line x1="560" y1="120" x2="630" y2="120" stroke="#ff3b5c" stroke-width="1.5"/>
+      <line x1="630" y1="120" x2="640" y2="60"  stroke="#ff3b5c" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <line x1="630" y1="120" x2="655" y2="170" stroke="#a5d6ff" stroke-width="1.2" stroke-dasharray="3,2"/>
+      <circle cx="560" cy="120" r="9" fill="#1c2128" stroke="#ce0037" stroke-width="1.8"/>
+      <circle cx="610" cy="120" r="9" fill="#1c2128" stroke="#ce0037" stroke-width="1.8"/>
+      <text x="585" y="104" text-anchor="middle" font-size="9" fill="#ff3b5c">release/1.0</text>
+
+      <!-- HOTFIX branch -->
+      <line x1="640" y1="61" x2="700" y2="270" stroke="#ff7b72" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <line x1="700" y1="270" x2="720" y2="61" stroke="#ff7b72" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <circle cx="700" cy="270" r="9" fill="#1c2128" stroke="#ff7b72" stroke-width="1.8"/>
+      <text x="710" y="290" text-anchor="middle" font-size="9" fill="#ff7b72">hotfix/bug-crítico</text>
+
+      <!-- merge develop → main v1 -->
+      <line x1="325" y1="170" x2="333" y2="63" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="3,2"/>
+
+      <!-- Tags -->
+      <rect x="322" y="30" width="36" height="13" rx="3" fill="#3fb950"/>
+      <text x="340" y="40" text-anchor="middle" font-size="8" font-weight="700" fill="#000">v1.0.0</text>
+      <rect x="622" y="30" width="36" height="13" rx="3" fill="#3fb950"/>
+      <text x="640" y="40" text-anchor="middle" font-size="8" font-weight="700" fill="#000">v2.0.0</text>
+    </svg>
+    <p class="svg-caption">Gitflow: main (produção), develop (integração), feature (novas funções), release (estabilização) e hotfix (correções urgentes)</p>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>Branch</th><th>Origem</th><th>Merge para</th><th>Quando usar</th></tr></thead>
+    <tbody>
+      <tr><td>main</td><td>—</td><td>—</td><td>Código em produção. Apenas merges de release e hotfix</td></tr>
+      <tr><td>develop</td><td>main</td><td>release</td><td>Integração contínua — todas as features se encontram aqui</td></tr>
+      <tr><td>feature/*</td><td>develop</td><td>develop</td><td>Cada nova funcionalidade em branch isolada</td></tr>
+      <tr><td>release/*</td><td>develop</td><td>main + develop</td><td>Preparação de versão: testes, bugfixes menores, bump de versão</td></tr>
+      <tr><td>hotfix/*</td><td>main</td><td>main + develop</td><td>Correção urgente diretamente em produção</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box info">
+    <span class="bxi">ℹ️</span>
+    <div class="bxc">
+      <strong>Alternativa mais simples: GitHub Flow</strong>
+      <p>Para equipes menores ou projetos com deploy contínuo: apenas <code>main</code> + <code>feature/*</code>. Cada branch vai direto para a main via PR. Mais simples que Gitflow, amplamente usado em startups e projetos open source.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S10 — O QUE É GITHUB ACTIONS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s10">
+  <div class="sec-header">
+    <div class="sec-num">10</div>
+    <div class="sec-tg"><h2>O que é GitHub Actions?</h2><p>CI/CD nativo integrado ao GitHub</p></div>
+  </div>
+
+  <p>GitHub Actions é a plataforma de CI/CD integrada ao GitHub. Permite automatizar workflows <strong>diretamente no repositório</strong>, sem servidor externo. Cada push, PR, tag ou evento manual pode disparar uma sequência de ações.</p>
+
+  <!-- SVG: GitHub Actions architecture -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 780 310" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <marker id="aw" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#ce0037"/>
+        </marker>
+      </defs>
+
+      <!-- Event trigger -->
+      <rect x="10" y="30" width="140" height="250" rx="10" fill="#21262d" stroke="#484f58" stroke-width="1.5"/>
+      <text x="80" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#e6edf3">Eventos</text>
+      <rect x="22" y="62" width="116" height="22" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1"/>
+      <text x="80" y="76" text-anchor="middle" font-size="9.5" fill="#7ee787">git push</text>
+      <rect x="22" y="91" width="116" height="22" rx="5" fill="#1c2128" stroke="#58a6ff" stroke-width="1"/>
+      <text x="80" y="105" text-anchor="middle" font-size="9.5" fill="#a5d6ff">pull_request</text>
+      <rect x="22" y="120" width="116" height="22" rx="5" fill="#1c2128" stroke="#d2a8ff" stroke-width="1"/>
+      <text x="80" y="134" text-anchor="middle" font-size="9.5" fill="#d8b4fe">schedule (cron)</text>
+      <rect x="22" y="149" width="116" height="22" rx="5" fill="#1c2128" stroke="#ce0037" stroke-width="1"/>
+      <text x="80" y="163" text-anchor="middle" font-size="9.5" fill="#ff3b5c">workflow_dispatch</text>
+      <rect x="22" y="178" width="116" height="22" rx="5" fill="#1c2128" stroke="#ff3b5c" stroke-width="1"/>
+      <text x="80" y="192" text-anchor="middle" font-size="9.5" fill="#ff3b5c">tag push (v*.*.*)</text>
+      <rect x="22" y="207" width="116" height="22" rx="5" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="80" y="221" text-anchor="middle" font-size="9.5" fill="#7d8590">release</text>
+      <rect x="22" y="236" width="116" height="22" rx="5" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="80" y="250" text-anchor="middle" font-size="9.5" fill="#7d8590">issue_comment</text>
+
+      <!-- Arrow event → workflow -->
+      <line x1="150" y1="155" x2="178" y2="155" stroke="#ce0037" stroke-width="2" marker-end="url(#aw)"/>
+
+      <!-- Workflow -->
+      <rect x="180" y="30" width="175" height="250" rx="10" fill="#21262d" stroke="#ce0037" stroke-width="2"/>
+      <text x="267" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#ff3b5c">Workflow (.yml)</text>
+      <text x="267" y="68" text-anchor="middle" font-size="9" fill="#7d8590">.github/workflows/ci.yml</text>
+
+      <!-- jobs inside workflow -->
+      <rect x="192" y="80" width="151" height="55" rx="7" fill="#1c2128" stroke="#3fb950" stroke-width="1.2"/>
+      <text x="267" y="98" text-anchor="middle" font-size="10" font-weight="700" fill="#7ee787">Job: lint</text>
+      <text x="267" y="113" text-anchor="middle" font-size="9" fill="#7d8590">ubuntu-latest</text>
+      <text x="267" y="127" text-anchor="middle" font-size="9" fill="#7d8590">steps: checkout, flake8</text>
+
+      <rect x="192" y="145" width="151" height="55" rx="7" fill="#1c2128" stroke="#58a6ff" stroke-width="1.2"/>
+      <text x="267" y="163" text-anchor="middle" font-size="10" font-weight="700" fill="#a5d6ff">Job: testes</text>
+      <text x="267" y="178" text-anchor="middle" font-size="9" fill="#7d8590">needs: lint</text>
+      <text x="267" y="192" text-anchor="middle" font-size="9" fill="#7d8590">steps: checkout, pytest</text>
+
+      <rect x="192" y="210" width="151" height="55" rx="7" fill="#1c2128" stroke="#d2a8ff" stroke-width="1.2"/>
+      <text x="267" y="228" text-anchor="middle" font-size="10" font-weight="700" fill="#d8b4fe">Job: deploy</text>
+      <text x="267" y="243" text-anchor="middle" font-size="9" fill="#7d8590">needs: testes</text>
+      <text x="267" y="257" text-anchor="middle" font-size="9" fill="#7d8590">if: branch == main</text>
+
+      <!-- Arrow workflow → runner -->
+      <line x1="355" y1="155" x2="383" y2="155" stroke="#ce0037" stroke-width="2" marker-end="url(#aw)"/>
+
+      <!-- Runner -->
+      <rect x="385" y="30" width="175" height="250" rx="10" fill="#21262d" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="472" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#a5d6ff">Runner (GitHub)</text>
+      <text x="472" y="68" text-anchor="middle" font-size="9" fill="#7d8590">ubuntu-latest (grátis)</text>
+
+      <rect x="397" y="80" width="151" height="42" rx="6" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="472" y="98" text-anchor="middle" font-size="9.5" fill="#e6edf3">actions/checkout@v4</text>
+      <text x="472" y="113" text-anchor="middle" font-size="9" fill="#7d8590">clona o repositório</text>
+
+      <rect x="397" y="130" width="151" height="42" rx="6" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="472" y="148" text-anchor="middle" font-size="9.5" fill="#e6edf3">actions/setup-python@v5</text>
+      <text x="472" y="163" text-anchor="middle" font-size="9" fill="#7d8590">configura o ambiente</text>
+
+      <rect x="397" y="180" width="151" height="42" rx="6" fill="#1c2128" stroke="#484f58" stroke-width="1"/>
+      <text x="472" y="198" text-anchor="middle" font-size="9.5" fill="#e6edf3">run: pip install</text>
+      <text x="472" y="213" text-anchor="middle" font-size="9" fill="#7d8590">instala dependências</text>
+
+      <rect x="397" y="230" width="151" height="40" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.2"/>
+      <text x="472" y="248" text-anchor="middle" font-size="9.5" fill="#7ee787">run: pytest tests/ ✓</text>
+      <text x="472" y="262" text-anchor="middle" font-size="9" fill="#7d8590">resultado: success</text>
+
+      <!-- Arrow runner → results -->
+      <line x1="560" y1="155" x2="588" y2="155" stroke="#ce0037" stroke-width="2" marker-end="url(#aw)"/>
+
+      <!-- Results -->
+      <rect x="590" y="30" width="175" height="250" rx="10" fill="#21262d" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="677" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#7ee787">Resultados</text>
+
+      <rect x="602" y="65" width="151" height="35" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="677" y="80" text-anchor="middle" font-size="10" fill="#7ee787">✓ Badge no README</text>
+      <text x="677" y="93" text-anchor="middle" font-size="9" fill="#7d8590">status visual do CI</text>
+
+      <rect x="602" y="108" width="151" height="35" rx="6" fill="#1c2128" stroke="#58a6ff" stroke-width="1"/>
+      <text x="677" y="123" text-anchor="middle" font-size="10" fill="#a5d6ff">✓ Status no PR</text>
+      <text x="677" y="136" text-anchor="middle" font-size="9" fill="#7d8590">✓ ou ✗ no commit</text>
+
+      <rect x="602" y="151" width="151" height="35" rx="6" fill="#1c2128" stroke="#ff3b5c" stroke-width="1"/>
+      <text x="677" y="166" text-anchor="middle" font-size="10" fill="#ff3b5c">✓ Artefatos</text>
+      <text x="677" y="179" text-anchor="middle" font-size="9" fill="#7d8590">zip, log, coverage</text>
+
+      <rect x="602" y="194" width="151" height="35" rx="6" fill="#1c2128" stroke="#d2a8ff" stroke-width="1"/>
+      <text x="677" y="209" text-anchor="middle" font-size="10" fill="#d8b4fe">✓ Notificações</text>
+      <text x="677" y="222" text-anchor="middle" font-size="9" fill="#7d8590">email, Slack, Discord</text>
+
+      <rect x="602" y="237" width="151" height="33" rx="6" fill="#1c2128" stroke="#7ee787" stroke-width="1.5"/>
+      <text x="677" y="252" text-anchor="middle" font-size="10" fill="#7ee787">✓ Deploy automático</text>
+      <text x="677" y="265" text-anchor="middle" font-size="9" fill="#7d8590">se CI passou</text>
+    </svg>
+    <p class="svg-caption">GitHub Actions: evento dispara workflow → jobs rodam em runners paralelos → resultados visíveis no GitHub</p>
+  </div>
+
+  <h3>Diferença entre GitHub Actions e Jenkins</h3>
+  <table class="tbl">
+    <thead><tr><th>Critério</th><th>GitHub Actions</th><th>Jenkins</th></tr></thead>
+    <tbody>
+      <tr><td>Hospedagem</td><td>GitHub (sem servidor próprio)</td><td>Servidor próprio ou cloud</td></tr>
+      <tr><td>Configuração</td><td>YAML no repositório — zero setup</td><td>UI + Jenkinsfile — requer instalação</td></tr>
+      <tr><td>Custo</td><td>Grátis (públicos ilimitado; privado 2.000 min/mês)</td><td>Open source, paga infraestrutura</td></tr>
+      <tr><td>Ecosistema</td><td>20.000+ Actions no Marketplace</td><td>1.800+ plugins</td></tr>
+      <tr><td>Integração GitHub</td><td>Nativa — PR checks, badges, status</td><td>Via plugins e webhooks</td></tr>
+      <tr><td>Flexibilidade</td><td>Limitada ao que GitHub oferece</td><td>Total — qualquer infra, qualquer SO</td></tr>
+      <tr><td>Melhor para</td><td>Projetos GitHub, equipes ágeis, open source</td><td>Enterprise, pipelines complexos, legado</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S11 — WORKFLOW YAML
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s11">
+  <div class="sec-header">
+    <div class="sec-num">11</div>
+    <div class="sec-tg"><h2>Workflow YAML</h2><p>Anatomia completa do arquivo de automação</p></div>
+  </div>
+
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">.github/workflows/ci.yml — estrutura completa comentada</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># Nome do workflow (aparece na aba Actions)</span>
+<span class="tg">name:</span> <span class="tw">CI — Integração Contínua</span>
+
+<span class="tmut"># ── GATILHOS: quando este workflow executa ────────────────────────</span>
+<span class="tg">on:</span>
+  <span class="tg">push:</span>
+    <span class="tg">branches:</span> <span class="tw">[ main, develop ]</span>       <span class="tmut"># push nas branches</span>
+    <span class="tg">paths:</span>                             <span class="tmut"># só se esses arquivos mudarem</span>
+      <span class="tw">- 'src/**'</span>
+      <span class="tw">- 'tests/**'</span>
+      <span class="tw">- 'requirements*.txt'</span>
+  <span class="tg">pull_request:</span>
+    <span class="tg">branches:</span> <span class="tw">[ main ]</span>
+    <span class="tg">types:</span> <span class="tw">[ opened, synchronize, reopened ]</span>
+  <span class="tg">workflow_dispatch:</span>                   <span class="tmut"># permite execução manual</span>
+    <span class="tg">inputs:</span>
+      <span class="tg">ambiente:</span>
+        <span class="tg">description:</span> <span class="tw">'Ambiente alvo'</span>
+        <span class="tg">required:</span> <span class="tw">true</span>
+        <span class="tg">default:</span> <span class="tw">'staging'</span>
+        <span class="tg">type:</span> <span class="tw">choice</span>
+        <span class="tg">options:</span> <span class="tw">[ staging, producao ]</span>
+  <span class="tg">schedule:</span>
+    <span class="tw">- cron: '0 8 * * 1-5'</span>             <span class="tmut"># 8h toda segunda-sexta</span>
+
+<span class="tmut"># ── VARIÁVEIS globais ─────────────────────────────────────────────</span>
+<span class="tg">env:</span>
+  <span class="tg">PYTHON_VERSION:</span> <span class="tw">'3.11'</span>
+  <span class="tg">NODE_VERSION:</span>   <span class="tw">'20'</span>
+  <span class="tg">IMAGE_NAME:</span>     <span class="tw">minha-app</span>
+
+<span class="tmut"># ── JOBS: unidades de trabalho paralelas ──────────────────────────</span>
+<span class="tg">jobs:</span>
+
+  <span class="tg">lint:</span>                                <span class="tmut"># ID do job (sem espaços)</span>
+    <span class="tg">name:</span> <span class="tw">🔍 Lint e Qualidade</span>          <span class="tmut"># nome exibido na UI</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>             <span class="tmut"># runner (ubuntu/windows/macos)</span>
+
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>      <span class="tmut"># clonar o repositório</span>
+
+      <span class="tw">- uses: actions/setup-python@v5</span>  <span class="tmut"># configurar Python</span>
+        <span class="tg">with:</span>
+          <span class="tg">python-version:</span> <span class="tw">${{ env.PYTHON_VERSION }}</span>
+          <span class="tg">cache:</span> <span class="tw">'pip'</span>                   <span class="tmut"># cache das dependências</span>
+
+      <span class="tw">- name: Instalar flake8</span>
+        <span class="tg">run:</span> <span class="tw">pip install flake8</span>
+
+      <span class="tw">- name: Verificar qualidade</span>
+        <span class="tg">run:</span> <span class="tw">flake8 src/ --max-line-length=100</span>
+
+  <span class="tg">testes:</span>
+    <span class="tg">name:</span> <span class="tw">🧪 Testes Python ${{ matrix.python-version }}</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">needs:</span> <span class="tw">lint</span>                          <span class="tmut"># só executa se lint passar</span>
+
+    <span class="tg">strategy:</span>
+      <span class="tg">matrix:</span>
+        <span class="tg">python-version:</span> <span class="tw">[ '3.10', '3.11', '3.12' ]</span>
+      <span class="tg">fail-fast:</span> <span class="tw">false</span>                   <span class="tmut"># continua mesmo se uma versão falhar</span>
+
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+      <span class="tw">- uses: actions/setup-python@v5</span>
+        <span class="tg">with:</span>
+          <span class="tg">python-version:</span> <span class="tw">${{ matrix.python-version }}</span>
+          <span class="tg">cache:</span> <span class="tw">'pip'</span>
+
+      <span class="tw">- name: Instalar dependências</span>
+        <span class="tg">run:</span> <span class="tw">pip install -r requirements-dev.txt</span>
+
+      <span class="tw">- name: Executar testes com cobertura</span>
+        <span class="tg">run:</span> <span class="tw">pytest tests/ -v --cov=src --cov-report=xml --cov-fail-under=80</span>
+
+      <span class="tw">- name: Salvar relatório de cobertura</span>
+        <span class="tg">uses:</span> <span class="tw">actions/upload-artifact@v4</span>
+        <span class="tg">if:</span> <span class="tw">always()</span>                     <span class="tmut"># salvar mesmo em falha</span>
+        <span class="tg">with:</span>
+          <span class="tg">name:</span> <span class="tw">coverage-${{ matrix.python-version }}</span>
+          <span class="tg">path:</span> <span class="tw">coverage.xml</span>
+          <span class="tg">retention-days:</span> <span class="tw">7</span></pre>
+  </div>
+
+  <h3>Funções e expressões do YAML</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">expressões — contextos e funções</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── Contextos mais usados ─────────────────────────────────────────</span>
+<span class="tw">${{ github.event_name }}</span>         <span class="tmut"># push, pull_request, schedule...</span>
+<span class="tw">${{ github.ref }}</span>                <span class="tmut"># refs/heads/main</span>
+<span class="tw">${{ github.sha }}</span>                <span class="tmut"># hash completo do commit</span>
+<span class="tw">${{ github.actor }}</span>              <span class="tmut"># usuário que disparou o workflow</span>
+<span class="tw">${{ github.repository }}</span>         <span class="tmut"># org/repo</span>
+<span class="tw">${{ github.run_number }}</span>         <span class="tmut"># número da execução (1, 2, 3...)</span>
+<span class="tw">${{ matrix.python-version }}</span>    <span class="tmut"># valor atual da matriz</span>
+<span class="tw">${{ secrets.MINHA_SENHA }}</span>      <span class="tmut"># secret do repositório</span>
+<span class="tw">${{ env.PYTHON_VERSION }}</span>       <span class="tmut"># variável de ambiente</span>
+<span class="tw">${{ inputs.ambiente }}</span>          <span class="tmut"># input do workflow_dispatch</span>
+
+<span class="tmut"># ── Condicionais (if) ─────────────────────────────────────────────</span>
+<span class="tg">if:</span> <span class="tw">github.ref == 'refs/heads/main'</span>
+<span class="tg">if:</span> <span class="tw">github.event_name == 'push'</span>
+<span class="tg">if:</span> <span class="tw">startsWith(github.ref, 'refs/tags/v')</span>
+<span class="tg">if:</span> <span class="tw">contains(github.event.pull_request.labels.*.name, 'deploy')</span>
+<span class="tg">if:</span> <span class="tw">always()</span>           <span class="tmut"># mesmo em falha</span>
+<span class="tg">if:</span> <span class="tw">failure()</span>          <span class="tmut"># apenas em falha</span>
+<span class="tg">if:</span> <span class="tw">success()</span>          <span class="tmut"># apenas em sucesso</span>
+<span class="tg">if:</span> <span class="tw">cancelled()</span>        <span class="tmut"># apenas se cancelado</span>
+
+<span class="tmut"># ── Funções built-in ──────────────────────────────────────────────</span>
+<span class="tg">if:</span> <span class="tw">contains('string', 'substr')</span>
+<span class="tg">if:</span> <span class="tw">startsWith(github.ref, 'refs/tags')</span>
+<span class="tg">if:</span> <span class="tw">endsWith(github.ref, '/main')</span>
+<span class="tg">env:</span>
+  <span class="tg">SHORT_SHA:</span> <span class="tw">${{ github.sha[:7] }}</span>  <span class="tmut"># primeiros 7 chars do hash</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S12 — JOBS, STEPS E ACTIONS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s12">
+  <div class="sec-header">
+    <div class="sec-num">12</div>
+    <div class="sec-tg"><h2>Jobs, Steps e Actions</h2><p>Os blocos de construção dos workflows</p></div>
+  </div>
+
+  <!-- SVG: Jobs paralelos e sequenciais -->
+  <div class="svg-wrap">
+    <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <marker id="ajob" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#ce0037"/>
+        </marker>
+      </defs>
+
+      <text x="380" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#e6edf3">Workflow com 4 Jobs — encadeados e paralelos</text>
+
+      <!-- lint job -->
+      <rect x="20" y="50" width="130" height="60" rx="8" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+      <text x="85" y="75" text-anchor="middle" font-size="11" font-weight="700" fill="#7ee787">lint</text>
+      <text x="85" y="91" text-anchor="middle" font-size="9" fill="#7d8590">ubuntu-latest</text>
+      <text x="85" y="104" text-anchor="middle" font-size="9" fill="#7d8590">flake8, black</text>
+
+      <!-- arrow lint → testes / security -->
+      <line x1="150" y1="80" x2="198" y2="65" stroke="#ce0037" stroke-width="1.8" marker-end="url(#ajob)"/>
+      <line x1="150" y1="80" x2="198" y2="115" stroke="#ce0037" stroke-width="1.8" marker-end="url(#ajob)"/>
+
+      <!-- testes job -->
+      <rect x="200" y="38" width="150" height="52" rx="8" fill="#1c2128" stroke="#58a6ff" stroke-width="2"/>
+      <text x="275" y="60" text-anchor="middle" font-size="11" font-weight="700" fill="#a5d6ff">testes</text>
+      <text x="275" y="75" text-anchor="middle" font-size="9" fill="#7d8590">matrix: 3.10, 3.11, 3.12</text>
+      <text x="275" y="87" text-anchor="middle" font-size="9" fill="#7d8590">needs: lint</text>
+
+      <!-- security job -->
+      <rect x="200" y="98" width="150" height="52" rx="8" fill="#1c2128" stroke="#ff3b5c" stroke-width="1.8"/>
+      <text x="275" y="120" text-anchor="middle" font-size="11" font-weight="700" fill="#ff3b5c">segurança</text>
+      <text x="275" y="135" text-anchor="middle" font-size="9" fill="#7d8590">bandit, safety check</text>
+      <text x="275" y="147" text-anchor="middle" font-size="9" fill="#7d8590">needs: lint</text>
+
+      <!-- arrows to docker -->
+      <line x1="350" y1="64" x2="398" y2="85" stroke="#ce0037" stroke-width="1.8" marker-end="url(#ajob)"/>
+      <line x1="350" y1="124" x2="398" y2="103" stroke="#ce0037" stroke-width="1.8" marker-end="url(#ajob)"/>
+
+      <!-- docker build job -->
+      <rect x="400" y="55" width="150" height="70" rx="8" fill="#1c2128" stroke="#d2a8ff" stroke-width="2"/>
+      <text x="475" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#d8b4fe">docker build</text>
+      <text x="475" y="94" text-anchor="middle" font-size="9" fill="#7d8590">needs: testes, segurança</text>
+      <text x="475" y="108" text-anchor="middle" font-size="9" fill="#7d8590">build + push Hub</text>
+      <text x="475" y="120" text-anchor="middle" font-size="9" fill="#7d8590">if: branch == main</text>
+
+      <!-- arrow to deploy -->
+      <line x1="550" y1="90" x2="598" y2="90" stroke="#ce0037" stroke-width="1.8" marker-end="url(#ajob)"/>
+
+      <!-- deploy job -->
+      <rect x="600" y="55" width="140" height="70" rx="8" fill="#1c2128" stroke="#7ee787" stroke-width="2.5"/>
+      <text x="670" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#7ee787">deploy</text>
+      <text x="670" y="94" text-anchor="middle" font-size="9" fill="#7d8590">needs: docker build</text>
+      <text x="670" y="108" text-anchor="middle" font-size="9" fill="#7d8590">environment: production</text>
+      <text x="670" y="120" text-anchor="middle" font-size="9" fill="#3fb950">✓ produção</text>
+
+      <!-- parallel indication -->
+      <rect x="190" y="30" width="170" height="130" rx="5" fill="none" stroke="#484f58" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="275" y="175" text-anchor="middle" font-size="9" fill="#484f58">paralelo (simultaneamente)</text>
+
+      <!-- time labels -->
+      <text x="85"  y="140" text-anchor="middle" font-size="9" fill="#7d8590">~30s</text>
+      <text x="275" y="175" text-anchor="middle" font-size="9" fill="#7d8590">~2min</text>
+      <text x="475" y="145" text-anchor="middle" font-size="9" fill="#7d8590">~3min</text>
+      <text x="670" y="145" text-anchor="middle" font-size="9" fill="#7d8590">~2min</text>
+    </svg>
+    <p class="svg-caption">Jobs paralelos reduzem o tempo total — lint, testes e segurança podem rodar simultaneamente</p>
+  </div>
+
+  <h3>Actions do Marketplace — as mais usadas</h3>
+  <table class="tbl">
+    <thead><tr><th>Action</th><th>O que faz</th><th>Exemplo de uso</th></tr></thead>
+    <tbody>
+      <tr><td>actions/checkout@v4</td><td>Clona o repositório no runner</td><td>Primeiro step de qualquer job</td></tr>
+      <tr><td>actions/setup-python@v5</td><td>Configura Python com cache</td><td>Projetos Python com pip</td></tr>
+      <tr><td>actions/setup-node@v4</td><td>Configura Node.js com cache</td><td>Projetos JavaScript/TypeScript</td></tr>
+      <tr><td>actions/upload-artifact@v4</td><td>Salva arquivos para download</td><td>Relatórios, binários, logs</td></tr>
+      <tr><td>actions/download-artifact@v4</td><td>Baixa artefato de outro job</td><td>Usar build de job anterior</td></tr>
+      <tr><td>actions/cache@v4</td><td>Cache personalizado de pastas</td><td>node_modules, .gradle, .m2</td></tr>
+      <tr><td>docker/login-action@v3</td><td>Login seguro no Docker Hub</td><td>Antes de push de imagem</td></tr>
+      <tr><td>docker/build-push-action@v5</td><td>Build e push de imagem Docker</td><td>Pipeline de CI/CD com Docker</td></tr>
+      <tr><td>docker/metadata-action@v5</td><td>Gera tags automáticas da imagem</td><td>sha, semver, latest</td></tr>
+      <tr><td>softprops/action-gh-release@v1</td><td>Cria releases no GitHub</td><td>Ao criar tag v*.*.* </td></tr>
+      <tr><td>peter-evans/create-pr@v5</td><td>Cria Pull Requests automaticamente</td><td>Dependabot-style updates</td></tr>
+    </tbody>
+  </table>
+
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">yml — exemplos de steps variados</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tg">steps:</span>
+  <span class="tmut"># Step simples com run multiline</span>
+  <span class="tw">- name: Build e relatório</span>
+    <span class="tg">run:</span> <span class="tw">|</span>
+      <span class="tw">echo "BUILD_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV</span>
+      <span class="tw">echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV</span>
+      <span class="tw">pip install -r requirements.txt</span>
+
+  <span class="tmut"># Step com ID para referenciar output</span>
+  <span class="tw">- name: Extrair versão da tag</span>
+    <span class="tg">id:</span> <span class="tw">versao</span>
+    <span class="tg">run:</span> <span class="tw">echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT</span>
+
+  <span class="tmut"># Usar o output do step anterior</span>
+  <span class="tw">- name: Build imagem versionada</span>
+    <span class="tg">run:</span> <span class="tw">docker build -t app:${{ steps.versao.outputs.VERSION }} .</span>
+
+  <span class="tmut"># Step condicional</span>
+  <span class="tw">- name: Deploy só na main</span>
+    <span class="tg">if:</span> <span class="tw">github.ref == 'refs/heads/main'</span>
+    <span class="tg">run:</span> <span class="tw">echo "Deploying..."</span>
+
+  <span class="tmut"># Step com timeout e retry</span>
+  <span class="tw">- name: Health check com retry</span>
+    <span class="tg">timeout-minutes:</span> <span class="tw">5</span>
+    <span class="tg">run:</span> <span class="tw">|</span>
+      <span class="tw">for i in 1 2 3 4 5; do</span>
+        <span class="tw">curl -sf http://localhost:5000/health && break</span>
+        <span class="tw">sleep 5</span>
+      <span class="tw">done</span>
+
+  <span class="tmut"># Compartilhar variável entre steps via GITHUB_ENV</span>
+  <span class="tw">- name: Definir variável</span>
+    <span class="tg">run:</span> <span class="tw">echo "MY_VAR=hello" >> $GITHUB_ENV</span>
+  <span class="tw">- name: Usar variável</span>
+    <span class="tg">run:</span> <span class="tw">echo "Valor: $MY_VAR"</span>  <span class="tmut"># hello</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S13 — SECRETS E VARIÁVEIS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s13">
+  <div class="sec-header">
+    <div class="sec-num">13</div>
+    <div class="sec-tg"><h2>Secrets e Variáveis</h2><p>Gerenciando credenciais de forma segura</p></div>
+  </div>
+
+  <div class="box danger">
+    <span class="bxi">🚫</span>
+    <div class="bxc">
+      <strong>NUNCA commite credenciais no repositório</strong>
+      <p>Bots varrem o GitHub em segundos procurando tokens, senhas e chaves de API. Use sempre GitHub Secrets ou variáveis de ambiente. O GitHub até bloqueia pushes com tokens detectados automaticamente.</p>
+    </div>
+  </div>
+
+  <h3>Tipos de variável no GitHub Actions</h3>
+  <table class="tbl">
+    <thead><tr><th>Tipo</th><th>Onde configurar</th><th>Visibilidade</th><th>Quando usar</th></tr></thead>
+    <tbody>
+      <tr><td>Repository Secret</td><td>Repo → Settings → Secrets</td><td>Mascarado nos logs (***)</td><td>Tokens, senhas, chaves de API</td></tr>
+      <tr><td>Organization Secret</td><td>Org → Settings → Secrets</td><td>Mascarado</td><td>Secrets compartilhados entre repos</td></tr>
+      <tr><td>Environment Secret</td><td>Repo → Settings → Environments</td><td>Mascarado + aprovação</td><td>Secrets de produção com gate humano</td></tr>
+      <tr><td>Repository Variable</td><td>Repo → Settings → Variables</td><td>Visível nos logs</td><td>Configs não sensíveis (versão, região)</td></tr>
+      <tr><td>env: no workflow</td><td>No próprio arquivo .yml</td><td>Visível nos logs</td><td>Configs por workflow</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Adicionando e usando secrets</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-b">
+        <h4>Adicionar no GitHub</h4>
+        <p>Repositório → <strong>Settings → Secrets and variables → Actions → New repository secret</strong></p>
+        <div class="cb">
+          <div class="cb-h"><span class="cb-lang">secrets a criar para os exercícios</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+          <pre><span class="tmut"># Docker Hub token:</span>
+<span class="tw">Name:  DOCKERHUB_USERNAME   Value: seu-usuario-dockerhub</span>
+<span class="tw">Name:  DOCKERHUB_TOKEN      Value: dckr_pat_SeuTokenAqui</span>
+<span class="tmut"># (criar em hub.docker.com → Account Settings → Security → New Access Token)</span>
+
+<span class="tmut"># Webhook de notificação (Discord, Slack, Teams):</span>
+<span class="tw">Name:  DISCORD_WEBHOOK      Value: https://discord.com/api/webhooks/...</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-b">
+        <h4>Usar no workflow</h4>
+        <div class="cb">
+          <div class="cb-h"><span class="cb-lang">yml — usando secrets</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+          <pre><span class="tg">jobs:</span>
+  <span class="tg">deploy:</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">environment:</span> <span class="tw">production</span>          <span class="tmut"># environment com aprovação manual</span>
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+
+      <span class="tmut"># Usar secret diretamente no step</span>
+      <span class="tw">- name: Login Docker Hub</span>
+        <span class="tg">uses:</span> <span class="tw">docker/login-action@v3</span>
+        <span class="tg">with:</span>
+          <span class="tg">username:</span> <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}</span>
+          <span class="tg">password:</span> <span class="tw">${{ secrets.DOCKERHUB_TOKEN }}</span>
+
+      <span class="tmut"># Usar secret como variável de ambiente do step</span>
+      <span class="tw">- name: Chamar API autenticada</span>
+        <span class="tg">env:</span>
+          <span class="tg">API_TOKEN:</span> <span class="tw">${{ secrets.API_TOKEN }}</span>
+        <span class="tg">run:</span> <span class="tw">|</span>
+          <span class="tw">curl -H "Authorization: Bearer $API_TOKEN" https://api.exemplo.com/data</span>
+          <span class="tmut"># O valor de API_TOKEN aparece como *** nos logs</span>
+
+      <span class="tmut"># Notificação no Discord</span>
+      <span class="tw">- name: Notificar sucesso</span>
+        <span class="tg">if:</span> <span class="tw">success()</span>
+        <span class="tg">run:</span> <span class="tw">|</span>
+          <span class="tw">curl -s -X POST ${{ secrets.DISCORD_WEBHOOK }} \</span>
+            <span class="tw">-H 'Content-Type: application/json' \</span>
+            <span class="tw">-d '{"content": "✅ Deploy ${{ github.run_number }} OK!"}'</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Environments — aprovação manual em produção</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">configurar environment no GitHub</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># Repositório → Settings → Environments → New environment</span>
+<span class="tmut"># Nome: production</span>
+<span class="tmut"># Required reviewers: adicionar usuários que precisam aprovar</span>
+<span class="tmut"># Wait timer: 0 minutos (ou mais para staging)</span>
+<span class="tmut"># Deployment branches: Protected branches → main only</span>
+
+<span class="tmut"># No workflow, o job com environment: production</span>
+<span class="tmut"># vai pausar e aguardar aprovação antes de executar</span>
+<span class="tg">jobs:</span>
+  <span class="tg">deploy-prod:</span>
+    <span class="tg">environment:</span>
+      <span class="tg">name:</span> <span class="tw">production</span>
+      <span class="tg">url:</span> <span class="tw">https://app.exemplo.com</span>    <span class="tmut"># aparece no GitHub como link</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">steps:</span>
+      <span class="tw">- run: echo "Deploy aprovado — executando!"</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S14 — CI PIPELINE COMPLETO
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s14">
+  <div class="sec-header">
+    <div class="sec-num">14</div>
+    <div class="sec-tg"><h2>CI Pipeline Completo</h2><p>Lint + testes + cobertura + análise de segurança + Docker</p></div>
+  </div>
+
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">.github/workflows/ci.yml — pipeline profissional completo</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tg">name:</span> <span class="tw">CI — AgendaFácil</span>
+
+<span class="tg">on:</span>
+  <span class="tg">push:</span>
+    <span class="tg">branches:</span> <span class="tw">[ main, develop ]</span>
+  <span class="tg">pull_request:</span>
+    <span class="tg">branches:</span> <span class="tw">[ main ]</span>
+
+<span class="tg">env:</span>
+  <span class="tg">PYTHON_VERSION:</span> <span class="tw">'3.11'</span>
+  <span class="tg">IMAGE:</span>         <span class="tw">agendafacil</span>
+
+<span class="tg">jobs:</span>
+
+  <span class="tmut"># ── JOB 1: Qualidade de código ───────────────────────────────────</span>
+  <span class="tg">qualidade:</span>
+    <span class="tg">name:</span> <span class="tw">🔍 Lint e Qualidade</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+      <span class="tw">- uses: actions/setup-python@v5</span>
+        <span class="tg">with:</span> <span class="tw">{ python-version: '3.11', cache: pip }</span>
+      <span class="tw">- run: pip install flake8 black isort</span>
+      <span class="tw">- name: flake8</span>
+        <span class="tg">run:</span> <span class="tw">flake8 app/ tests/ --max-line-length=100 --ignore=E501,W503</span>
+      <span class="tw">- name: black (verificar formatação)</span>
+        <span class="tg">run:</span> <span class="tw">black --check app/ tests/</span>
+      <span class="tw">- name: isort (verificar imports)</span>
+        <span class="tg">run:</span> <span class="tw">isort --check-only app/ tests/</span>
+
+  <span class="tmut"># ── JOB 2: Testes em matriz ──────────────────────────────────────</span>
+  <span class="tg">testes:</span>
+    <span class="tg">name:</span> <span class="tw">🧪 Testes Python ${{ matrix.python-version }}</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">needs:</span> <span class="tw">qualidade</span>
+    <span class="tg">strategy:</span>
+      <span class="tg">matrix:</span>
+        <span class="tg">python-version:</span> <span class="tw">[ '3.10', '3.11', '3.12' ]</span>
+      <span class="tg">fail-fast:</span> <span class="tw">false</span>
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+      <span class="tw">- uses: actions/setup-python@v5</span>
+        <span class="tg">with:</span>
+          <span class="tg">python-version:</span> <span class="tw">${{ matrix.python-version }}</span>
+          <span class="tg">cache:</span> <span class="tw">pip</span>
+      <span class="tw">- name: Instalar dependências</span>
+        <span class="tg">run:</span> <span class="tw">pip install -r requirements-dev.txt</span>
+      <span class="tw">- name: Testes com cobertura</span>
+        <span class="tg">run:</span> <span class="tw">pytest tests/ -v --cov=app --cov-report=xml --cov-fail-under=80</span>
+      <span class="tw">- name: Subir cobertura como artefato</span>
+        <span class="tg">uses:</span> <span class="tw">actions/upload-artifact@v4</span>
+        <span class="tg">if:</span> <span class="tw">always()</span>
+        <span class="tg">with:</span>
+          <span class="tg">name:</span> <span class="tw">cov-${{ matrix.python-version }}</span>
+          <span class="tg">path:</span> <span class="tw">coverage.xml</span>
+
+  <span class="tmut"># ── JOB 3: Segurança ─────────────────────────────────────────────</span>
+  <span class="tg">seguranca:</span>
+    <span class="tg">name:</span> <span class="tw">🛡️ Análise de Segurança</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">needs:</span> <span class="tw">qualidade</span>
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+      <span class="tw">- uses: actions/setup-python@v5</span>
+        <span class="tg">with:</span> <span class="tw">{ python-version: '3.11', cache: pip }</span>
+      <span class="tw">- run: pip install bandit safety</span>
+      <span class="tw">- name: bandit (vulnerabilidades no código)</span>
+        <span class="tg">run:</span> <span class="tw">bandit -r app/ -ll</span>
+      <span class="tw">- name: safety (vulnerabilidades em dependências)</span>
+        <span class="tg">run:</span> <span class="tw">safety check -r requirements.txt</span>
+
+  <span class="tmut"># ── JOB 4: Build Docker (só na main) ─────────────────────────────</span>
+  <span class="tg">docker:</span>
+    <span class="tg">name:</span> <span class="tw">🐳 Build e Push Docker</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">needs:</span> <span class="tw">[ testes, seguranca ]</span>
+    <span class="tg">if:</span> <span class="tw">github.ref == 'refs/heads/main' && github.event_name == 'push'</span>
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+
+      <span class="tw">- uses: docker/setup-buildx-action@v3</span>
+
+      <span class="tw">- uses: docker/login-action@v3</span>
+        <span class="tg">with:</span>
+          <span class="tg">username:</span> <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}</span>
+          <span class="tg">password:</span> <span class="tw">${{ secrets.DOCKERHUB_TOKEN }}</span>
+
+      <span class="tw">- uses: docker/metadata-action@v5</span>
+        <span class="tg">id:</span> <span class="tw">meta</span>
+        <span class="tg">with:</span>
+          <span class="tg">images:</span> <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE }}</span>
+          <span class="tg">tags:</span> <span class="tw">|</span>
+            <span class="tw">type=sha,prefix=sha-</span>
+            <span class="tw">type=raw,value=latest</span>
+
+      <span class="tw">- uses: docker/build-push-action@v5</span>
+        <span class="tg">with:</span>
+          <span class="tg">context:</span>    <span class="tw">.</span>
+          <span class="tg">push:</span>       <span class="tw">true</span>
+          <span class="tg">tags:</span>       <span class="tw">${{ steps.meta.outputs.tags }}</span>
+          <span class="tg">cache-from:</span> <span class="tw">type=gha</span>
+          <span class="tg">cache-to:</span>   <span class="tw">type=gha,mode=max</span>
+
+      <span class="tw">- name: Testar imagem publicada</span>
+        <span class="tg">run:</span> <span class="tw">|</span>
+          <span class="tw">docker run -d --name test -p 5000:5000 \</span>
+            <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE }}:latest</span>
+          <span class="tw">sleep 10</span>
+          <span class="tw">curl -sf http://localhost:5000/health || (docker logs test && exit 1)</span>
+          <span class="tw">docker rm -f test</span></pre>
+  </div>
+
+  <div class="practice">
+    <div class="prac-hdr"><span class="prac-badge">Prática 14.1</span><h3>🧪 Adicionando badge de CI no README</h3></div>
+    <div class="cb">
+      <div class="cb-h"><span class="cb-lang">markdown — README.md</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+      <pre><span class="tmut"># Adicionar no README.md (substitua USER e REPO)</span>
+<span class="tw">[![CI](https://github.com/USER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/ci.yml)</span>
+<span class="tw">[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)</span>
+<span class="tw">[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)</span>
+<span class="tmut"># Badge ficará verde quando CI passar e vermelho quando falhar</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S15 — CD E DEPLOY
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s15">
+  <div class="sec-header">
+    <div class="sec-num">15</div>
+    <div class="sec-tg"><h2>CD e Deploy</h2><p>Entrega contínua com GitHub Actions</p></div>
+  </div>
+
+  <h3>Workflow de Release — disparado por tag</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">.github/workflows/release.yml</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tg">name:</span> <span class="tw">Release — Build e Publicação</span>
+
+<span class="tg">on:</span>
+  <span class="tg">push:</span>
+    <span class="tg">tags:</span> <span class="tw">[ 'v*.*.*' ]</span>       <span class="tmut"># dispara ao criar tag v1.0.0</span>
+
+<span class="tg">jobs:</span>
+  <span class="tg">release:</span>
+    <span class="tg">name:</span> <span class="tw">🏷️ Criar Release e Publicar Imagem</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">permissions:</span>
+      <span class="tg">contents:</span> <span class="tw">write</span>         <span class="tmut"># para criar a release no GitHub</span>
+
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+        <span class="tg">with:</span>
+          <span class="tg">fetch-depth:</span> <span class="tw">0</span>       <span class="tmut"># fetch completo (para changelog)</span>
+
+      <span class="tw">- uses: actions/setup-python@v5</span>
+        <span class="tg">with:</span> <span class="tw">{ python-version: '3.11', cache: pip }</span>
+      <span class="tw">- run: pip install -r requirements-dev.txt && pytest tests/ -v</span>
+
+      <span class="tmut"># Extrair número da versão da tag</span>
+      <span class="tw">- name: Extrair versão</span>
+        <span class="tg">id:</span> <span class="tw">version</span>
+        <span class="tg">run:</span> <span class="tw">echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT</span>
+
+      <span class="tmut"># Gerar changelog automático</span>
+      <span class="tw">- name: Gerar Changelog</span>
+        <span class="tg">run:</span> <span class="tw">|</span>
+          <span class="tw">PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")</span>
+          <span class="tw">if [ -n "$PREV_TAG" ]; then</span>
+          <span class="tw">  git log ${PREV_TAG}..HEAD --oneline --no-merges > CHANGELOG.md</span>
+          <span class="tw">else</span>
+          <span class="tw">  git log --oneline --no-merges > CHANGELOG.md</span>
+          <span class="tw">fi</span>
+          <span class="tw">cat CHANGELOG.md</span>
+
+      <span class="tmut"># Build e push da imagem com versão semântica</span>
+      <span class="tw">- uses: docker/login-action@v3</span>
+        <span class="tg">with:</span>
+          <span class="tg">username:</span> <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}</span>
+          <span class="tg">password:</span> <span class="tw">${{ secrets.DOCKERHUB_TOKEN }}</span>
+
+      <span class="tw">- uses: docker/build-push-action@v5</span>
+        <span class="tg">with:</span>
+          <span class="tg">push:</span>    <span class="tw">true</span>
+          <span class="tg">tags:</span> <span class="tw">|</span>
+            <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}/agendafacil:${{ steps.version.outputs.VERSION }}</span>
+            <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}/agendafacil:latest</span>
+
+      <span class="tmut"># Criar Release no GitHub com changelog</span>
+      <span class="tw">- uses: softprops/action-gh-release@v1</span>
+        <span class="tg">with:</span>
+          <span class="tg">tag_name:</span>   <span class="tw">${{ steps.version.outputs.VERSION }}</span>
+          <span class="tg">name:</span>       <span class="tw">Release ${{ steps.version.outputs.VERSION }}</span>
+          <span class="tg">body_path:</span>  <span class="tw">CHANGELOG.md</span>
+          <span class="tg">draft:</span>      <span class="tw">false</span>
+          <span class="tg">prerelease:</span> <span class="tw">${{ contains(steps.version.outputs.VERSION, '-') }}</span>
+
+<span class="tmut"># Testar:</span>
+<span class="tok">git tag -a v1.0.0 -m "Release: versão inicial" && git push origin v1.0.0</span></pre>
+  </div>
+
+  <h3>Deploy via SSH</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">.github/workflows/deploy-ssh.yml</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tg">name:</span> <span class="tw">Deploy via SSH</span>
+<span class="tg">on:</span>
+  <span class="tg">workflow_run:</span>
+    <span class="tg">workflows:</span> <span class="tw">[ "CI — AgendaFácil" ]</span>
+    <span class="tg">types:</span> <span class="tw">[ completed ]</span>
+    <span class="tg">branches:</span> <span class="tw">[ main ]</span>
+
+<span class="tg">jobs:</span>
+  <span class="tg">deploy:</span>
+    <span class="tg">if:</span> <span class="tw">${{ github.event.workflow_run.conclusion == 'success' }}</span>
+    <span class="tg">runs-on:</span> <span class="tw">ubuntu-latest</span>
+    <span class="tg">environment:</span> <span class="tw">production</span>
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: actions/checkout@v4</span>
+
+      <span class="tmut"># Configurar chave SSH para acesso ao servidor</span>
+      <span class="tw">- name: Setup SSH</span>
+        <span class="tg">run:</span> <span class="tw">|</span>
+          <span class="tw">mkdir -p ~/.ssh</span>
+          <span class="tw">echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa</span>
+          <span class="tw">chmod 600 ~/.ssh/id_rsa</span>
+          <span class="tw">ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts</span>
+
+      <span class="tmut"># Deploy no servidor remoto</span>
+      <span class="tw">- name: Deploy</span>
+        <span class="tg">env:</span>
+          <span class="tg">HOST:</span>  <span class="tw">${{ secrets.SERVER_HOST }}</span>
+          <span class="tg">USER:</span>  <span class="tw">${{ secrets.SERVER_USER }}</span>
+          <span class="tg">IMAGE:</span> <span class="tw">${{ secrets.DOCKERHUB_USERNAME }}/agendafacil:latest</span>
+        <span class="tg">run:</span> <span class="tw">|</span>
+          <span class="tw">ssh $USER@$HOST "docker pull $IMAGE && \</span>
+            <span class="tw">docker stop agendafacil 2>/dev/null || true && \</span>
+            <span class="tw">docker rm   agendafacil 2>/dev/null || true && \</span>
+            <span class="tw">docker run -d --name agendafacil --restart unless-stopped \</span>
+              <span class="tw">-p 5000:5000 -v agenda-data:/data $IMAGE && \</span>
+            <span class="tw">curl -sf http://localhost:5000/health"</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S16 — BOAS PRÁTICAS
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s16">
+  <div class="sec-header">
+    <div class="sec-num">16</div>
+    <div class="sec-tg"><h2>Boas Práticas</h2><p>Git e GitHub Actions de forma profissional</p></div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>✅ Git — faça sempre</h3>
+      <div class="box tip" style="margin-top:.5rem">
+        <span class="bxi">✅</span>
+        <div class="bxc">
+          <strong>Commits pequenos e frequentes</strong>
+          <p>Cada commit deve ter um único propósito claro. Mais fácil de revisar, reverter e entender.</p>
+        </div>
+      </div>
+      <div class="box tip">
+        <span class="bxi">✅</span>
+        <div class="bxc">
+          <strong>Conventional Commits</strong>
+          <p><code>feat:</code>, <code>fix:</code>, <code>ci:</code>... Padroniza mensagens, facilita CHANGELOG automático.</p>
+        </div>
+      </div>
+      <div class="box tip">
+        <span class="bxi">✅</span>
+        <div class="bxc">
+          <strong>.gitignore antes do primeiro commit</strong>
+          <p>Criar o .gitignore antes de adicionar arquivos evita commitar lixo acidentalmente.</p>
+        </div>
+      </div>
+      <div class="box tip">
+        <span class="bxi">✅</span>
+        <div class="bxc">
+          <strong>Feature branches sempre</strong>
+          <p>Nunca commitar direto na main. Toda mudança via branch + PR, mesmo que pequena.</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>🚫 Git — nunca faça</h3>
+      <div class="box danger" style="margin-top:.5rem">
+        <span class="bxi">🚫</span>
+        <div class="bxc">
+          <strong>git reset --hard em branches compartilhadas</strong>
+          <p>Reescreve histórico e quebra o repositório de todos. Use git revert.</p>
+        </div>
+      </div>
+      <div class="box danger">
+        <span class="bxi">🚫</span>
+        <div class="bxc">
+          <strong>Commitar .env ou credentials</strong>
+          <p>Bots varrem o GitHub em segundos. Configure .gitignore antes de qualquer commit.</p>
+        </div>
+      </div>
+      <div class="box danger">
+        <span class="bxi">🚫</span>
+        <div class="bxc">
+          <strong>git push --force na main</strong>
+          <p>Sobrescreve commits dos colegas. Proteção de branch no GitHub previne isso.</p>
+        </div>
+      </div>
+      <div class="box danger">
+        <span class="bxi">🚫</span>
+        <div class="bxc">
+          <strong>Commits gigantes com "ajustes gerais"</strong>
+          <p>Impossível de revisar, reverter ou entender. Use <code>git add -p</code> para commits granulares.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Protegendo a branch main</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">configuração no GitHub — Branch Protection</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># Repositório → Settings → Branches → Add branch ruleset</span>
+<span class="tmut"># Target branches: main</span>
+
+<span class="tw">✓ Require pull request before merging</span>
+<span class="tw">  ✓ Required approvals: 1</span>
+<span class="tw">  ✓ Dismiss stale PR approvals on new commits</span>
+
+<span class="tw">✓ Require status checks to pass before merging</span>
+<span class="tw">  ✓ Require branches to be up to date</span>
+<span class="tw">  Checks obrigatórios: lint, testes (3.10), testes (3.11), testes (3.12)</span>
+
+<span class="tw">✓ Require conversation resolution before merging</span>
+<span class="tw">✓ Restrict who can push to matching branches: apenas admins</span>
+<span class="tw">✓ Do not allow bypassing the above settings</span></pre>
+  </div>
+
+  <h3>Boas práticas em GitHub Actions</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">yml — boas práticas</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ✅ 1. Fixar versões de actions com SHA para segurança</span>
+<span class="tw">uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683</span>  <span class="tmut"># v4</span>
+
+<span class="tmut"># ✅ 2. Usar cache para acelerar builds</span>
+<span class="tg">cache:</span> <span class="tw">pip</span>  <span class="tmut"># no setup-python/setup-node</span>
+
+<span class="tmut"># ✅ 3. Limitar permissões (princípio do menor privilégio)</span>
+<span class="tg">permissions:</span>
+  <span class="tg">contents:</span>  <span class="tw">read</span>
+  <span class="tg">packages:</span>  <span class="tw">write</span>
+  <span class="tg">pull-requests:</span> <span class="tw">write</span>
+
+<span class="tmut"># ✅ 4. Timeout nos jobs para evitar runners presos</span>
+<span class="tg">jobs:</span>
+  <span class="tg">build:</span>
+    <span class="tg">timeout-minutes:</span> <span class="tw">15</span>
+
+<span class="tmut"># ✅ 5. Concurrência — cancelar run anterior se nova for disparada</span>
+<span class="tg">concurrency:</span>
+  <span class="tg">group:</span> <span class="tw">${{ github.workflow }}-${{ github.ref }}</span>
+  <span class="tg">cancel-in-progress:</span> <span class="tw">true</span>
+
+<span class="tmut"># ✅ 6. Paths filter — só rodar se arquivos relevantes mudarem</span>
+<span class="tg">on:</span>
+  <span class="tg">push:</span>
+    <span class="tg">paths:</span>
+      <span class="tw">- 'src/**'</span>
+      <span class="tw">- '!docs/**'</span>    <span class="tmut"># ignorar mudanças em docs</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S17 — PROJETO INTEGRADOR
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s17">
+  <div class="sec-header">
+    <div class="sec-num">17</div>
+    <div class="sec-tg"><h2>Projeto Integrador</h2><p>AgendaFácil — Git + GitHub + Actions do zero ao deploy</p></div>
+  </div>
+
+  <div class="box concept">
+    <span class="bxi">🎯</span>
+    <div class="bxc">
+      <strong>O que vamos construir</strong>
+      <p>Pipeline completo da AgendaFácil: repositório estruturado com Gitflow, Pull Request com CI automático, release com tag semântica e imagem Docker publicada automaticamente no Docker Hub.</p>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-b">
+        <h4>Criar repositório e estrutura</h4>
+        <div class="cb">
+          <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+          <pre><span class="tok">mkdir agendafacil && cd agendafacil && git init</span>
+<span class="tok">mkdir -p .github/workflows app tests</span>
+<span class="tok">touch .gitignore README.md requirements.txt Dockerfile</span>
+<span class="tok">echo -e "__pycache__/\n*.pyc\n.venv/\n.env\n*.db" > .gitignore</span>
+<span class="tok">git add . && git commit -m "chore: estrutura inicial do projeto"</span>
+<span class="tok">git remote add origin https://github.com/SEU_USUARIO/agendafacil.git</span>
+<span class="tok">git push -u origin main</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-b">
+        <h4>Criar branch develop e workflow de CI</h4>
+        <div class="cb">
+          <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+          <pre><span class="tok">git switch -c develop</span>
+<span class="tmut"># Criar o .github/workflows/ci.yml (da seção 14)</span>
+<span class="tok">git add .github/ && git commit -m "ci: adiciona pipeline de CI"</span>
+<span class="tok">git push origin develop</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-b">
+        <h4>Feature branch com PR e CI automático</h4>
+        <div class="cb">
+          <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+          <pre><span class="tok">git switch -c feature/api-pacientes</span>
+<span class="tmut"># Implementar app/routes/pacientes.py e tests/test_pacientes.py</span>
+<span class="tok">git add . && git commit -m "feat: implementa CRUD de pacientes"</span>
+<span class="tok">git push origin feature/api-pacientes</span>
+<span class="tmut"># Abrir PR no GitHub para develop</span>
+<span class="tmut"># Aguardar CI verde → revisor aprova → merge</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">4</div>
+      <div class="step-b">
+        <h4>Release: merge develop → main e criar tag</h4>
+        <div class="cb">
+          <div class="cb-h"><span class="cb-lang">bash</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+          <pre><span class="tok">git switch main && git merge develop --no-ff</span>
+<span class="tok">git tag -a v1.0.0 -m "Release: versão inicial da AgendaFácil"</span>
+<span class="tok">git push origin main && git push origin v1.0.0</span>
+<span class="tmut"># Workflow release.yml dispara automaticamente</span>
+<span class="tmut"># → Testes → Docker build → push Docker Hub → Release no GitHub</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">5</div>
+      <div class="step-b">
+        <h4>Verificar os resultados</h4>
+        <ul style="padding-left:1.2rem;font-size:.88rem;color:var(--muted)">
+          <li>Aba <strong>Actions</strong>: todos os workflows verdes</li>
+          <li>Aba <strong>Releases</strong>: release v1.0.0 com changelog automático</li>
+          <li><strong>Docker Hub</strong>: imagem <code>usuario/agendafacil:v1.0.0</code> e <code>:latest</code></li>
+          <li><strong>README badge</strong>: ícone verde de CI aprovado</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>Desafios do Projeto Integrador</h3>
+  <div class="chal easy">
+    <div class="chal-hdr"><h4>🟢 Desafio A — Gitflow básico</h4></div>
+    <ul>
+      <li>Criar repositório com branches <code>main</code> e <code>develop</code></li>
+      <li>Feature branch → PR → CI → merge para develop</li>
+      <li>Merge develop → main com tag v1.0.0</li>
+      <li>Verificar badge verde no README</li>
+    </ul>
+  </div>
+  <div class="chal med">
+    <div class="chal-hdr"><h4>🟡 Desafio B — PR com CI completo</h4></div>
+    <ul>
+      <li>Configurar branch protection na main (require PR + CI verde)</li>
+      <li>Abrir PR com código que quebra os testes — verificar que é bloqueado</li>
+      <li>Corrigir o código, re-push — verificar que o PR agora pode ser aprovado</li>
+      <li>Adicionar comentário de code review e marcar como aprovado</li>
+    </ul>
+  </div>
+  <div class="chal hard">
+    <div class="chal-hdr"><h4>🔴 Desafio C — Pipeline completo com release automática</h4></div>
+    <ul>
+      <li>Implementar o workflow <code>ci.yml</code> com os 4 jobs (qualidade, testes, segurança, docker)</li>
+      <li>Implementar o workflow <code>release.yml</code> disparado por tag semântica</li>
+      <li>Criar e publicar uma tag v1.0.0 — verificar release criada no GitHub</li>
+      <li>Verificar imagem publicada no Docker Hub com tags v1.0.0 e latest</li>
+      <li>Adicionar notificação Discord/Slack no bloco final do release workflow</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     S18 — REFERÊNCIA RÁPIDA
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="s18">
+  <div class="sec-header">
+    <div class="sec-num">18</div>
+    <div class="sec-tg"><h2>Referência Rápida</h2><p>Todos os comandos e sintaxes em um lugar</p></div>
+  </div>
+
+  <h3>Git — 50 comandos essenciais</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">bash — referência completa</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tmut"># ── SETUP ────────────────────────────────────────────────────────</span>
+<span class="tok">git init</span>                          <span class="tmut"># novo repositório</span>
+<span class="tok">git clone URL [pasta]</span>             <span class="tmut"># clonar repositório</span>
+<span class="tok">git config --global user.name</span>     <span class="tmut"># ver configuração</span>
+
+<span class="tmut"># ── STATUS E DIFF ────────────────────────────────────────────────</span>
+<span class="tok">git status</span>                        <span class="tmut"># estado atual</span>
+<span class="tok">git diff</span>                          <span class="tmut"># mudanças não staged</span>
+<span class="tok">git diff --staged</span>                  <span class="tmut"># mudanças staged</span>
+<span class="tok">git diff branch1..branch2</span>         <span class="tmut"># entre branches</span>
+
+<span class="tmut"># ── ADD E COMMIT ─────────────────────────────────────────────────</span>
+<span class="tok">git add .</span>                         <span class="tmut"># adicionar tudo</span>
+<span class="tok">git add -p</span>                        <span class="tmut"># adicionar interativo</span>
+<span class="tok">git commit -m "mensagem"</span>           <span class="tmut"># commitar</span>
+<span class="tok">git commit -am "mensagem"</span>          <span class="tmut"># add + commit rastreados</span>
+<span class="tok">git commit --amend</span>                 <span class="tmut"># editar último commit</span>
+
+<span class="tmut"># ── HISTÓRICO ────────────────────────────────────────────────────</span>
+<span class="tok">git log --oneline --graph --all</span>   <span class="tmut"># histórico visual</span>
+<span class="tok">git show HASH</span>                     <span class="tmut"># detalhes do commit</span>
+<span class="tok">git blame ARQUIVO</span>                  <span class="tmut"># quem escreveu cada linha</span>
+
+<span class="tmut"># ── BRANCHES ─────────────────────────────────────────────────────</span>
+<span class="tok">git branch -a</span>                     <span class="tmut"># listar todas</span>
+<span class="tok">git switch -c feature/nome</span>        <span class="tmut"># criar e entrar</span>
+<span class="tok">git switch main</span>                   <span class="tmut"># trocar de branch</span>
+<span class="tok">git branch -d feature/nome</span>        <span class="tmut"># deletar (merged)</span>
+<span class="tok">git branch -D feature/nome</span>        <span class="tmut"># forçar delete</span>
+
+<span class="tmut"># ── MERGE E REBASE ───────────────────────────────────────────────</span>
+<span class="tok">git merge feature/nome</span>            <span class="tmut"># merge</span>
+<span class="tok">git merge --no-ff feature/nome</span>    <span class="tmut"># forçar merge commit</span>
+<span class="tok">git merge --squash feature/nome</span>   <span class="tmut"># squash em um commit</span>
+<span class="tok">git merge --abort</span>                  <span class="tmut"># abortar merge</span>
+<span class="tok">git rebase main</span>                   <span class="tmut"># rebase na main</span>
+<span class="tok">git rebase -i HEAD~3</span>              <span class="tmut"># rebase interativo</span>
+<span class="tok">git rebase --abort</span>                 <span class="tmut"># abortar rebase</span>
+<span class="tok">git rebase --continue</span>              <span class="tmut"># continuar pós-conflito</span>
+<span class="tok">git cherry-pick HASH</span>              <span class="tmut"># copiar commit específico</span>
+
+<span class="tmut"># ── DESFAZER ─────────────────────────────────────────────────────</span>
+<span class="tok">git restore ARQUIVO</span>               <span class="tmut"># descartar mudanças locais</span>
+<span class="tok">git restore --staged ARQUIVO</span>      <span class="tmut"># remover do staging</span>
+<span class="tok">git reset --soft HEAD~1</span>           <span class="tmut"># desfazer commit (manter staged)</span>
+<span class="tok">git reset --mixed HEAD~1</span>          <span class="tmut"># desfazer commit (manter working)</span>
+<span class="tr">git reset --hard HEAD~1</span>           <span class="tmut"># ⚠️  desfazer e descartar tudo</span>
+<span class="tok">git revert HEAD</span>                   <span class="tmut"># reverter com novo commit (seguro)</span>
+
+<span class="tmut"># ── REMOTO ───────────────────────────────────────────────────────</span>
+<span class="tok">git remote add origin URL</span>         <span class="tmut"># conectar ao remoto</span>
+<span class="tok">git remote -v</span>                     <span class="tmut"># ver remotos</span>
+<span class="tok">git push -u origin main</span>           <span class="tmut"># primeiro push</span>
+<span class="tok">git push origin --delete branch</span>   <span class="tmut"># deletar branch remota</span>
+<span class="tok">git fetch origin</span>                  <span class="tmut"># buscar sem integrar</span>
+<span class="tok">git pull --rebase origin main</span>     <span class="tmut"># pull com rebase</span>
+
+<span class="tmut"># ── STASH ────────────────────────────────────────────────────────</span>
+<span class="tok">git stash</span>                         <span class="tmut"># guardar temporariamente</span>
+<span class="tok">git stash pop</span>                     <span class="tmut"># restaurar e remover</span>
+<span class="tok">git stash list</span>                    <span class="tmut"># listar stashes</span>
+
+<span class="tmut"># ── TAGS ─────────────────────────────────────────────────────────</span>
+<span class="tok">git tag -a v1.0.0 -m "mensagem"</span>   <span class="tmut"># criar tag anotada</span>
+<span class="tok">git push origin --tags</span>            <span class="tmut"># enviar tags</span></pre>
+  </div>
+
+  <h3>GitHub Actions — estrutura YAML em uma página</h3>
+  <div class="cb">
+    <div class="cb-h"><span class="cb-lang">yml — mapa completo</span><button class="cb-copy" onclick="cc(this)">Copiar</button></div>
+    <pre><span class="tg">name:</span>        <span class="tmut"># nome do workflow</span>
+
+<span class="tg">on:</span>
+  <span class="tg">push:</span>        <span class="tg">branches/tags/paths</span>
+  <span class="tg">pull_request:</span> <span class="tg">branches/types</span>
+  <span class="tg">schedule:</span>    <span class="tw">- cron: '...'</span>
+  <span class="tg">workflow_dispatch:</span> <span class="tg">inputs:</span>
+  <span class="tg">workflow_run:</span> <span class="tg">workflows/types/branches</span>
+
+<span class="tg">env:</span>            <span class="tmut"># variáveis globais</span>
+
+<span class="tg">concurrency:</span>   <span class="tmut"># evitar runs simultâneos</span>
+  <span class="tg">group:</span> <span class="tw">${{ github.workflow }}-${{ github.ref }}</span>
+  <span class="tg">cancel-in-progress:</span> <span class="tw">true</span>
+
+<span class="tg">permissions:</span>   <span class="tmut"># escopo mínimo de permissões</span>
+  <span class="tg">contents:</span> <span class="tw">read</span>
+
+<span class="tg">jobs:</span>
+  <span class="tg">meu-job:</span>
+    <span class="tg">name:</span>              <span class="tmut"># nome exibido</span>
+    <span class="tg">runs-on:</span>           <span class="tw">ubuntu-latest | windows-latest | macos-latest</span>
+    <span class="tg">needs:</span>             <span class="tmut"># dependência de outro job</span>
+    <span class="tg">if:</span>                <span class="tmut"># condição de execução</span>
+    <span class="tg">timeout-minutes:</span>  <span class="tmut"># timeout do job</span>
+    <span class="tg">environment:</span>       <span class="tmut"># environment com aprovação</span>
+    <span class="tg">strategy:</span>
+      <span class="tg">matrix:</span>          <span class="tmut"># execuções paralelas com variações</span>
+      <span class="tg">fail-fast:</span> <span class="tw">false</span>
+    <span class="tg">outputs:</span>           <span class="tmut"># passar dados para jobs dependentes</span>
+      <span class="tg">meu-output:</span> <span class="tw">${{ steps.meu-step.outputs.valor }}</span>
+
+    <span class="tg">steps:</span>
+      <span class="tw">- uses: action/nome@versao</span>   <span class="tmut"># action do marketplace</span>
+        <span class="tg">with:</span>                        <span class="tmut"># parâmetros da action</span>
+        <span class="tg">env:</span>                         <span class="tmut"># variáveis do step</span>
+        <span class="tg">if:</span>                          <span class="tmut"># condição do step</span>
+        <span class="tg">timeout-minutes:</span>
+        <span class="tg">continue-on-error:</span> <span class="tw">true</span>     <span class="tmut"># continuar mesmo em falha</span>
+
+      <span class="tw">- name: Step com run</span>
+        <span class="tg">id:</span> <span class="tw">meu-id</span>                   <span class="tmut"># para referenciar outputs</span>
+        <span class="tg">run:</span> <span class="tw">|</span>                        <span class="tmut"># múltiplas linhas</span>
+          <span class="tw">echo "saida=$VALOR" >> $GITHUB_OUTPUT</span>
+          <span class="tw">echo "VAR=valor"   >> $GITHUB_ENV</span></pre>
+  </div>
+
+  <h3>Contextos mais usados — cheat sheet</h3>
+  <table class="tbl">
+    <thead><tr><th>Contexto</th><th>Valor típico</th><th>Quando usar</th></tr></thead>
+    <tbody>
+      <tr><td>${{ github.ref }}</td><td>refs/heads/main</td><td>Condicional por branch</td></tr>
+      <tr><td>${{ github.sha }}</td><td>a3f8b2c1d4e5...</td><td>Tag de imagem Docker</td></tr>
+      <tr><td>${{ github.run_number }}</td><td>42</td><td>Versionar artefatos</td></tr>
+      <tr><td>${{ github.actor }}</td><td>emmerson-silva</td><td>Notificações</td></tr>
+      <tr><td>${{ github.event_name }}</td><td>push / pull_request</td><td>Condicional por evento</td></tr>
+      <tr><td>${{ github.repository }}</td><td>axacademy/agendafacil</td><td>URLs e links</td></tr>
+      <tr><td>${{ secrets.NOME }}</td><td>*** (mascarado)</td><td>Tokens e senhas</td></tr>
+      <tr><td>${{ env.PYTHON_VERSION }}</td><td>3.11</td><td>Variáveis do workflow</td></tr>
+      <tr><td>${{ matrix.versao }}</td><td>3.10 / 3.11 / 3.12</td><td>Iteração da matriz</td></tr>
+      <tr><td>${{ steps.ID.outputs.CHAVE }}</td><td>v1.0.0</td><td>Output de step anterior</td></tr>
+      <tr><td>${{ needs.JOB.outputs.CHAVE }}</td><td>valor qualquer</td><td>Output de job anterior</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box tip" style="margin-top:1.5rem">
+    <span class="bxi">🎓</span>
+    <div class="bxc">
+      <strong>Próximos passos</strong>
+      <p>
+        <strong>Dependabot:</strong> atualização automática de dependências via PRs.<br>
+        <strong>CodeQL:</strong> análise de segurança nativa do GitHub (gratuito para open source).<br>
+        <strong>GitHub Packages:</strong> registry de containers privado integrado ao GitHub.<br>
+        <strong>Reusable Workflows:</strong> compartilhar workflows entre repositórios (similar às Shared Libraries do Jenkins).
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>🌿 Material Didático Git & GitHub Actions · AX Academy / Universidade do Estado do Amazonas</p>
+  <p style="margin-top:.3rem">Prof. MsC Emmerson Santa Rita da Silva · Trilha DevOps</p>
+</div>
+
+</main>
+
+<!-- ══════════ JS ══════════ -->
+<script>
+function cc(btn) {
+  const pre = btn.closest('.cb').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    const o = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = o; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+const sections = document.querySelectorAll('section[id]');
+const navItems = document.querySelectorAll('.nav-item[href]');
+const pFill    = document.getElementById('progFill');
+const pLabel   = document.getElementById('progLabel');
+
+function onScroll() {
+  const sy = window.scrollY;
+  const dh = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = Math.round((sy / dh) * 100);
+  pFill.style.width = pct + '%';
+  pLabel.textContent = 'Progresso: ' + pct + '%';
+  let cur = '';
+  sections.forEach(s => { if (sy >= s.offsetTop - 130) cur = s.id; });
+  navItems.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+}
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+</script>
+</body>
+</html>

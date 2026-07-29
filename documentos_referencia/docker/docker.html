@@ -1,0 +1,2593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docker — Material Didático Completo | AX Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0d1117;
+  --bg2:       #161b22;
+  --bg3:       #1c2128;
+  --surface:   #21262d;
+  --surface2:  #2d333b;
+  --green:     #a50034;
+  --green-l:   #d4004a;
+  --green-xl:  #ff6b8a;
+  --accent:    #f4a261;
+  --accent2:   #e76f51;
+  --blue:      #58a6ff;
+  --purple:    #c77dff;
+  --red:       #ff7b72;
+  --white:     #e6edf3;
+  --muted:     #7d8590;
+  --border:    rgba(165,0,52,0.18);
+  --border2:   rgba(165,0,52,0.35);
+  --radius:    12px;
+  --radius-lg: 20px;
+  --mono:      'JetBrains Mono', monospace;
+  --sans:      'Sora', sans-serif;
+  --body:      'Inter', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+/* ── Sidebar nav ───────────────────────────────────────────────── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 260px; height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 2rem;
+}
+
+.sidebar-logo {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo .logo-text {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.sidebar-logo .logo-title {
+  font-family: var(--sans);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--green);
+  margin-top: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-logo .logo-title span {
+  font-size: 1.4rem;
+}
+
+.sidebar-progress {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--surface);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--green-l));
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.nav-section {
+  padding: 0.9rem 1.25rem 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.52rem 1.25rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  color: var(--white);
+  background: var(--surface);
+  border-left-color: var(--green);
+}
+
+.nav-item.active {
+  color: var(--green);
+  background: rgba(165,0,52,0.08);
+  border-left-color: var(--green);
+  font-weight: 600;
+}
+
+.nav-item .nav-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ── Main content ──────────────────────────────────────────────── */
+.main {
+  margin-left: 260px;
+  min-height: 100vh;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────── */
+.hero {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 3.5rem 3.5rem 3rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(165,0,52,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(165,0,52,0.12);
+  border: 1px solid var(--border2);
+  color: var(--green);
+  padding: 0.3rem 0.8rem;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.hero h1 {
+  font-family: var(--sans);
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--green);
+}
+
+.hero p {
+  font-size: 1.05rem;
+  color: var(--muted);
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-num {
+  font-family: var(--sans);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--green);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+/* ── Section ───────────────────────────────────────────────────── */
+.section {
+  padding: 3rem 3.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-child { border-bottom: none; }
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.section-num {
+  width: 44px; height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--green);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.section-title-group h2 {
+  font-family: var(--sans);
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.section-title-group p {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* ── Typography ────────────────────────────────────────────────── */
+h3 {
+  font-family: var(--sans);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--white);
+  margin: 1.8rem 0 0.7rem;
+}
+
+h3:first-child { margin-top: 0; }
+
+p { margin-bottom: 0.9rem; color: rgba(230,237,243,0.85); }
+p:last-child { margin-bottom: 0; }
+
+strong { color: var(--white); font-weight: 600; }
+
+/* ── Code blocks ───────────────────────────────────────────────── */
+.code-block {
+  background: #010409;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 1.2rem 0;
+}
+
+.code-header {
+  background: var(--bg3);
+  padding: 0.55rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.code-lang {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.code-copy {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--body);
+}
+
+.code-copy:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.code-copy.copied {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+pre {
+  padding: 1.25rem;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+code { font-family: var(--mono); }
+
+.t-green  { color: #a50034; }
+.t-blue   { color: #90e0ef; }
+.t-orange { color: #f4a261; }
+.t-purple { color: #c77dff; }
+.t-red    { color: #ef476f; }
+.t-gray   { color: #6b7c73; }
+.t-yellow { color: #ffd166; }
+.t-white  { color: #e6edf3; }
+
+/* ── Info boxes ────────────────────────────────────────────────── */
+.box {
+  border-radius: var(--radius);
+  padding: 1.1rem 1.3rem;
+  margin: 1.2rem 0;
+  display: flex;
+  gap: 0.9rem;
+}
+
+.box-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.box-content { flex: 1; }
+
+.box-content strong {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.box-content p {
+  font-size: 0.88rem;
+  margin: 0;
+  color: rgba(230,237,243,0.8);
+}
+
+.box.info    { background: rgba(144,224,239,0.07); border-left: 3px solid var(--blue); }
+.box.tip     { background: rgba(165,0,52,0.07);  border-left: 3px solid var(--green); }
+.box.warn    { background: rgba(244,162,97,0.07);  border-left: 3px solid var(--accent); }
+.box.danger  { background: rgba(239,71,111,0.07);  border-left: 3px solid var(--red); }
+.box.concept { background: rgba(199,125,255,0.07); border-left: 3px solid var(--purple); }
+
+.box.info    .box-icon { color: var(--blue); }
+.box.tip     .box-icon { color: var(--green); }
+.box.warn    .box-icon { color: var(--accent); }
+.box.danger  .box-icon { color: var(--red); }
+.box.concept .box-icon { color: var(--purple); }
+
+/* ── Cards grid ────────────────────────────────────────────────── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+
+.card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  transition: border-color 0.2s;
+}
+
+.card:hover { border-color: var(--border2); }
+
+.card-icon {
+  font-size: 1.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.card h4 {
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 0.35rem;
+}
+
+.card p {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Steps ─────────────────────────────────────────────────────── */
+.steps { margin: 1.2rem 0; }
+
+.step {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.6rem;
+  position: relative;
+}
+
+.step::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 40px;
+  bottom: -20px;
+  width: 1px;
+  background: var(--border);
+}
+
+.step:last-child::before { display: none; }
+
+.step-num {
+  width: 40px; height: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.step-body { flex: 1; padding-top: 0.5rem; }
+
+.step-body h4 {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 0.4rem;
+}
+
+.step-body p {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+/* ── Comparison table ──────────────────────────────────────────── */
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2rem 0;
+  font-size: 0.88rem;
+}
+
+.compare th {
+  background: var(--surface);
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--green);
+  border-bottom: 1px solid var(--border2);
+}
+
+.compare td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: rgba(230,237,243,0.8);
+  vertical-align: top;
+}
+
+.compare tr:hover td { background: var(--bg3); }
+
+.compare td:first-child {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--green-l);
+  white-space: nowrap;
+}
+
+/* ── Badge ─────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.badge-green  { background: rgba(165,0,52,0.15); color: var(--green); }
+.badge-orange { background: rgba(244,162,97,0.15); color: var(--accent); }
+.badge-blue   { background: rgba(144,224,239,0.15); color: var(--blue); }
+.badge-red    { background: rgba(239,71,111,0.15); color: var(--red); }
+
+/* ── Practice block ────────────────────────────────────────────── */
+.practice {
+  background: linear-gradient(135deg, var(--bg3) 0%, var(--bg2) 100%);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--green);
+  border-radius: var(--radius-lg);
+  padding: 1.8rem;
+  margin: 2rem 0;
+}
+
+.practice-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.2rem;
+}
+
+.practice-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.practice-badge {
+  background: rgba(165,0,52,0.15);
+  border: 1px solid var(--border2);
+  color: var(--green);
+  padding: 0.2rem 0.65rem;
+  border-radius: 100px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.tabs { margin: 1.2rem 0; }
+
+.tab-list {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 0.6rem 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--body);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+
+.tab-btn:hover { color: var(--white); }
+
+.tab-btn.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+
+.tab-panel {
+  display: none;
+  padding-top: 1rem;
+}
+
+.tab-panel.active { display: block; }
+
+/* ── Diagram ───────────────────────────────────────────────────── */
+.diagram {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin: 1.2rem 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.8;
+  overflow-x: auto;
+}
+
+/* ── Inline code ───────────────────────────────────────────────── */
+:not(pre) > code {
+  background: var(--surface);
+  color: var(--green-l);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.87em;
+}
+
+/* ── TOC module pills ──────────────────────────────────────────── */
+.toc-modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.5rem 0;
+}
+
+.toc-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.4rem 0.8rem;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.toc-pill:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(165,0,52,0.08);
+}
+
+.toc-pill-num {
+  background: var(--green);
+  color: var(--bg);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* ── Two-column layout ─────────────────────────────────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.2rem 0;
+}
+
+@media (max-width: 820px) {
+  .two-col { grid-template-columns: 1fr; }
+  .sidebar { transform: translateX(-100%); }
+  .main { margin-left: 0; }
+}
+
+/* ── Layers diagram ────────────────────────────────────────────── */
+.layer-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 1.2rem 0;
+}
+
+.layer {
+  display: flex;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--mono);
+  gap: 0.8rem;
+}
+
+.layer-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Challenge boxes ───────────────────────────────────────────── */
+.challenge {
+  border-radius: var(--radius);
+  border: 1px solid;
+  padding: 1.2rem 1.4rem;
+  margin: 0.8rem 0;
+}
+
+.challenge.easy   { border-color: rgba(165,0,52,0.4);  background: rgba(165,0,52,0.05); }
+.challenge.medium { border-color: rgba(244,162,97,0.4);  background: rgba(244,162,97,0.05); }
+.challenge.hard   { border-color: rgba(239,71,111,0.4);  background: rgba(239,71,111,0.05); }
+
+.challenge-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.challenge-header h4 {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.challenge.easy   .challenge-header h4 { color: var(--green); }
+.challenge.medium .challenge-header h4 { color: var(--accent); }
+.challenge.hard   .challenge-header h4 { color: var(--red); }
+
+.challenge ul {
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  color: rgba(230,237,243,0.8);
+}
+
+.challenge ul li { margin-bottom: 0.25rem; }
+
+/* ── Footer ────────────────────────────────────────────────────── */
+.footer {
+  padding: 2rem 3.5rem;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ── Animations ────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section { animation: fadeUp 0.5s ease both; }
+
+.section:nth-child(1) { animation-delay: 0.05s; }
+.section:nth-child(2) { animation-delay: 0.10s; }
+.section:nth-child(3) { animation-delay: 0.15s; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">AX Academy · Hyperautomation</div>
+    <div class="logo-title"><span>🐳</span> Docker</div>
+  </div>
+  <div class="sidebar-progress">
+    <div class="progress-label" id="progressLabel">Progresso: 0%</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="nav-section">Fundamentos</div>
+  <a class="nav-item" href="#s01"><span class="nav-dot"></span>O que é Docker?</a>
+  <a class="nav-item" href="#s02"><span class="nav-dot"></span>Instalação</a>
+  <a class="nav-item" href="#s03"><span class="nav-dot"></span>Conceitos Essenciais</a>
+
+  <div class="nav-section">Prática</div>
+  <a class="nav-item" href="#s04"><span class="nav-dot"></span>Primeiros Containers</a>
+  <a class="nav-item" href="#s05"><span class="nav-dot"></span>Imagens e Dockerfile</a>
+  <a class="nav-item" href="#s06"><span class="nav-dot"></span>Volumes e Redes</a>
+  <a class="nav-item" href="#s07"><span class="nav-dot"></span>Docker Compose</a>
+
+  <div class="nav-section">Avançado</div>
+  <a class="nav-item" href="#s08"><span class="nav-dot"></span>Docker Hub e Registry</a>
+  <a class="nav-item" href="#s09"><span class="nav-dot"></span>Docker no CI/CD</a>
+  <a class="nav-item" href="#s10"><span class="nav-dot"></span>Boas Práticas</a>
+  <a class="nav-item" href="#s11"><span class="nav-dot"></span>Projeto Prático</a>
+  <a class="nav-item" href="#s12"><span class="nav-dot"></span>Desafios</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MAIN
+═══════════════════════════════════════════════════════════════ -->
+<main class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🐳 AX Academy · Hyperautomation</div>
+  <h1>Docker &amp;<br><em>Containerização</em></h1>
+  <p>Do conceito ao deploy em produção. Material completo com teoria, prática e projetos reais para dominar containers.</p>
+  <div class="hero-stats">
+    <div class="stat"><span class="stat-num">12</span><span class="stat-label">Seções</span></div>
+    <div class="stat"><span class="stat-num">40+</span><span class="stat-label">Comandos</span></div>
+    <div class="stat"><span class="stat-num">8h</span><span class="stat-label">Estimado</span></div>
+    <div class="stat"><span class="stat-num">3</span><span class="stat-label">Projetos práticos</span></div>
+  </div>
+  <div class="toc-modules" style="margin-top:1.5rem">
+    <a class="toc-pill" href="#s01"><span class="toc-pill-num">1</span>O que é Docker</a>
+    <a class="toc-pill" href="#s02"><span class="toc-pill-num">2</span>Instalação</a>
+    <a class="toc-pill" href="#s03"><span class="toc-pill-num">3</span>Conceitos</a>
+    <a class="toc-pill" href="#s04"><span class="toc-pill-num">4</span>Containers</a>
+    <a class="toc-pill" href="#s05"><span class="toc-pill-num">5</span>Dockerfile</a>
+    <a class="toc-pill" href="#s06"><span class="toc-pill-num">6</span>Volumes/Redes</a>
+    <a class="toc-pill" href="#s07"><span class="toc-pill-num">7</span>Compose</a>
+    <a class="toc-pill" href="#s08"><span class="toc-pill-num">8</span>Registry</a>
+    <a class="toc-pill" href="#s09"><span class="toc-pill-num">9</span>CI/CD</a>
+    <a class="toc-pill" href="#s10"><span class="toc-pill-num">10</span>Boas Práticas</a>
+    <a class="toc-pill" href="#s11"><span class="toc-pill-num">11</span>Projeto</a>
+    <a class="toc-pill" href="#s12"><span class="toc-pill-num">12</span>Desafios</a>
+  </div>
+</div>
+
+<!-- ═══════════════════ S01 - O QUE É DOCKER ═══════════════════ -->
+<section class="section" id="s01">
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <div class="section-title-group">
+      <h2>O que é Docker?</h2>
+      <p>Entendendo o problema que ele resolve</p>
+    </div>
+  </div>
+
+  <p>Antes de qualquer comando, precisamos entender <strong>o problema real</strong> que o Docker resolve. Imagine a seguinte situação:</p>
+
+  <div class="box warn">
+    <span class="box-icon">⚠️</span>
+    <div class="box-content">
+      <strong>O clássico problema "funciona na minha máquina"</strong>
+      <p>O desenvolvedor roda o projeto localmente sem problemas. Ao enviar para o servidor de produção, tudo quebra. Motivo: versões diferentes de Python, Node, Java, bibliotecas do sistema operacional.</p>
+    </div>
+  </div>
+
+  <h3>A solução: empacotar tudo junto</h3>
+  <p>Docker resolve isso criando um <strong>container</strong> — um pacote que inclui a aplicação <em>e todo o ambiente necessário para ela rodar</em>: sistema operacional base, linguagem, dependências, variáveis de ambiente, arquivos de configuração.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📦</div>
+      <h4>Portabilidade</h4>
+      <p>O mesmo container roda identicamente no notebook do dev, no servidor de CI e em produção.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h4>Leveza</h4>
+      <p>Containers compartilham o kernel do sistema operacional. Iniciam em segundos e consomem MB, não GB.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <h4>Isolamento</h4>
+      <p>Cada container tem seu próprio sistema de arquivos, rede e processos. Não interfere com outros.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔁</div>
+      <h4>Reprodutibilidade</h4>
+      <p>O ambiente é descrito em código (Dockerfile). Qualquer pessoa cria o mesmo ambiente com um comando.</p>
+    </div>
+  </div>
+
+  <h3>Container vs. Máquina Virtual</h3>
+  <p>Essa é uma comparação fundamental que todo DevOps precisa dominar:</p>
+
+  <table class="compare">
+    <thead>
+      <tr>
+        <th>Aspecto</th>
+        <th>Máquina Virtual (VM)</th>
+        <th>Container Docker</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Kernel</td>
+        <td>Próprio (sistema operacional completo)</td>
+        <td>Compartilha o kernel do host</td>
+      </tr>
+      <tr>
+        <td>Tamanho</td>
+        <td>Gigabytes (GB)</td>
+        <td>Megabytes (MB)</td>
+      </tr>
+      <tr>
+        <td>Inicialização</td>
+        <td>Minutos</td>
+        <td>Segundos (ou menos)</td>
+      </tr>
+      <tr>
+        <td>Isolamento</td>
+        <td>Completo (hardware virtualizado)</td>
+        <td>Processo/namespace do SO</td>
+      </tr>
+      <tr>
+        <td>Overhead</td>
+        <td>Alto (CPU, RAM, disco)</td>
+        <td>Mínimo</td>
+      </tr>
+      <tr>
+        <td>Melhor para</td>
+        <td>Ambientes com SO diferentes, segurança máxima</td>
+        <td>Microsserviços, CI/CD, escala horizontal</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Arquitetura do Docker</h3>
+  <div class="diagram">
+<span class="t-green">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="t-green">│                     Seu Computador (Host)                       │</span>
+<span class="t-green">├─────────────────────────────────────────────────────────────────┤</span>
+<span class="t-green">│  Docker CLI        Docker Daemon (dockerd)     Docker Hub       │</span>
+<span class="t-green">│  ──────────        ────────────────────────    ──────────       │</span>
+<span class="t-orange">│  docker run   ──►  Gerencia containers    ◄──► images remotas   │</span>
+<span class="t-orange">│  docker build      e imagens locais            (cloud)          │</span>
+<span class="t-orange">│  docker ps                                                      │</span>
+<span class="t-green">├──────────────────────────────────────────────────────────────── │</span>
+<span class="t-blue">│  Container A        Container B        Container C              │</span>
+<span class="t-blue">│  ───────────        ───────────        ───────────              │</span>
+<span class="t-white">│  App Python         App Node.js        Banco de dados           │</span>
+<span class="t-white">│  + deps             + deps             PostgreSQL               │</span>
+<span class="t-green">├─────────────────────────────────────────────────────────────────┤</span>
+<span class="t-gray">│              Kernel do Sistema Operacional (Linux)              │</span>
+<span class="t-green">└─────────────────────────────────────────────────────────────────┘</span>
+  </div>
+
+  <div class="box concept">
+    <span class="box-icon">🧠</span>
+    <div class="box-content">
+      <strong>Docker Engine = CLI + Daemon + API</strong>
+      <p>Você digita comandos na <code>docker CLI</code>. Ela se comunica com o <code>Docker Daemon</code> via API REST. O Daemon é quem realmente cria e gerencia containers, baixa imagens e configura redes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S02 - INSTALAÇÃO ═══════════════════════ -->
+<section class="section" id="s02">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <div class="section-title-group">
+      <h2>Instalação</h2>
+      <p>Preparando o ambiente nos três sistemas operacionais</p>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab-list">
+      <button class="tab-btn active" onclick="showTab(this,'t-win')">🪟 Windows</button>
+      <button class="tab-btn" onclick="showTab(this,'t-mac')">🍎 macOS</button>
+      <button class="tab-btn" onclick="showTab(this,'t-linux')">🐧 Linux (Ubuntu)</button>
+    </div>
+
+    <div class="tab-panel active" id="t-win">
+      <div class="box info">
+        <span class="box-icon">ℹ️</span>
+        <div class="box-content">
+          <strong>Pré-requisito: WSL 2 (Windows Subsystem for Linux)</strong>
+          <p>Docker Desktop no Windows usa o WSL 2 como backend. Ative antes de instalar.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Ativar WSL 2 (PowerShell como Administrador)</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">powershell</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+              <pre><span class="t-gray"># Instalar WSL 2</span>
+<span class="t-green">wsl --install</span>
+<span class="t-gray"># Reinicie o computador após este comando</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Baixar e instalar o Docker Desktop</h4>
+            <p>Acesse <strong>https://www.docker.com/products/docker-desktop/</strong> e baixe o instalador para Windows. Execute e marque <em>"Use WSL 2 instead of Hyper-V"</em>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Verificar instalação</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">cmd / powershell</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+              <pre><span class="t-green">docker --version</span>
+<span class="t-gray"># Docker version 26.x.x</span>
+
+<span class="t-green">docker compose version</span>
+<span class="t-gray"># Docker Compose version v2.x.x</span>
+
+<span class="t-green">docker run hello-world</span>
+<span class="t-gray"># Hello from Docker! ← confirmação de que tudo funciona</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="t-mac">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Identificar o chip do Mac</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">terminal</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+              <pre><span class="t-green">uname -m</span>
+<span class="t-gray"># x86_64 = Intel Mac   |   arm64 = Apple Silicon (M1/M2/M3/M4)</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Baixar Docker Desktop para o chip correto</h4>
+            <p>Acesse <strong>https://www.docker.com/products/docker-desktop/</strong>. O site detecta automaticamente. Baixe o <code>.dmg</code> correto para Intel ou Apple Silicon.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Verificar</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">terminal</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+              <pre><span class="t-green">docker --version &amp;&amp; docker compose version</span>
+<span class="t-green">docker run hello-world</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="t-linux">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Remover versões antigas e adicionar repositório oficial</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+              <pre><span class="t-gray"># Remover versões antigas</span>
+<span class="t-green">sudo apt remove docker docker-engine docker.io containerd runc 2>/dev/null</span>
+
+<span class="t-gray"># Instalar dependências</span>
+<span class="t-green">sudo apt update && sudo apt install -y ca-certificates curl gnupg</span>
+
+<span class="t-gray"># Adicionar chave GPG oficial do Docker</span>
+<span class="t-green">sudo install -m 0755 -d /etc/apt/keyrings</span>
+<span class="t-green">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg</span>
+<span class="t-green">sudo chmod a+r /etc/apt/keyrings/docker.gpg</span>
+
+<span class="t-gray"># Adicionar repositório</span>
+<span class="t-green">echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Instalar Docker Engine</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+              <pre><span class="t-green">sudo apt update</span>
+<span class="t-green">sudo apt install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Usar Docker sem sudo (importante!)</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+              <pre><span class="t-gray"># Adicionar seu usuário ao grupo docker</span>
+<span class="t-green">sudo usermod -aG docker $USER</span>
+<span class="t-green">newgrp docker</span>
+
+<span class="t-gray"># Habilitar para iniciar com o sistema</span>
+<span class="t-green">sudo systemctl enable --now docker</span>
+
+<span class="t-gray"># Verificar</span>
+<span class="t-green">docker run hello-world</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box tip">
+    <span class="box-icon">💡</span>
+    <div class="box-content">
+      <strong>Configuração de recursos (Docker Desktop)</strong>
+      <p>Para rodar Jenkins + sua aplicação confortavelmente, aloque pelo menos <strong>4 GB de RAM</strong> e <strong>2 CPUs</strong> para o Docker. Acesse <em>Settings → Resources</em> no Docker Desktop.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S03 - CONCEITOS ═══════════════════════ -->
+<section class="section" id="s03">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <div class="section-title-group">
+      <h2>Conceitos Essenciais</h2>
+      <p>O vocabulário que você precisa dominar</p>
+    </div>
+  </div>
+
+  <p>Docker tem um vocabulário próprio. Antes de avançar para comandos, é essencial que esses conceitos estejam <strong>internalizados</strong>, não apenas memorizados.</p>
+
+  <h3>Image (Imagem)</h3>
+  <p>Uma imagem é um <strong>template somente leitura</strong> com todas as instruções para criar um container. Pense nela como a receita de um bolo: define os ingredientes (sistema operacional, dependências, código) e o modo de preparo (comandos de configuração).</p>
+
+  <div class="box concept">
+    <span class="box-icon">🧠</span>
+    <div class="box-content">
+      <strong>Imagens são construídas em camadas (layers)</strong>
+      <p>Cada instrução no Dockerfile cria uma nova camada. Camadas são imutáveis e reutilizáveis — se duas imagens compartilham a mesma camada base, ela é armazenada apenas uma vez no disco. Isso torna builds e pulls muito mais rápidos.</p>
+    </div>
+  </div>
+
+  <h3>Anatomia de uma imagem em camadas</h3>
+  <div class="layer-diagram">
+    <div class="layer" style="background:rgba(165,0,52,0.25); margin-left:0px">
+      <div class="layer-dot" style="background:#a50034"></div>
+      <span style="color:#a50034">app/  (sua aplicação) — Camada de escrita (R/W)</span>
+      <span class="badge badge-green" style="margin-left:auto">Container</span>
+    </div>
+    <div class="layer" style="background:rgba(165,0,52,0.15); margin-left:20px">
+      <div class="layer-dot" style="background:#a50034"></div>
+      <span style="color:#74c69d">COPY . /app  — código da aplicação</span>
+      <span class="badge badge-blue" style="margin-left:auto">Image layer</span>
+    </div>
+    <div class="layer" style="background:rgba(144,224,239,0.12); margin-left:20px">
+      <div class="layer-dot" style="background:#90e0ef"></div>
+      <span style="color:#90e0ef">RUN pip install -r requirements.txt</span>
+      <span class="badge badge-blue" style="margin-left:auto">Image layer</span>
+    </div>
+    <div class="layer" style="background:rgba(144,224,239,0.08); margin-left:20px">
+      <div class="layer-dot" style="background:#90e0ef"></div>
+      <span style="color:#90e0ef">COPY requirements.txt .</span>
+      <span class="badge badge-blue" style="margin-left:auto">Image layer</span>
+    </div>
+    <div class="layer" style="background:rgba(199,125,255,0.1); margin-left:20px">
+      <div class="layer-dot" style="background:#c77dff"></div>
+      <span style="color:#c77dff">FROM python:3.11-slim — imagem base</span>
+      <span class="badge" style="background:rgba(199,125,255,0.15);color:#c77dff;margin-left:auto">Base image</span>
+    </div>
+  </div>
+
+  <h3>Container</h3>
+  <p>Um container é uma <strong>instância em execução de uma imagem</strong>. A mesma imagem pode gerar dezenas de containers simultâneos e independentes. Containers são efêmeros por natureza — quando você para e remove um container, todas as alterações feitas dentro dele são perdidas (a menos que você use volumes).</p>
+
+  <table class="compare">
+    <thead>
+      <tr><th>Analogia</th><th>Docker</th><th>Descrição</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Receita</td><td>Image</td><td>Template somente leitura com instruções</td></tr>
+      <tr><td>Bolo pronto</td><td>Container</td><td>Instância em execução da imagem</td></tr>
+      <tr><td>Cozinha</td><td>Docker Engine</td><td>Ambiente que executa os containers</td></tr>
+      <tr><td>Livro de receitas</td><td>Docker Hub / Registry</td><td>Repositório de imagens</td></tr>
+      <tr><td>Geladeira</td><td>Volume</td><td>Armazenamento persistente externo</td></tr>
+      <tr><td>Condomínio</td><td>Network</td><td>Rede privada entre containers</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Volume</h3>
+  <p>Volumes são a solução para a efemeridade dos containers. Eles são gerenciados pelo Docker e existem <strong>fora do sistema de arquivos do container</strong>. Quando o container é removido, o volume persiste.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="box danger">
+        <span class="box-icon">🚫</span>
+        <div class="box-content">
+          <strong>Sem volume — dados perdidos</strong>
+          <p>docker rm container → todos os arquivos criados dentro somem para sempre.</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="box tip">
+        <span class="box-icon">✅</span>
+        <div class="box-content">
+          <strong>Com volume — dados persistem</strong>
+          <p>docker rm container → volume continua existindo, pronto para o próximo container.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Network (Rede)</h3>
+  <p>Redes Docker permitem que containers se comuniquem entre si por <strong>nome</strong> — sem precisar conhecer endereços IP que mudam a cada reinício.</p>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">🌉</div>
+      <h4>bridge (padrão)</h4>
+      <p>Rede isolada no host. Containers na mesma rede bridge se comunicam. É o padrão ao usar <code>docker network create</code>.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🖥️</div>
+      <h4>host</h4>
+      <p>Container compartilha a rede do host diretamente. Sem isolamento de rede. Melhor performance mas menos seguro.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <h4>none</h4>
+      <p>Sem rede. Container completamente isolado. Usado para processamento offline sem necessidade de rede.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌐</div>
+      <h4>overlay</h4>
+      <p>Para orquestração (Docker Swarm). Conecta containers em múltiplos hosts físicos. Usado em produção distribuída.</p>
+    </div>
+  </div>
+
+  <h3>Registry</h3>
+  <p>Um registry é um repositório de imagens Docker. O <strong>Docker Hub</strong> é o registry público padrão — contém milhares de imagens oficiais. Empresas usam registries privados (AWS ECR, Google Artifact Registry, GitHub Container Registry, Harbor).</p>
+</section>
+
+<!-- ═══════════════════ S04 - PRIMEIROS CONTAINERS ═══════════════ -->
+<section class="section" id="s04">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <div class="section-title-group">
+      <h2>Primeiros Containers</h2>
+      <p>Hands-on: rodando seus primeiros containers</p>
+    </div>
+  </div>
+
+  <h3>O comando docker run — anatomia completa</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">sintaxe</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-green">docker run</span> <span class="t-blue">[OPÇÕES]</span> <span class="t-orange">IMAGEM</span> <span class="t-purple">[COMANDO] [ARGUMENTOS]</span>
+
+<span class="t-gray">Exemplo completo:</span>
+<span class="t-green">docker run</span> <span class="t-blue">-d --name meu-nginx --restart unless-stopped -p 8080:80</span> <span class="t-orange">nginx:alpine</span></pre>
+  </div>
+
+  <h3>Flags essenciais do docker run</h3>
+  <table class="compare">
+    <thead>
+      <tr><th>Flag</th><th>O que faz</th><th>Exemplo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>-d</td><td>Roda em background (detached)</td><td><code>docker run -d nginx</code></td></tr>
+      <tr><td>-it</td><td>Modo interativo com terminal</td><td><code>docker run -it ubuntu bash</code></td></tr>
+      <tr><td>-p HOST:CONT</td><td>Mapeia porta host → container</td><td><code>-p 8080:80</code></td></tr>
+      <tr><td>-v ORIGEM:DEST</td><td>Monta volume ou bind mount</td><td><code>-v dados:/app/data</code></td></tr>
+      <tr><td>--name</td><td>Nomeia o container</td><td><code>--name meu-app</code></td></tr>
+      <tr><td>--rm</td><td>Remove automaticamente ao parar</td><td><code>docker run --rm ubuntu echo oi</code></td></tr>
+      <tr><td>-e VAR=VALOR</td><td>Define variável de ambiente</td><td><code>-e NODE_ENV=production</code></td></tr>
+      <tr><td>--network</td><td>Conecta a uma rede</td><td><code>--network minha-rede</code></td></tr>
+      <tr><td>--restart</td><td>Política de reinício</td><td><code>--restart unless-stopped</code></td></tr>
+      <tr><td>-m</td><td>Limita memória RAM</td><td><code>-m 512m</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="practice">
+    <div class="practice-header">
+      <span class="practice-badge">Prática 4.1</span>
+      <h3>🧪 Explorando containers interativos</h3>
+    </div>
+    <p>Vamos entender na prática como containers são efêmeros. Execute os comandos abaixo <strong>um por vez</strong> e observe o comportamento:</p>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+      <pre><span class="t-gray"># 1. Entrar DENTRO de um container Ubuntu</span>
+<span class="t-green">docker run -it --name lab ubuntu:22.04 bash</span>
+
+<span class="t-gray"># Dentro do container, execute:</span>
+<span class="t-orange">ls /</span>
+<span class="t-orange">whoami</span>
+<span class="t-orange">hostname</span>
+<span class="t-orange">cat /etc/os-release</span>
+<span class="t-gray"># Instale algo</span>
+<span class="t-orange">apt update && apt install -y curl -q</span>
+<span class="t-orange">curl https://httpbin.org/get | head -5</span>
+<span class="t-gray"># Sair do container</span>
+<span class="t-orange">exit</span>
+
+<span class="t-gray"># 2. Tentar entrar novamente e verificar que curl foi perdido</span>
+<span class="t-green">docker start -ai lab</span>
+<span class="t-orange">curl --version</span>   <span class="t-gray"># curl ainda está! (container pausado, não removido)</span>
+<span class="t-orange">exit</span>
+
+<span class="t-gray"># 3. Remover o container e criar um novo com a MESMA imagem</span>
+<span class="t-green">docker rm lab</span>
+<span class="t-green">docker run -it --name lab2 ubuntu:22.04 bash</span>
+<span class="t-orange">curl --version</span>   <span class="t-gray"># ERRO! curl não existe mais — novo container, ambiente limpo</span></pre>
+    </div>
+    <div class="box info">
+      <span class="box-icon">💡</span>
+      <div class="box-content">
+        <strong>Conclusão desta prática</strong>
+        <p><code>docker stop</code> para o container mas mantém dados. <code>docker rm</code> apaga o container e tudo dentro. <code>docker run</code> cria um container novo do zero.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Comandos de gerenciamento — referência rápida</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash — ciclo de vida</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># ── LISTAR ───────────────────────────────────────────────────────</span>
+<span class="t-green">docker ps</span>               <span class="t-gray"># containers em execução</span>
+<span class="t-green">docker ps -a</span>            <span class="t-gray"># TODOS os containers (incluindo parados)</span>
+<span class="t-green">docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"</span>
+
+<span class="t-gray"># ── INICIAR / PARAR / REMOVER ─────────────────────────────────────</span>
+<span class="t-green">docker stop NOME_OU_ID</span>  <span class="t-gray"># para graciosamente (SIGTERM → aguarda 10s → SIGKILL)</span>
+<span class="t-green">docker kill NOME_OU_ID</span>  <span class="t-gray"># para imediatamente (SIGKILL)</span>
+<span class="t-green">docker start NOME</span>       <span class="t-gray"># reinicia um container parado</span>
+<span class="t-green">docker restart NOME</span>     <span class="t-gray"># para e reinicia</span>
+<span class="t-green">docker rm NOME</span>          <span class="t-gray"># remove container parado</span>
+<span class="t-green">docker rm -f NOME</span>       <span class="t-gray"># força remoção mesmo rodando</span>
+
+<span class="t-gray"># ── INSPECIONAR ──────────────────────────────────────────────────</span>
+<span class="t-green">docker logs NOME</span>        <span class="t-gray"># ver logs do container</span>
+<span class="t-green">docker logs -f NOME</span>     <span class="t-gray"># acompanhar logs em tempo real (follow)</span>
+<span class="t-green">docker logs --tail 50 NOME</span>  <span class="t-gray"># últimas 50 linhas</span>
+<span class="t-green">docker stats</span>            <span class="t-gray"># monitorar CPU/RAM/rede em tempo real</span>
+<span class="t-green">docker inspect NOME</span>     <span class="t-gray"># todos os detalhes em JSON</span>
+<span class="t-green">docker top NOME</span>         <span class="t-gray"># processos rodando dentro do container</span>
+
+<span class="t-gray"># ── EXECUTAR COMANDOS ─────────────────────────────────────────────</span>
+<span class="t-green">docker exec -it NOME bash</span>  <span class="t-gray"># entrar em container em execução</span>
+<span class="t-green">docker exec NOME ls /app</span>   <span class="t-gray"># executar comando sem entrar</span>
+<span class="t-green">docker cp NOME:/app/log.txt ./log.txt</span>  <span class="t-gray"># copiar arquivo do container</span>
+
+<span class="t-gray"># ── IMAGENS ──────────────────────────────────────────────────────</span>
+<span class="t-green">docker images</span>           <span class="t-gray"># listar imagens locais</span>
+<span class="t-green">docker pull python:3.11-slim</span>  <span class="t-gray"># baixar imagem sem executar</span>
+<span class="t-green">docker rmi python:3.11-slim</span>   <span class="t-gray"># remover imagem local</span>
+<span class="t-green">docker image prune</span>       <span class="t-gray"># remover imagens sem tag ("dangling")</span>
+
+<span class="t-gray"># ── LIMPEZA GERAL ────────────────────────────────────────────────</span>
+<span class="t-green">docker system df</span>         <span class="t-gray"># uso de espaço</span>
+<span class="t-green">docker system prune</span>      <span class="t-gray"># remove containers parados + imagens sem tag + redes não usadas</span>
+<span class="t-green">docker system prune -a</span>   <span class="t-gray"># ⚠️  remove TUDO que não está em uso</span></pre>
+  </div>
+
+  <div class="practice">
+    <div class="practice-header">
+      <span class="practice-badge">Prática 4.2</span>
+      <h3>🧪 Rodando um servidor web com mapeamento de porta</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+      <pre><span class="t-gray"># Subir Nginx na porta 8090</span>
+<span class="t-green">docker run -d --name web -p 8090:80 nginx:alpine</span>
+
+<span class="t-gray"># Verificar que está rodando</span>
+<span class="t-green">docker ps</span>
+<span class="t-green">curl http://localhost:8090</span>
+<span class="t-gray"># ou abra http://localhost:8090 no navegador</span>
+
+<span class="t-gray"># Acompanhar os logs de acesso em tempo real</span>
+<span class="t-green">docker logs -f web</span>
+<span class="t-gray"># (faça mais requisições no navegador e veja os logs aparecerem)</span>
+<span class="t-gray"># Ctrl+C para parar o follow</span>
+
+<span class="t-gray"># Ver consumo de recursos</span>
+<span class="t-green">docker stats web</span>
+
+<span class="t-gray"># Entrar no container e ver os arquivos</span>
+<span class="t-green">docker exec -it web sh</span>
+<span class="t-orange">ls /usr/share/nginx/html/</span>
+<span class="t-orange">cat /usr/share/nginx/html/index.html</span>
+<span class="t-orange">exit</span>
+
+<span class="t-gray"># Limpar</span>
+<span class="t-green">docker rm -f web</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S05 - DOCKERFILE ═══════════════════════ -->
+<section class="section" id="s05">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <div class="section-title-group">
+      <h2>Imagens e Dockerfile</h2>
+      <p>Criando suas próprias imagens Docker</p>
+    </div>
+  </div>
+
+  <p>O <strong>Dockerfile</strong> é o DNA da sua imagem. É um arquivo de texto com instruções que o Docker executa, passo a passo, para construir a imagem.</p>
+
+  <h3>Instruções essenciais do Dockerfile</h3>
+  <table class="compare">
+    <thead>
+      <tr><th>Instrução</th><th>O que faz</th><th>Exemplo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>FROM</td><td>Define a imagem base (obrigatório, sempre primeiro)</td><td><code>FROM python:3.11-slim</code></td></tr>
+      <tr><td>WORKDIR</td><td>Define o diretório de trabalho atual</td><td><code>WORKDIR /app</code></td></tr>
+      <tr><td>COPY</td><td>Copia arquivos do host para a imagem</td><td><code>COPY . .</code></td></tr>
+      <tr><td>ADD</td><td>Como COPY mas também aceita URLs e .tar.gz</td><td><code>ADD app.tar.gz /app</code></td></tr>
+      <tr><td>RUN</td><td>Executa comando durante o build (cria uma camada)</td><td><code>RUN pip install -r requirements.txt</code></td></tr>
+      <tr><td>ENV</td><td>Define variável de ambiente permanente</td><td><code>ENV PORT=5000</code></td></tr>
+      <tr><td>ARG</td><td>Variável disponível APENAS durante o build</td><td><code>ARG VERSION=1.0</code></td></tr>
+      <tr><td>EXPOSE</td><td>Documenta a porta que o container usa</td><td><code>EXPOSE 5000</code></td></tr>
+      <tr><td>VOLUME</td><td>Declara ponto de montagem de volume</td><td><code>VOLUME ["/data"]</code></td></tr>
+      <tr><td>USER</td><td>Define usuário para execução (nunca root!)</td><td><code>USER appuser</code></td></tr>
+      <tr><td>HEALTHCHECK</td><td>Comando para verificar saúde do container</td><td><code>HEALTHCHECK CMD curl -f http://localhost/health</code></td></tr>
+      <tr><td>CMD</td><td>Comando padrão ao iniciar o container (pode ser substituído)</td><td><code>CMD ["python", "app.py"]</code></td></tr>
+      <tr><td>ENTRYPOINT</td><td>Ponto de entrada fixo (não substituído pelo docker run)</td><td><code>ENTRYPOINT ["gunicorn"]</code></td></tr>
+      <tr><td>LABEL</td><td>Metadados da imagem</td><td><code>LABEL version="1.0"</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Dockerfile simples — aplicação Python Flask</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">Dockerfile</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># ── Imagem base ──────────────────────────────────────────────────</span>
+<span class="t-purple">FROM</span> <span class="t-orange">python:3.11-slim</span>
+
+<span class="t-gray"># ── Metadados ────────────────────────────────────────────────────</span>
+<span class="t-purple">LABEL</span> <span class="t-blue">maintainer="devops@ax.academy"</span>
+<span class="t-purple">LABEL</span> <span class="t-blue">description="API de exemplo"</span>
+
+<span class="t-gray"># ── Diretório de trabalho ─────────────────────────────────────────</span>
+<span class="t-purple">WORKDIR</span> <span class="t-orange">/app</span>
+
+<span class="t-gray"># ── Dependências ANTES do código (aproveita cache!) ───────────────</span>
+<span class="t-purple">COPY</span> <span class="t-blue">requirements.txt .</span>
+<span class="t-purple">RUN</span> <span class="t-blue">pip install --no-cache-dir -r requirements.txt</span>
+
+<span class="t-gray"># ── Código da aplicação ────────────────────────────────────────────</span>
+<span class="t-purple">COPY</span> <span class="t-blue">. .</span>
+
+<span class="t-gray"># ── Variáveis de ambiente ─────────────────────────────────────────</span>
+<span class="t-purple">ENV</span> <span class="t-blue">FLASK_ENV=production</span>
+<span class="t-purple">ENV</span> <span class="t-blue">PORT=5000</span>
+
+<span class="t-gray"># ── Porta exposta ─────────────────────────────────────────────────</span>
+<span class="t-purple">EXPOSE</span> <span class="t-orange">5000</span>
+
+<span class="t-gray"># ── Health check ─────────────────────────────────────────────────</span>
+<span class="t-purple">HEALTHCHECK</span> <span class="t-blue">--interval=30s --timeout=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"</span>
+
+<span class="t-gray"># ── Usuário não-root ─────────────────────────────────────────────</span>
+<span class="t-purple">RUN</span> <span class="t-blue">adduser --disabled-password --gecos '' appuser</span>
+<span class="t-purple">USER</span> <span class="t-orange">appuser</span>
+
+<span class="t-gray"># ── Comando de inicialização ──────────────────────────────────────</span>
+<span class="t-purple">CMD</span> <span class="t-blue">["python", "app.py"]</span></pre>
+  </div>
+
+  <h3>Multi-stage build — imagens menores e mais seguras</h3>
+  <p>Multi-stage build é uma técnica avançada mas essencial em produção. Você usa um container "pesado" para compilar/instalar e um container "leve" para rodar. O resultado final é muito menor.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">Dockerfile — multi-stage</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># ═══ STAGE 1: Builder (instalar dependências) ════════════════════</span>
+<span class="t-purple">FROM</span> <span class="t-orange">python:3.11-slim</span> <span class="t-blue">AS builder</span>
+
+<span class="t-purple">WORKDIR</span> <span class="t-orange">/build</span>
+<span class="t-purple">COPY</span> <span class="t-blue">requirements.txt .</span>
+
+<span class="t-gray"># Instala no diretório /deps (não no sistema)</span>
+<span class="t-purple">RUN</span> <span class="t-blue">pip install --no-cache-dir --target=/build/deps -r requirements.txt</span>
+
+<span class="t-gray"># ═══ STAGE 2: Runtime (imagem final) ═════════════════════════════</span>
+<span class="t-purple">FROM</span> <span class="t-orange">python:3.11-slim</span> <span class="t-blue">AS runtime</span>
+
+<span class="t-gray"># Copia APENAS as dependências instaladas pelo builder</span>
+<span class="t-purple">COPY</span> <span class="t-blue">--from=builder /build/deps /usr/local/lib/python3.11/site-packages</span>
+
+<span class="t-purple">WORKDIR</span> <span class="t-orange">/app</span>
+<span class="t-purple">COPY</span> <span class="t-blue">app/ ./app/</span>
+<span class="t-purple">COPY</span> <span class="t-blue">run.py .</span>
+
+<span class="t-purple">ENV</span> <span class="t-blue">PYTHONDONTWRITEBYTECODE=1</span>
+<span class="t-purple">ENV</span> <span class="t-blue">PYTHONUNBUFFERED=1</span>
+
+<span class="t-gray"># Volume para dados persistentes</span>
+<span class="t-purple">VOLUME</span> <span class="t-blue">["/data"]</span>
+<span class="t-purple">EXPOSE</span> <span class="t-orange">5000</span>
+
+<span class="t-gray"># Usuário não-root</span>
+<span class="t-purple">RUN</span> <span class="t-blue">adduser --disabled-password --gecos '' appuser && \
+    mkdir -p /data && chown appuser:appuser /data</span>
+<span class="t-purple">USER</span> <span class="t-orange">appuser</span>
+
+<span class="t-purple">HEALTHCHECK</span> <span class="t-blue">--interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"</span>
+
+<span class="t-purple">CMD</span> <span class="t-blue">["python", "run.py"]</span></pre>
+  </div>
+
+  <h3>O arquivo .dockerignore</h3>
+  <p>Assim como o <code>.gitignore</code>, o <code>.dockerignore</code> define o que <strong>não</strong> deve ser copiado para a imagem. Isso reduz o tamanho e evita vazar arquivos sensíveis.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">.dockerignore</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># Controle de versão</span>
+<span class="t-green">.git</span>
+<span class="t-green">.gitignore</span>
+
+<span class="t-gray"># Ambientes Python</span>
+<span class="t-green">venv/</span>
+<span class="t-green">.venv/</span>
+<span class="t-green">__pycache__/</span>
+<span class="t-green">*.pyc</span>
+<span class="t-green">*.pyo</span>
+<span class="t-green">.pytest_cache/</span>
+<span class="t-green">.coverage</span>
+
+<span class="t-gray"># Node.js</span>
+<span class="t-green">node_modules/</span>
+
+<span class="t-gray"># NUNCA incluir credenciais!</span>
+<span class="t-red">.env</span>
+<span class="t-red">.env.local</span>
+<span class="t-red">*.key</span>
+<span class="t-red">secrets.yml</span>
+
+<span class="t-gray"># Documentação e testes (não precisam ir para produção)</span>
+<span class="t-green">docs/</span>
+<span class="t-green">tests/</span>
+<span class="t-green">*.md</span>
+<span class="t-green">Dockerfile*</span>
+<span class="t-green">docker-compose*</span></pre>
+  </div>
+
+  <h3>Construindo e testando a imagem</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># Build básico (tag = nome:versão)</span>
+<span class="t-green">docker build -t minha-app:1.0.0 .</span>
+
+<span class="t-gray"># Build com target específico (multi-stage)</span>
+<span class="t-green">docker build --target runtime -t minha-app:1.0.0 .</span>
+
+<span class="t-gray"># Build sem usar cache (força rebuild de todas as camadas)</span>
+<span class="t-green">docker build --no-cache -t minha-app:1.0.0 .</span>
+
+<span class="t-gray"># Inspecionar o tamanho das camadas</span>
+<span class="t-green">docker history minha-app:1.0.0</span>
+
+<span class="t-gray"># Comparar tamanhos</span>
+<span class="t-green">docker images | grep minha-app</span>
+
+<span class="t-gray"># Testar a imagem construída</span>
+<span class="t-green">docker run --rm -p 5000:5000 minha-app:1.0.0</span></pre>
+  </div>
+
+  <div class="practice">
+    <div class="practice-header">
+      <span class="practice-badge">Prática 5.1</span>
+      <h3>🧪 Construindo sua primeira imagem</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">bash — criar app e Dockerfile</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+      <pre><span class="t-gray"># Criar estrutura do projeto</span>
+<span class="t-green">mkdir lab-docker && cd lab-docker</span>
+
+<span class="t-gray"># Criar a aplicação Python</span>
+<span class="t-green">cat > app.py << 'EOF'</span>
+<span class="t-blue">from flask import Flask, jsonify
+import os, socket, datetime
+
+app = Flask(__name__)
+
+@app.route('/health')
+def health():
+    return jsonify({
+        "status": "ok",
+        "hostname": socket.gethostname(),
+        "time": datetime.datetime.utcnow().isoformat()
+    })
+
+@app.route('/')
+def index():
+    return jsonify({"message": "Olá do Docker!", "version": "1.0.0"})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)</span>
+<span class="t-green">EOF</span>
+
+<span class="t-gray"># Criar requirements.txt</span>
+<span class="t-green">echo "Flask==3.0.3" > requirements.txt</span>
+
+<span class="t-gray"># Criar Dockerfile</span>
+<span class="t-green">cat > Dockerfile << 'EOF'</span>
+<span class="t-blue">FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 5000
+CMD ["python", "app.py"]</span>
+<span class="t-green">EOF</span>
+
+<span class="t-gray"># Criar .dockerignore</span>
+<span class="t-green">echo -e "__pycache__/\n*.pyc\n.env" > .dockerignore</span>
+
+<span class="t-gray"># Construir a imagem</span>
+<span class="t-green">docker build -t lab-app:1.0.0 .</span>
+
+<span class="t-gray"># Executar</span>
+<span class="t-green">docker run -d --name lab-app -p 5000:5000 lab-app:1.0.0</span>
+
+<span class="t-gray"># Testar</span>
+<span class="t-green">curl http://localhost:5000/health</span>
+<span class="t-green">curl http://localhost:5000/</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S06 - VOLUMES E REDES ═══════════════════ -->
+<section class="section" id="s06">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <div class="section-title-group">
+      <h2>Volumes e Redes</h2>
+      <p>Persistência de dados e comunicação entre containers</p>
+    </div>
+  </div>
+
+  <h3>Tipos de volume no Docker</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📁</div>
+      <h4>Named Volume</h4>
+      <p>Gerenciado pelo Docker. Persiste após <code>docker rm</code>. Recomendado para dados de produção (bancos, arquivos da aplicação).</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔗</div>
+      <h4>Bind Mount</h4>
+      <p>Mapeia um diretório do seu computador. Ideal para desenvolvimento: altera o código e o container vê na hora, sem rebuild.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h4>tmpfs Mount</h4>
+      <p>Armazenamento em memória RAM. Rápido mas não persiste. Usado para dados temporários sensíveis (senhas em memória).</p>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash — gerenciamento de volumes</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># ── Named Volumes ─────────────────────────────────────────────────</span>
+<span class="t-green">docker volume create meus-dados</span>
+<span class="t-green">docker volume ls</span>
+<span class="t-green">docker volume inspect meus-dados</span>
+<span class="t-gray"># Mostra onde o volume está no disco do host</span>
+
+<span class="t-gray"># Usar volume em container</span>
+<span class="t-green">docker run -d --name db \
+  -v meus-dados:/var/lib/postgresql/data \
+  postgres:16-alpine</span>
+
+<span class="t-gray"># ── Bind Mount ────────────────────────────────────────────────────</span>
+<span class="t-gray"># Mapeia pasta local para desenvolvimento (hot reload)</span>
+<span class="t-green">docker run -d --name dev-app \
+  -v $(pwd)/src:/app/src \
+  -p 5000:5000 \
+  minha-app:dev</span>
+<span class="t-gray"># Altere arquivos em ./src e veja a mudança no container!</span>
+
+<span class="t-gray"># ── Demonstração de persistência ──────────────────────────────────</span>
+<span class="t-green">docker volume create demo-vol</span>
+<span class="t-green">docker run --rm -v demo-vol:/dados ubuntu bash -c "echo 'dados importantes' > /dados/arquivo.txt"</span>
+<span class="t-green">docker run --rm -v demo-vol:/dados ubuntu cat /dados/arquivo.txt</span>
+<span class="t-gray"># "dados importantes" — persiste mesmo sem o container!</span>
+
+<span class="t-gray"># Remover volume (só após remover containers que o usam)</span>
+<span class="t-green">docker volume rm demo-vol</span>
+<span class="t-green">docker volume prune</span>  <span class="t-gray"># remove volumes não usados por nenhum container</span></pre>
+  </div>
+
+  <h3>Redes Docker na prática</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash — gerenciamento de redes</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># ── Criar rede ────────────────────────────────────────────────────</span>
+<span class="t-green">docker network create app-network</span>
+<span class="t-green">docker network ls</span>
+<span class="t-green">docker network inspect app-network</span>
+
+<span class="t-gray"># ── Conectar containers na mesma rede ─────────────────────────────</span>
+<span class="t-gray"># Container 1: banco de dados</span>
+<span class="t-green">docker run -d \
+  --name postgres \
+  --network app-network \
+  -e POSTGRES_PASSWORD=senha123 \
+  -e POSTGRES_DB=meubanco \
+  postgres:16-alpine</span>
+
+<span class="t-gray"># Container 2: aplicação que conecta ao banco pelo NOME</span>
+<span class="t-green">docker run -d \
+  --name api \
+  --network app-network \
+  -e DATABASE_URL=postgresql://postgres:senha123@postgres:5432/meubanco \
+  -p 5000:5000 \
+  minha-app:1.0.0</span>
+
+<span class="t-gray"># A API acessa o banco pelo hostname "postgres" — não por IP!</span>
+<span class="t-gray"># Docker resolve o nome automaticamente dentro da rede</span>
+
+<span class="t-gray"># Verificar conectividade entre containers</span>
+<span class="t-green">docker exec -it api ping postgres</span>
+<span class="t-green">docker exec -it api nslookup postgres</span>
+
+<span class="t-gray"># Conectar container existente a uma nova rede</span>
+<span class="t-green">docker network connect app-network outro-container</span></pre>
+  </div>
+
+  <div class="practice">
+    <div class="practice-header">
+      <span class="practice-badge">Prática 6.1</span>
+      <h3>🧪 Persistência comprovada na prática</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+      <pre><span class="t-gray"># Criar volume para o banco Jenkins</span>
+<span class="t-green">docker volume create jenkins-data</span>
+
+<span class="t-gray"># Subir Jenkins com volume</span>
+<span class="t-green">docker run -d \
+  --name jenkins \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v jenkins-data:/var/jenkins_home \
+  jenkins/jenkins:lts-jdk17</span>
+
+<span class="t-gray"># Aguardar inicialização e pegar senha</span>
+<span class="t-green">docker logs -f jenkins 2>&1 | grep -A2 "initialAdminPassword"</span>
+
+<span class="t-gray"># Acessar http://localhost:8080 e configurar Jenkins</span>
+<span class="t-gray"># Crie um job de teste...</span>
+
+<span class="t-gray"># REMOVER o container (simular falha de servidor)</span>
+<span class="t-green">docker rm -f jenkins</span>
+
+<span class="t-gray"># Recriar com o MESMO volume</span>
+<span class="t-green">docker run -d \
+  --name jenkins \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v jenkins-data:/var/jenkins_home \
+  jenkins/jenkins:lts-jdk17</span>
+
+<span class="t-gray"># Acessar http://localhost:8080 — o job criado ainda existe!</span>
+<span class="t-gray"># Essa é a magia dos volumes: o container sumiu, os dados ficaram.</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S07 - DOCKER COMPOSE ═══════════════════ -->
+<section class="section" id="s07">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <div class="section-title-group">
+      <h2>Docker Compose</h2>
+      <p>Orquestrando múltiplos containers como uma aplicação única</p>
+    </div>
+  </div>
+
+  <p>O <strong>Docker Compose</strong> resolve um problema real: aplicações modernas raramente são um único container. Uma aplicação típica tem API, banco de dados, cache (Redis), fila de mensagens (RabbitMQ)... Gerenciar isso com <code>docker run</code> separados é caótico.</p>
+
+  <p>Com o Compose, você descreve toda a infraestrutura em <strong>um único arquivo YAML</strong> e sobe tudo com um comando.</p>
+
+  <h3>Anatomia do docker-compose.yml</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">docker-compose.yml — comentado</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-blue">version: '3.9'</span>   <span class="t-gray"># versão do formato Compose</span>
+
+<span class="t-green">services:</span>           <span class="t-gray"># cada serviço = um container</span>
+
+  <span class="t-orange">api:</span>               <span class="t-gray"># nome do serviço (usado como hostname na rede interna)</span>
+    <span class="t-blue">build:</span>
+      <span class="t-blue">context: .</span>         <span class="t-gray"># pasta com o Dockerfile</span>
+      <span class="t-blue">target: runtime</span>   <span class="t-gray"># stage do multi-stage build</span>
+    <span class="t-blue">container_name: minha-api</span>
+    <span class="t-blue">restart: unless-stopped</span>
+    <span class="t-blue">ports:</span>
+      <span class="t-blue">- "5000:5000"</span>
+    <span class="t-blue">environment:</span>               <span class="t-gray"># variáveis de ambiente</span>
+      <span class="t-blue">- DATABASE_URL=postgresql://user:pass@db:5432/mydb</span>
+      <span class="t-blue">- REDIS_URL=redis://cache:6379</span>
+      <span class="t-blue">- DEBUG=false</span>
+    <span class="t-blue">env_file:</span>                  <span class="t-gray"># ou carregar de arquivo .env</span>
+      <span class="t-blue">- .env</span>
+    <span class="t-blue">volumes:</span>
+      <span class="t-blue">- app-data:/data</span>
+    <span class="t-blue">depends_on:</span>                <span class="t-gray"># aguarda esses serviços iniciarem</span>
+      <span class="t-blue">db:</span>
+        <span class="t-blue">condition: service_healthy</span>  <span class="t-gray"># espera o healthcheck passar</span>
+    <span class="t-blue">networks:</span>
+      <span class="t-blue">- app-net</span>
+    <span class="t-blue">healthcheck:</span>
+      <span class="t-blue">test: ["CMD", "curl", "-f", "http://localhost:5000/health"]</span>
+      <span class="t-blue">interval: 30s</span>
+      <span class="t-blue">timeout: 10s</span>
+      <span class="t-blue">retries: 3</span>
+      <span class="t-blue">start_period: 15s</span>
+
+  <span class="t-orange">db:</span>
+    <span class="t-blue">image: postgres:16-alpine</span>   <span class="t-gray"># imagem pronta do Docker Hub</span>
+    <span class="t-blue">container_name: minha-db</span>
+    <span class="t-blue">restart: unless-stopped</span>
+    <span class="t-blue">environment:</span>
+      <span class="t-blue">POSTGRES_USER: user</span>
+      <span class="t-blue">POSTGRES_PASSWORD: pass</span>
+      <span class="t-blue">POSTGRES_DB: mydb</span>
+    <span class="t-blue">volumes:</span>
+      <span class="t-blue">- db-data:/var/lib/postgresql/data</span>
+    <span class="t-blue">networks:</span>
+      <span class="t-blue">- app-net</span>
+    <span class="t-blue">healthcheck:</span>
+      <span class="t-blue">test: ["CMD-SHELL", "pg_isready -U user -d mydb"]</span>
+      <span class="t-blue">interval: 10s</span>
+      <span class="t-blue">timeout: 5s</span>
+      <span class="t-blue">retries: 5</span>
+
+  <span class="t-orange">cache:</span>
+    <span class="t-blue">image: redis:7-alpine</span>
+    <span class="t-blue">container_name: minha-cache</span>
+    <span class="t-blue">restart: unless-stopped</span>
+    <span class="t-blue">volumes:</span>
+      <span class="t-blue">- redis-data:/data</span>
+    <span class="t-blue">networks:</span>
+      <span class="t-blue">- app-net</span>
+
+<span class="t-green">volumes:</span>            <span class="t-gray"># declaração de volumes nomeados</span>
+  <span class="t-blue">app-data:</span>
+    <span class="t-blue">name: minha-app-data</span>
+  <span class="t-blue">db-data:</span>
+    <span class="t-blue">name: minha-db-data</span>
+  <span class="t-blue">redis-data:</span>
+
+<span class="t-green">networks:</span>           <span class="t-gray"># declaração de redes</span>
+  <span class="t-blue">app-net:</span>
+    <span class="t-blue">name: minha-rede</span></pre>
+  </div>
+
+  <h3>Comandos Docker Compose</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash — comandos essenciais</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># ── Subir / Parar ─────────────────────────────────────────────────</span>
+<span class="t-green">docker compose up</span>             <span class="t-gray"># sobe em foreground (ver logs)</span>
+<span class="t-green">docker compose up -d</span>          <span class="t-gray"># sobe em background</span>
+<span class="t-green">docker compose up -d --build</span>  <span class="t-gray"># rebuild + sobe</span>
+<span class="t-green">docker compose down</span>           <span class="t-gray"># para e remove containers (volumes persistem)</span>
+<span class="t-green">docker compose down -v</span>        <span class="t-gray"># ⚠️  para E apaga volumes</span>
+<span class="t-green">docker compose restart api</span>    <span class="t-gray"># reiniciar serviço específico</span>
+
+<span class="t-gray"># ── Monitorar ─────────────────────────────────────────────────────</span>
+<span class="t-green">docker compose ps</span>             <span class="t-gray"># status de todos os serviços</span>
+<span class="t-green">docker compose logs -f</span>        <span class="t-gray"># logs de todos em tempo real</span>
+<span class="t-green">docker compose logs -f api</span>    <span class="t-gray"># logs de um serviço específico</span>
+<span class="t-green">docker compose top</span>            <span class="t-gray"># processos rodando em cada container</span>
+
+<span class="t-gray"># ── Executar comandos ─────────────────────────────────────────────</span>
+<span class="t-green">docker compose exec api bash</span>          <span class="t-gray"># entrar em container do serviço</span>
+<span class="t-green">docker compose exec db psql -U user mydb</span>  <span class="t-gray"># conectar ao banco</span>
+<span class="t-green">docker compose run --rm api pytest</span>    <span class="t-gray"># rodar testes (container descartável)</span>
+
+<span class="t-gray"># ── Escalar serviços ──────────────────────────────────────────────</span>
+<span class="t-green">docker compose up -d --scale api=3</span>    <span class="t-gray"># 3 instâncias da API</span>
+
+<span class="t-gray"># ── Verificar configuração ────────────────────────────────────────</span>
+<span class="t-green">docker compose config</span>         <span class="t-gray"># valida e exibe configuração final</span></pre>
+  </div>
+
+  <div class="practice">
+    <div class="practice-header">
+      <span class="practice-badge">Prática 7.1</span>
+      <h3>🧪 Stack completa: API + PostgreSQL + Redis</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+      <pre><span class="t-gray"># Criar arquivo docker-compose.yml</span>
+<span class="t-green">cat > docker-compose.yml << 'EOF'</span>
+<span class="t-blue">version: '3.9'
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aluno
+      POSTGRES_PASSWORD: docker123
+      POSTGRES_DB: aula
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aluno -d aula"]
+      interval: 10s
+      retries: 5
+
+  adminer:
+    image: adminer
+    ports:
+      - "8085:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:</span>
+<span class="t-green">EOF</span>
+
+<span class="t-gray"># Subir a stack</span>
+<span class="t-green">docker compose up -d</span>
+<span class="t-green">docker compose ps</span>
+
+<span class="t-gray"># Abrir http://localhost:8085</span>
+<span class="t-gray"># Sistema: PostgreSQL  Servidor: db  Usuário: aluno  Senha: docker123</span>
+<span class="t-gray"># (Veja que o container "db" é acessível pelo nome "db"!)</span>
+
+<span class="t-gray"># Ver logs de todos os serviços</span>
+<span class="t-green">docker compose logs -f</span>
+
+<span class="t-gray"># Conectar direto no PostgreSQL</span>
+<span class="t-green">docker compose exec db psql -U aluno -d aula</span>
+<span class="t-gray"># Dentro do psql:</span>
+<span class="t-orange">CREATE TABLE teste (id serial, nome text);</span>
+<span class="t-orange">INSERT INTO teste (nome) VALUES ('Docker é incrível!');</span>
+<span class="t-orange">SELECT * FROM teste;</span>
+<span class="t-orange">\q</span>
+
+<span class="t-gray"># Derrubar e recriar — dados persistem!</span>
+<span class="t-green">docker compose down</span>
+<span class="t-green">docker compose up -d</span>
+<span class="t-green">docker compose exec db psql -U aluno -d aula -c "SELECT * FROM teste;"</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S08 - DOCKER HUB ═══════════════════════ -->
+<section class="section" id="s08">
+  <div class="section-header">
+    <div class="section-num">08</div>
+    <div class="section-title-group">
+      <h2>Docker Hub e Registry</h2>
+      <p>Publicando e distribuindo suas imagens</p>
+    </div>
+  </div>
+
+  <h3>O que é um Registry?</h3>
+  <p>Um <strong>registry</strong> é um servidor que armazena e distribui imagens Docker. O <strong>Docker Hub</strong> é o registry público padrão. Para imagens privadas ou corporativas, existem alternativas como AWS ECR, Google Artifact Registry e GitHub Container Registry.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash — Docker Hub</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># ── Autenticação ──────────────────────────────────────────────────</span>
+<span class="t-green">docker login</span>                         <span class="t-gray"># login no Docker Hub</span>
+<span class="t-green">docker login ghcr.io</span>                 <span class="t-gray"># GitHub Container Registry</span>
+<span class="t-green">docker logout</span>
+
+<span class="t-gray"># ── Publicar imagem ───────────────────────────────────────────────</span>
+<span class="t-gray"># Padrão de nomenclatura: USUARIO/REPOSITORIO:TAG</span>
+<span class="t-green">docker tag lab-app:1.0.0 meuusuario/lab-app:1.0.0</span>
+<span class="t-green">docker tag lab-app:1.0.0 meuusuario/lab-app:latest</span>
+
+<span class="t-green">docker push meuusuario/lab-app:1.0.0</span>
+<span class="t-green">docker push meuusuario/lab-app:latest</span>
+
+<span class="t-gray"># ── Baixar imagem ─────────────────────────────────────────────────</span>
+<span class="t-green">docker pull meuusuario/lab-app:1.0.0</span>
+
+<span class="t-gray"># ── Boas práticas de tagging ──────────────────────────────────────</span>
+<span class="t-green">docker tag lab-app:1.0.0 meuusuario/lab-app:1.0.0</span>    <span class="t-gray"># versão semântica</span>
+<span class="t-green">docker tag lab-app:1.0.0 meuusuario/lab-app:sha-a3f8b2c</span>  <span class="t-gray"># hash do commit</span>
+<span class="t-green">docker tag lab-app:1.0.0 meuusuario/lab-app:latest</span>    <span class="t-gray"># última versão</span>
+<span class="t-gray"># NUNCA use só :latest em produção — você perde rastreabilidade!</span></pre>
+  </div>
+
+  <div class="box tip">
+    <span class="box-icon">🔐</span>
+    <div class="box-content">
+      <strong>Use Access Tokens, não sua senha</strong>
+      <p>Em pipelines CI/CD, nunca use sua senha do Docker Hub diretamente. Crie um <strong>Access Token</strong> em hub.docker.com → Account Settings → Security. Tokens têm escopos limitados e podem ser revogados individualmente.</p>
+    </div>
+  </div>
+
+  <h3>Inspecionando imagens do Docker Hub</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-gray"># Buscar imagens no Docker Hub</span>
+<span class="t-green">docker search nginx</span>
+<span class="t-green">docker search python --filter is-official=true</span>
+
+<span class="t-gray"># Baixar e inspecionar uma imagem sem rodar</span>
+<span class="t-green">docker pull python:3.11-slim</span>
+<span class="t-green">docker inspect python:3.11-slim</span>
+<span class="t-green">docker history python:3.11-slim</span>   <span class="t-gray"># ver todas as camadas</span>
+
+<span class="t-gray"># Verificar vulnerabilidades (Docker Scout)</span>
+<span class="t-green">docker scout cves python:3.11-slim</span>
+<span class="t-green">docker scout quickview minha-app:1.0.0</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ S09 - DOCKER NO CI/CD ═══════════════════ -->
+<section class="section" id="s09">
+  <div class="section-header">
+    <div class="section-num">09</div>
+    <div class="section-title-group">
+      <h2>Docker no CI/CD</h2>
+      <p>Integrando Docker com GitHub Actions e Jenkins</p>
+    </div>
+  </div>
+
+  <h3>GitHub Actions — build e push automático</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">.github/workflows/docker.yml</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-orange">name:</span> <span class="t-blue">Build e Push Docker</span>
+
+<span class="t-orange">on:</span>
+  <span class="t-blue">push:</span>
+    <span class="t-blue">branches: [ main ]</span>
+    <span class="t-blue">tags: [ 'v*.*.*' ]</span>
+
+<span class="t-orange">jobs:</span>
+  <span class="t-green">docker:</span>
+    <span class="t-blue">runs-on: ubuntu-latest</span>
+    <span class="t-blue">steps:</span>
+      <span class="t-gray"># 1. Checkout do código</span>
+      <span class="t-blue">- uses: actions/checkout@v4</span>
+
+      <span class="t-gray"># 2. Configurar Docker Buildx (builds multi-arch)</span>
+      <span class="t-blue">- uses: docker/setup-buildx-action@v3</span>
+
+      <span class="t-gray"># 3. Login no Docker Hub</span>
+      <span class="t-blue">- uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}</span>
+
+      <span class="t-gray"># 4. Extrair metadados (tags automáticas)</span>
+      <span class="t-blue">- uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/minha-app
+          tags: |
+            type=sha,prefix=sha-
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}</span>
+
+      <span class="t-gray"># 5. Build e Push com cache</span>
+      <span class="t-blue">- uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha       # cache do GitHub Actions
+          cache-to: type=gha,mode=max</span>
+
+      <span class="t-gray"># 6. Testar a imagem publicada</span>
+      <span class="t-blue">- name: Testar health check
+        run: |
+          docker run -d --name test-container -p 5000:5000 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/minha-app:latest
+          sleep 10
+          curl -f http://localhost:5000/health || exit 1
+          docker rm -f test-container</span></pre>
+  </div>
+
+  <h3>Jenkinsfile — pipeline com Docker agent</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">Jenkinsfile</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+    <pre><span class="t-orange">pipeline</span> <span class="t-blue">{</span>
+    <span class="t-orange">agent any</span>
+
+    <span class="t-orange">environment</span> <span class="t-blue">{</span>
+        <span class="t-green">IMAGE_NAME  = "meuusuario/minha-app"</span>
+        <span class="t-green">IMAGE_TAG   = "sha-${env.GIT_COMMIT.take(7)}"</span>
+        <span class="t-green">DOCKER_CRED = credentials('dockerhub-token')</span>
+    <span class="t-blue">}</span>
+
+    <span class="t-orange">stages</span> <span class="t-blue">{</span>
+        <span class="t-orange">stage</span><span class="t-blue">('Testes em Container Python') {</span>
+            <span class="t-gray">// Os testes rodam em container limpo — zero poluição no agente</span>
+            <span class="t-orange">agent</span> <span class="t-blue">{ docker { image 'python:3.11-slim' } }</span>
+            <span class="t-orange">steps</span> <span class="t-blue">{</span>
+                <span class="t-green">sh 'pip install -r requirements-dev.txt -q'</span>
+                <span class="t-green">sh 'pytest tests/ -v --cov=app'</span>
+            <span class="t-blue">}</span>
+        <span class="t-blue">}</span>
+
+        <span class="t-orange">stage</span><span class="t-blue">('Build da Imagem') {</span>
+            <span class="t-orange">steps</span> <span class="t-blue">{</span>
+                <span class="t-orange">script</span> <span class="t-blue">{</span>
+                    <span class="t-green">docker.build("${IMAGE_NAME}:${IMAGE_TAG}")</span>
+                <span class="t-blue">}</span>
+            <span class="t-blue">}</span>
+        <span class="t-blue">}</span>
+
+        <span class="t-orange">stage</span><span class="t-blue">('Push para Registry') {</span>
+            <span class="t-orange">steps</span> <span class="t-blue">{</span>
+                <span class="t-orange">script</span> <span class="t-blue">{</span>
+                    <span class="t-green">docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-token') {</span>
+                        <span class="t-green">docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()</span>
+                        <span class="t-green">docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push('latest')</span>
+                    <span class="t-green">}</span>
+                <span class="t-blue">}</span>
+            <span class="t-blue">}</span>
+        <span class="t-blue">}</span>
+
+        <span class="t-orange">stage</span><span class="t-blue">('Deploy Blue-Green') {</span>
+            <span class="t-orange">steps</span> <span class="t-blue">{</span>
+                <span class="t-green">sh """
+                    docker run -d \\
+                      --name app-green \\
+                      -p 5001:5000 \\
+                      -v app-data:/data \\
+                      ${IMAGE_NAME}:${IMAGE_TAG}
+                    sleep 8
+                    curl -sf http://localhost:5001/health || exit 1
+                    docker rm -f app-blue 2>/dev/null || true
+                    docker rename app-green app-blue
+                """</span>
+            <span class="t-blue">}</span>
+        <span class="t-blue">}</span>
+    <span class="t-blue">}</span>
+
+    <span class="t-orange">post</span> <span class="t-blue">{</span>
+        <span class="t-orange">failure</span> <span class="t-blue">{ sh 'docker rm -f app-green 2>/dev/null || true' }</span>
+    <span class="t-blue">}</span>
+<span class="t-blue">}</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════════════ S10 - BOAS PRÁTICAS ═══════════════════ -->
+<section class="section" id="s10">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <div class="section-title-group">
+      <h2>Boas Práticas</h2>
+      <p>O que separa um container amador de um container production-ready</p>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>✅ Faça isso</h3>
+      <div class="box tip" style="margin-top:0.5rem">
+        <span class="box-icon">✅</span>
+        <div class="box-content">
+          <strong>Use imagens base mínimas</strong>
+          <p><code>python:3.11-slim</code> em vez de <code>python:3.11</code>. Reduz superfície de ataque e tamanho da imagem em 70%.</p>
+        </div>
+      </div>
+      <div class="box tip">
+        <span class="box-icon">✅</span>
+        <div class="box-content">
+          <strong>Copie requirements.txt ANTES do código</strong>
+          <p>Se só o código mudou, o Docker usa o cache da camada de dependências. Build muito mais rápido.</p>
+        </div>
+      </div>
+      <div class="box tip">
+        <span class="box-icon">✅</span>
+        <div class="box-content">
+          <strong>Execute como usuário não-root</strong>
+          <p><code>USER appuser</code> no Dockerfile. Se o container for comprometido, o atacante não tem privilégios de root no host.</p>
+        </div>
+      </div>
+      <div class="box tip">
+        <span class="box-icon">✅</span>
+        <div class="box-content">
+          <strong>Adicione HEALTHCHECK</strong>
+          <p>Docker e orquestradores (Kubernetes, Swarm) usam o healthcheck para saber se o container está realmente saudável, não apenas "rodando".</p>
+        </div>
+      </div>
+      <div class="box tip">
+        <span class="box-icon">✅</span>
+        <div class="box-content">
+          <strong>Use .dockerignore sempre</strong>
+          <p>Evita incluir node_modules, .git, arquivos de teste e variáveis de ambiente na imagem.</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>🚫 Nunca faça isso</h3>
+      <div class="box danger" style="margin-top:0.5rem">
+        <span class="box-icon">🚫</span>
+        <div class="box-content">
+          <strong>Credenciais no Dockerfile ou imagem</strong>
+          <p>Nunca <code>ENV DB_PASSWORD=senha</code> no Dockerfile. Use variáveis de ambiente em runtime ou Docker Secrets.</p>
+        </div>
+      </div>
+      <div class="box danger">
+        <span class="box-icon">🚫</span>
+        <div class="box-content">
+          <strong>Tag :latest em produção</strong>
+          <p>Se você fizer rollback de <code>:latest</code>, qual versão você está rodando? Use sempre tags semânticas ou de commit SHA.</p>
+        </div>
+      </div>
+      <div class="box danger">
+        <span class="box-icon">🚫</span>
+        <div class="box-content">
+          <strong>Múltiplos processos em um container</strong>
+          <p>Um container = um processo principal. Não rode Nginx + Python + cron no mesmo container. Use Compose para isso.</p>
+        </div>
+      </div>
+      <div class="box danger">
+        <span class="box-icon">🚫</span>
+        <div class="box-content">
+          <strong>Dados importantes sem volume</strong>
+          <p><code>docker rm</code> apaga tudo dentro do container. Banco de dados, uploads, logs — sempre em volumes nomeados.</p>
+        </div>
+      </div>
+      <div class="box danger">
+        <span class="box-icon">🚫</span>
+        <div class="box-content">
+          <strong>Rodar como root (USER root)</strong>
+          <p>É o padrão se você não especificar USER. Em produção, crie sempre um usuário sem privilégios.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Otimização de camadas — exemplo concreto</h3>
+  <div class="two-col">
+    <div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">❌ Ruim — muitas camadas</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+        <pre><span class="t-red">RUN apt update
+RUN apt install -y git
+RUN apt install -y curl
+RUN apt clean
+RUN rm -rf /var/lib/apt/lists/*</span>
+<span class="t-gray"># 5 camadas desnecessárias!</span></pre>
+      </div>
+    </div>
+    <div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">✅ Bom — camada única</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+        <pre><span class="t-green">RUN apt update && \
+    apt install -y git curl && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*</span>
+<span class="t-gray"># 1 camada — mais limpo e menor!</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S11 - PROJETO PRÁTICO ═══════════════════ -->
+<section class="section" id="s11">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <div class="section-title-group">
+      <h2>Projeto Prático</h2>
+      <p>AgendaFácil — containerizando a aplicação do zero</p>
+    </div>
+  </div>
+
+  <p>Vamos containerizar a aplicação <strong>AgendaFácil</strong> (API Flask de agendamentos) do zero, seguindo todas as boas práticas aprendidas.</p>
+
+  <div class="practice">
+    <div class="practice-header">
+      <span class="practice-badge">Projeto Completo</span>
+      <h3>🚀 AgendaFácil — Do código ao container em produção</h3>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Estrutura de arquivos</h4>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+            <pre><span class="t-green">mkdir agendafacil && cd agendafacil</span>
+<span class="t-green">mkdir -p app/routes tests scripts</span>
+<span class="t-green">touch app/__init__.py app/models.py app/database.py</span>
+<span class="t-green">touch app/routes/__init__.py app/routes/pacientes.py</span>
+<span class="t-green">touch tests/__init__.py tests/conftest.py tests/test_pacientes.py</span>
+<span class="t-green">touch Dockerfile docker-compose.yml .dockerignore requirements.txt run.py</span></pre>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Dockerfile multi-stage production-ready</h4>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">Dockerfile</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+            <pre><span class="t-purple">FROM</span> <span class="t-orange">python:3.11-slim</span> <span class="t-blue">AS builder</span>
+<span class="t-purple">WORKDIR</span> <span class="t-orange">/build</span>
+<span class="t-purple">COPY</span> <span class="t-blue">requirements.txt .</span>
+<span class="t-purple">RUN</span> <span class="t-blue">pip install --no-cache-dir --target=/build/deps -r requirements.txt</span>
+
+<span class="t-purple">FROM</span> <span class="t-orange">python:3.11-slim</span> <span class="t-blue">AS runtime</span>
+<span class="t-purple">LABEL</span> <span class="t-blue">maintainer="turma-devops"</span>
+<span class="t-purple">LABEL</span> <span class="t-blue">description="AgendaFácil API"</span>
+
+<span class="t-purple">COPY</span> <span class="t-blue">--from=builder /build/deps /usr/local/lib/python3.11/site-packages</span>
+
+<span class="t-purple">WORKDIR</span> <span class="t-orange">/app</span>
+<span class="t-purple">COPY</span> <span class="t-blue">app/ ./app/</span>
+<span class="t-purple">COPY</span> <span class="t-blue">run.py .</span>
+
+<span class="t-purple">ENV</span> <span class="t-blue">FLASK_ENV=production</span>
+<span class="t-purple">ENV</span> <span class="t-blue">DATABASE_URL=sqlite:////data/agendafacil.db</span>
+<span class="t-purple">ENV</span> <span class="t-blue">PYTHONDONTWRITEBYTECODE=1</span>
+<span class="t-purple">ENV</span> <span class="t-blue">PYTHONUNBUFFERED=1</span>
+
+<span class="t-purple">VOLUME</span> <span class="t-blue">["/data"]</span>
+<span class="t-purple">EXPOSE</span> <span class="t-orange">5000</span>
+
+<span class="t-purple">RUN</span> <span class="t-blue">adduser --disabled-password --gecos '' appuser && \
+    mkdir -p /data && chown appuser:appuser /data</span>
+<span class="t-purple">USER</span> <span class="t-orange">appuser</span>
+
+<span class="t-purple">HEALTHCHECK</span> <span class="t-blue">--interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"</span>
+
+<span class="t-purple">CMD</span> <span class="t-blue">["python", "run.py"]</span></pre>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>docker-compose.yml para desenvolvimento local</h4>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">docker-compose.yml</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+            <pre><span class="t-blue">version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    container_name: agendafacil-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - agenda-data:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/agendafacil.db
+      - FLASK_ENV=production
+    networks:
+      - agenda-net
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  agenda-data:
+    name: agendafacil-data
+
+networks:
+  agenda-net:
+    name: agendafacil-net</span></pre>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Build, execução e validação</h4>
+          <div class="code-block">
+            <div class="code-header"><span class="code-lang">bash</span><button class="code-copy" onclick="copyCode(this)">Copiar</button></div>
+            <pre><span class="t-gray"># Build da imagem</span>
+<span class="t-green">docker build -t agendafacil:latest .</span>
+
+<span class="t-gray"># Verificar tamanho (deve ser menor que a imagem base!)</span>
+<span class="t-green">docker images | grep agendafacil</span>
+
+<span class="t-gray"># Subir com docker-compose</span>
+<span class="t-green">docker compose up -d --build</span>
+<span class="t-green">docker compose ps</span>
+
+<span class="t-gray"># Testar os endpoints</span>
+<span class="t-green">curl http://localhost:5000/health</span>
+<span class="t-green">curl -X POST http://localhost:5000/api/pacientes/ \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"Maria Silva","telefone":"92 99999-0001","email":"maria@email.com"}'</span>
+<span class="t-green">curl http://localhost:5000/api/pacientes/</span>
+
+<span class="t-gray"># Ver health check status</span>
+<span class="t-green">docker inspect agendafacil-api | grep -A5 '"Health"'</span>
+
+<span class="t-gray"># Publicar no Docker Hub</span>
+<span class="t-green">docker tag agendafacil:latest SEU_USUARIO/agendafacil:1.0.0</span>
+<span class="t-green">docker push SEU_USUARIO/agendafacil:1.0.0</span></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ S12 - DESAFIOS ═════════════════════════ -->
+<section class="section" id="s12">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <div class="section-title-group">
+      <h2>Desafios</h2>
+      <p>Pratique e consolide o aprendizado</p>
+    </div>
+  </div>
+
+  <h3>🟢 Nível Fácil</h3>
+  <div class="challenge easy">
+    <div class="challenge-header"><h4>Desafio 1 — Container com variáveis de ambiente</h4></div>
+    <ul>
+      <li>Rode um container Nginx com uma variável <code>APP_ENV=producao</code></li>
+      <li>Use <code>docker exec</code> para verificar que a variável existe dentro do container</li>
+      <li>Salve as variáveis em um arquivo <code>.env</code> e use <code>--env-file</code></li>
+    </ul>
+  </div>
+  <div class="challenge easy">
+    <div class="challenge-header"><h4>Desafio 2 — Persistência com Named Volume</h4></div>
+    <ul>
+      <li>Crie um volume chamado <code>meu-volume</code></li>
+      <li>Rode um container Ubuntu, crie um arquivo com seu nome dentro do volume</li>
+      <li>Remova o container e crie um novo — confirme que o arquivo ainda existe</li>
+      <li>Use <code>docker volume inspect</code> para descobrir onde o arquivo está no disco</li>
+    </ul>
+  </div>
+  <div class="challenge easy">
+    <div class="challenge-header"><h4>Desafio 3 — Dockerfile básico</h4></div>
+    <ul>
+      <li>Crie uma aplicação Python simples que exibe "Olá do Docker! — [SEU NOME]"</li>
+      <li>Escreva um Dockerfile com FROM, WORKDIR, COPY, RUN e CMD</li>
+      <li>Faça o build e rode o container</li>
+      <li>Verifique o histórico de camadas com <code>docker history</code></li>
+    </ul>
+  </div>
+
+  <h3>🟡 Nível Médio</h3>
+  <div class="challenge medium">
+    <div class="challenge-header"><h4>Desafio 4 — Stack com Docker Compose</h4></div>
+    <ul>
+      <li>Crie um docker-compose.yml com: API Python Flask + PostgreSQL + Redis</li>
+      <li>Configure o serviço de banco com healthcheck (<code>pg_isready</code>)</li>
+      <li>Faça a API depender do banco usando <code>depends_on: condition: service_healthy</code></li>
+      <li>Suba tudo com um comando e demonstre que os 3 serviços se comunicam</li>
+    </ul>
+  </div>
+  <div class="challenge medium">
+    <div class="challenge-header"><h4>Desafio 5 — Comparando tamanhos de imagem</h4></div>
+    <ul>
+      <li>Crie 3 versões do mesmo Dockerfile: usando <code>python:3.11</code>, <code>python:3.11-slim</code> e multi-stage</li>
+      <li>Compare os tamanhos com <code>docker images</code></li>
+      <li>Documente a diferença de tamanho em um README.md</li>
+    </ul>
+  </div>
+
+  <h3>🔴 Nível Difícil</h3>
+  <div class="challenge hard">
+    <div class="challenge-header"><h4>Desafio 6 — Monitoramento com Prometheus + Grafana</h4></div>
+    <ul>
+      <li>Adicione <code>flask-prometheus-metrics</code> à AgendaFácil e exponha <code>/metrics</code></li>
+      <li>Adicione containers do Prometheus e Grafana no docker-compose.yml</li>
+      <li>Configure o Prometheus para coletar métricas da API</li>
+      <li>Crie um dashboard Grafana com: requisições por segundo, latência e erros</li>
+      <li>Bônus: configure alertas quando a taxa de erro for maior que 5%</li>
+    </ul>
+  </div>
+  <div class="challenge hard">
+    <div class="challenge-header"><h4>Desafio 7 — Deploy Blue-Green completo</h4></div>
+    <ul>
+      <li>Crie 2 versões da sua API: v1 retorna <code>{"version":"1.0"}</code> e v2 retorna <code>{"version":"2.0"}</code></li>
+      <li>Implemente um script <code>deploy.sh</code> que: sobe v2, faz healthcheck, direciona tráfego, remove v1</li>
+      <li>Adicione rollback automático se o healthcheck de v2 falhar</li>
+      <li>Integre o script em um Jenkinsfile como stage de Deploy</li>
+    </ul>
+  </div>
+
+  <div class="box tip" style="margin-top:2rem">
+    <span class="box-icon">🏁</span>
+    <div class="box-content">
+      <strong>Checklist de conclusão do módulo Docker</strong>
+      <p>☐ Explico a diferença entre imagem e container sem consultar material &nbsp;|&nbsp; ☐ Crio Dockerfiles multi-stage &nbsp;|&nbsp; ☐ Uso volumes para persistência &nbsp;|&nbsp; ☐ Orquestro múltiplos containers com Compose &nbsp;|&nbsp; ☐ Publico imagens no Docker Hub &nbsp;|&nbsp; ☐ Integro Docker com GitHub Actions ou Jenkins</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>🐳 Material Didático Docker · AX Academy / Convênio N.º 005/2025 — LG Electronics do Brasil Ltda.</p>
+  <p style="margin-top:0.3rem">Polo Industrial de Manaus · AX Academy · Hyperautomation</p>
+</div>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════ -->
+<script>
+// ── Tab switcher ────────────────────────────────────────────────
+function showTab(btn, panelId) {
+  const tabs = btn.closest('.tabs');
+  tabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  tabs.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ── Copy code ────────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── Active nav + scroll progress ─────────────────────────────────
+const sections = document.querySelectorAll('section[id]');
+const navItems = document.querySelectorAll('.nav-item[href]');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+
+function onScroll() {
+  const scrollY = window.scrollY;
+  const docH = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = Math.round((scrollY / docH) * 100);
+  progressFill.style.width = pct + '%';
+  progressLabel.textContent = 'Progresso: ' + pct + '%';
+
+  let current = '';
+  sections.forEach(s => {
+    if (scrollY >= s.offsetTop - 140) current = s.id;
+  });
+
+  navItems.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+</script>
+</body>
+</html>
