@@ -77,7 +77,7 @@ Esse padrão permite identificar rapidamente:
 | Branch | Responsabilidade |
 |---------|------------------|
 | **main** | Versão oficial do repositório. Contém apenas código estável e documentação consolidada. |
-| **develop** | Branch de integração entre as funcionalidades antes da publicação na main. |
+| **develop** | Branch de integração entre as funcionalidades, utilizar como main de cada atividade. |
 | **feature** | Desenvolvimento de novas funcionalidades. |
 | **fix** | Correção de bugs. |
 | **hotfix** | Correções urgentes em produção. |
