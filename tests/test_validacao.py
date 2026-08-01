@@ -10,7 +10,7 @@ import numpy as np
 from unittest.mock import MagicMock
 
 # Importando para buscar as funções necessárias para verificar se os metódos estão funcionando
-from src.validacao import verificar_estrutura_rn01
+from src.validacao import verificar_estrutura_rn01,validar_campos_obrigatorios_rn02
 from src.relatorio import *
 
 # Caminho da planilha para efetuar o teste:
@@ -61,3 +61,46 @@ def test_rn01_falha_ao_faltar_colunas(mock_logger):
     ]
 
     verificar_estrutura_rn01(colunas_incorretas, mock_logger)
+
+"""
+Testes para regra de negócio: RN02
+"""
+
+def test_rn02_caminho_feliz(mock_logger):
+    """
+    Verifica se o DataFrame que estão sem valores nulos, passa na validação
+    """
+    dados = {
+        'lote_id' : [1,2],
+        'produto': ["Produto A", "Produto B"],
+        'observacao' : ['Lote Aprovado', 'Lote ok']
+    }
+    #Transformando em um dataframe
+    df = pd.DataFrame(data=dados)
+
+    validar_campos_obrigatorios_rn02(df, mock_logger)
+
+def test_rn02_caminho_feliz_com_observao_vazia(mock_logger):
+    """
+    Verifica se os valores nulos nas colunas observação são ignorados
+    """
+    dados = {
+        'lote_id': [1, 2],
+        'produto': ["Produto A", "Produto B"],
+        'observacao': [None, pd.NA]
+    }
+    df = pd.DataFrame(data=dados)
+    validar_campos_obrigatorios_rn02(df, mock_logger)
+
+
+def test_rn02_falha_em_campo_obrigatorio(mock_logger):
+    """
+    Verificando se realmente ele vai resultar em falha, pois, iremos inserir os valores nulos nos campos obrigatórios
+    """
+    dados = {
+        'lote_id': [1, None],
+        'produto': ["Produto A", None],
+        'observacao': [None, pd.NA]
+    }
+    df = pd.DataFrame(data=dados)
+    validar_campos_obrigatorios_rn02(df, mock_logger)

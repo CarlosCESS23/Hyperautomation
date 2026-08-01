@@ -24,7 +24,7 @@ def validar_campos_obrigatorios_rn02(df,logger):
     #2. Aplicamos a máscara de nulos apenas nas colunas essenciais
     mascara_nulos = verificar_coluna.isna()
 
-    if mascara_nulos.any():
+    if mascara_nulos.any().any():
         nulos_empilhados = mascara_nulos.stack()
         coordenadas = nulos_empilhados[nulos_empilhados].index.tolist()
 
