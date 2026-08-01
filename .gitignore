@@ -308,4 +308,11 @@ pyrightconfig.json
 .history
 .ionide
 
+# Python-generated files
+*.py[oc]
+*.egg-info
+
+
+
+
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,pycharm,python
