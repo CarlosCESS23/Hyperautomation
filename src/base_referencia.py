@@ -3,7 +3,7 @@ Nesse modulo, terá a responsabilidade de fazer verificação na base de lotes, 
 """
 import logging
 
-def verificar_lotes(id_lote : str, base_referencia : list):
+def verificar_lotes(id_lote : str, base_referencia : list,loggers):
     """
     Regra de negócio 3: Validação de Existencia de Lotes
     Verifica se o lote existe na base de referencia

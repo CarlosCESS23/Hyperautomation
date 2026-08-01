@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 # Importando para buscar as funções necessárias para verificar se os metódos estão funcionando
 from src.validacao import verificar_estrutura_rn01,validar_campos_obrigatorios_rn02
-from src.relatorio import *
+from src.base_referencia import verificar_lotes
 
 # Caminho da planilha para efetuar o teste:
 
@@ -23,7 +23,7 @@ def mock_logger():
     return MagicMock()
 
 """
-Testes para a Regra R1
+Testes para regra de negócio: RN01
 """
 
 def test_rn01_caminho_feliz(mock_logger):
@@ -59,8 +59,9 @@ def test_rn01_falha_ao_faltar_colunas(mock_logger):
         'linha','turno',
         'responsavel','data'
     ]
-
-    verificar_estrutura_rn01(colunas_incorretas, mock_logger)
+    msg_esperada = 'Falha na RN01: Identificou-se '
+    with pytest.raises(ValueError,match=msg_esperada):
+        verificar_estrutura_rn01(colunas_incorretas, mock_logger)
 
 """
 Testes para regra de negócio: RN02
@@ -103,4 +104,49 @@ def test_rn02_falha_em_campo_obrigatorio(mock_logger):
         'observacao': [None, pd.NA]
     }
     df = pd.DataFrame(data=dados)
-    validar_campos_obrigatorios_rn02(df, mock_logger)
+    msg_esperada = 'Falha na RN02: Valor ausente ou nulo encontrado na linha'
+    with pytest.raises(ValueError,match=msg_esperada):
+        validar_campos_obrigatorios_rn02(df, mock_logger)
+
+"""
+Testes para regra de negócio: RN03
+"""
+
+def test_rn03_caminho_feliz(mock_logger):
+    """
+    Verifica se a função retorna True quando o lote existe na base de referência
+    """
+    base_referencia_existente = ['LOTE-001','LOTE-002','LOTE-003']
+    id_lote_existente = 'LOTE-002'
+
+    resultado = verificar_lotes(id_lote_existente, base_referencia_existente, mock_logger)
+    assert resultado == True
+
+def test_rn03_falha_lote_nao_existe(mock_logger):
+    """
+     Verificando se realmente o lote que não existe, ele resulta em falha
+    """
+    base_referencia_existente = ['LOTE-001','LOTE-002','LOTE-003']
+    id_lote_nao_existente = 'LOTE-005'
+
+    msg_esperada = 'Divergencia: Lote não existe'
+    with pytest.raises(ValueError,match=msg_esperada):
+        verificar_lotes(id_lote_nao_existente, base_referencia_existente, mock_logger)
+
+def test_rn03_falha_lote_vazio(mock_logger):
+    """
+    Verificando se o Lote vazio  é levantando caso seja uma string vazia.
+    """
+    base_referencia_existente = ['LOTE-001','LOTE-002','LOTE-003']
+    id_lote_vazia = ''
+    msg_esperada = 'Divergencia: Lote não existe'
+    with pytest.raises(ValueError,match=msg_esperada):
+        verificar_lotes(id_lote_vazia, base_referencia_existente, mock_logger)
+
+def test_rn03_falha_lote_null(mock_logger):
+    """Verificando se o lote estiver null, ele tem que resulta como verdadeiro"""
+    base_referencia_existente = ['LOTE-001','LOTE-002','LOTE-003']
+    id_lote_null = None
+    msg_esperada = 'Divergencia: Lote não existe'
+    with pytest.raises(ValueError,match=msg_esperada):
+        verificar_lotes(id_lote_null, base_referencia_existente, mock_logger)
