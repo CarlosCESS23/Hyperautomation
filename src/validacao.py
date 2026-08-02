@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 
-def verificar_estrutura_rn01(lista: list, logging):
+def verificar_estrutura_rn01(lista: list, loggers):
     # Colunas de Referência
     colunas_referencia = {"lote_id", "produto", "linha",
                           "turno", "status", "responsavel",
