@@ -10,7 +10,7 @@ import numpy as np
 from unittest.mock import MagicMock
 
 # Importando para buscar as funções necessárias para verificar se os metódos estão funcionando
-from src.validacao import verificar_estrutura_rn01,validar_campos_obrigatorios_rn02
+from src.validacao import verificar_estrutura_rn01,validar_campos_obrigatorios_rn02,verificar_status_rn04,normalizar_status_rn05
 from src.base_referencia import verificar_lotes
 
 # Caminho da planilha para efetuar o teste:
@@ -150,3 +150,68 @@ def test_rn03_falha_lote_null(mock_logger):
     msg_esperada = 'Divergencia: Lote não existe'
     with pytest.raises(ValueError,match=msg_esperada):
         verificar_lotes(id_lote_null, base_referencia_existente, mock_logger)
+
+"""
+Testes para regra de negócio de RN04
+"""
+
+@pytest.mark.parametrize(
+    "status_entrada, status_esperado",[
+        ("APROVADO","APROVADO"),
+        ("REPROVADO","REPROVADO"),
+        ("PENDENTE","PENDENTE"),
+        ("  aprovado","APROVADO"),
+        ("ok","APROVADO"),
+        ("Nok","REPROVADO")
+    ]
+)
+def test_rn04_status_validos_normalizados(mock_logger, status_entrada, status_esperado):
+    """
+    Verifica se os status são aceitos e além que serão devidamente tratados e validados.
+    """
+    resultado = verificar_status_rn04(status_entrada,mock_logger)
+    assert resultado == status_esperado # Caso realmente a saída esperada seja correta
+
+def test_rn04_status_invalido(mock_logger):
+    """
+    Garante que um ValueError seja levantando ao receber um status fora do escopo.
+    """
+
+    status_invalido = 'EM ANDAMENTO'
+    msg_esperada = f'Erro de validação:'
+
+    with pytest.raises(ValueError,match=msg_esperada):
+        verificar_status_rn04(status_invalido, mock_logger)
+
+    # Verificando se o erro foi realmente registrado no log
+    assert mock_logger.error.called
+
+
+def test_rn04_falha_com_status_vazio(mock_logger):
+    """
+    Garante que uma string vazia ou apenas espaços também levante erro.
+    """
+
+    status_vazio = "   "
+    # De acordo com a lógica, caso realmente esteja vazio, ele irá informar o erro:
+    with pytest.raises(ValueError, match="Erro de validação: Status '   ' não reconhecido."):
+        verificar_status_rn04(status_vazio, mock_logger)
+
+def test_rn05_normaliza_ok_para_aprovado():
+    """
+    Verifica se o status 'OK' é mapeado corretamente.
+    """
+    assert normalizar_status_rn05("OK") == "APROVADO"
+
+def test_rn05_normaliza_nok_para_reprovado():
+    """
+    Verifica se o status 'NOK' é mapeado corretamente.
+    """
+    assert normalizar_status_rn05("NOK") == "REPROVADO"
+
+def test_rn05_ignora_status_nao_mapeados():
+    """
+    Garante que status que não são 'OK' ou 'NOK' retornem inalterados.
+    """
+    assert normalizar_status_rn05("PENDENTE") == "PENDENTE"
+    assert normalizar_status_rn05("OUTRO_VALOR") == "OUTRO_VALOR"
