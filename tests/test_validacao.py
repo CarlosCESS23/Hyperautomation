@@ -10,9 +10,8 @@ import numpy as np
 from unittest.mock import MagicMock
 
 # Importando para buscar as funções necessárias para verificar se os metódos estão funcionando
-from src.validacao import verificar_estrutura_rn01,validar_campos_obrigatorios_rn02
+from src.validacao import verificar_estrutura_rn01,validar_campos_obrigatorios_rn02,verificar_status_rn04,normalizar_status_rn05
 from src.base_referencia import verificar_lotes
-from validacao import verificar_status_rn04
 
 # Caminho da planilha para efetuar o teste:
 
@@ -197,3 +196,22 @@ def test_rn04_falha_com_status_vazio(mock_logger):
     # De acordo com a lógica, caso realmente esteja vazio, ele irá informar o erro:
     with pytest.raises(ValueError, match="Erro de validação: Status '   ' não reconhecido."):
         verificar_status_rn04(status_vazio, mock_logger)
+
+def test_rn05_normaliza_ok_para_aprovado():
+    """
+    Verifica se o status 'OK' é mapeado corretamente.
+    """
+    assert normalizar_status_rn05("OK") == "APROVADO"
+
+def test_rn05_normaliza_nok_para_reprovado():
+    """
+    Verifica se o status 'NOK' é mapeado corretamente.
+    """
+    assert normalizar_status_rn05("NOK") == "REPROVADO"
+
+def test_rn05_ignora_status_nao_mapeados():
+    """
+    Garante que status que não são 'OK' ou 'NOK' retornem inalterados.
+    """
+    assert normalizar_status_rn05("PENDENTE") == "PENDENTE"
+    assert normalizar_status_rn05("OUTRO_VALOR") == "OUTRO_VALOR"
