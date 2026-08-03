@@ -12,3 +12,4 @@ resultados/
 data
 __init__.py
 *.zip
+bot/requirements.txt
