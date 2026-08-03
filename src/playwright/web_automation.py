@@ -5,11 +5,11 @@ from playwright.sync_api import sync_playwright
 def executar_cadastro_web():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False) # headless -> faz que visualizamos o uso desse script pelo navegador
-        page = browser.new_page()
-        context = page.new_context()
+        context = browser.new_context()
+        page = context.new_page()
 
         print("Acessando a página de LOGIN...")
-        page.goto("http://localhost:8080/login.html")
+        page.goto("http://127.0.0.1:3000/html/login(1).html")
 
         # A partir que é carregado a tela, ele vai fazer o preenchimento
         page.fill('#usuario','usuarioautomatizado@empresa.com')
@@ -19,7 +19,7 @@ def executar_cadastro_web():
         print("Aguardando redirecionamento...")
 
         #Após o bot clica em submit, vamos aguardar o carregamento de outra página
-        page.wait_for_timeout("**/lote-teste.html")
+        page.wait_for_url("**/lote-teste.html")
 
         print("Sucesso!!!\nAcessando a página de Cadastro de Lotes")
 
