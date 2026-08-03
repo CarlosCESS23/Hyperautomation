@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema Corporativo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #18142a;
+            --container-bg: rgba(25, 20, 43, 0.8);
+            --neon-pink: #f72585;
+            --neon-pink-glow: rgba(247, 37, 133, 0.5);
+            --neon-cyan: #4cc9f0;
+            --neon-cyan-glow: rgba(76, 201, 240, 0.5);
+            --text-main: #ffffff;
+            --text-muted: #a39fbd;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --input-bg: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #2a2045 0%, #18142a 100%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Container Principal */
+        .window-container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--container-bg);
+            border-radius: 12px;
+            border: 2px solid var(--neon-pink);
+            box-shadow: 0 0 20px var(--neon-pink-glow), inset 0 0 10px var(--neon-pink-glow);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Barra Superior */
+        .window-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--border-color);
+            gap: 15px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .control-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background-color: #ff5f56; }
+        .dot-yellow { background-color: #ffbd2e; }
+        .dot-green { background-color: #27c93f; }
+
+        .url-bar {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: var(--input-bg);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+            justify-content: space-between;
+        }
+
+        .url-bar .url-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Corpo do Formulário */
+        .form-body {
+            padding: 24px;
+        }
+
+        .form-title-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid var(--neon-pink);
+            border-radius: 10px;
+            box-shadow: 0 0 10px var(--neon-pink-glow);
+        }
+
+        .icon-box svg {
+            fill: var(--neon-pink);
+            width: 24px;
+            height: 24px;
+        }
+
+        .form-titles h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .form-titles p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group label span {
+            color: var(--neon-pink);
+        }
+
+        .form-control {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            appearance: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 8px var(--neon-pink-glow);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 12px;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .toggle-password:hover {
+            color: var(--neon-pink);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .remember-me input[type="checkbox"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-muted);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .remember-me input[type="checkbox"]:checked {
+            border-color: var(--neon-pink);
+            background: var(--neon-pink);
+            box-shadow: 0 0 5px var(--neon-pink-glow);
+        }
+
+        .remember-me input[type="checkbox"]:checked::after {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 11px;
+            color: white;
+        }
+
+        .forgot-link {
+            color: var(--neon-cyan);
+            text-decoration: none;
+            transition: text-shadow 0.2s;
+        }
+
+        .forgot-link:hover {
+            text-shadow: 0 0 8px var(--neon-cyan-glow);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(90deg, #ff0055, var(--neon-pink));
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 0 15px var(--neon-pink-glow);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px var(--neon-pink-glow);
+        }
+
+        .btn-submit svg {
+            fill: white;
+            width: 18px;
+            height: 18px;
+        }
+
+        .signup-text {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .signup-text a {
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .signup-text a:hover {
+            text-shadow: 0 0 8px var(--neon-cyan-glow);
+        }
+
+        /* Mensagem de erro */
+        .error-box {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: rgba(247, 37, 133, 0.1);
+            border: 2px solid var(--neon-pink);
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 0 15px var(--neon-pink-glow), inset 0 0 10px var(--neon-pink-glow);
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .error-box.show {
+            display: flex;
+        }
+
+        .error-box svg {
+            fill: var(--neon-pink);
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .error-box p {
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        /* Box de Sucesso - Oculto por Padrão */
+        .success-box {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            background: rgba(76, 201, 240, 0.1);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 0 15px var(--neon-cyan-glow), inset 0 0 10px var(--neon-cyan-glow);
+            animation: fadeIn 0.5s ease;
+            margin-bottom: 20px;
+        }
+
+        .success-box.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .success-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-cyan-glow);
+        }
+
+        .success-icon svg {
+            fill: var(--neon-cyan);
+            width: 18px;
+            height: 18px;
+        }
+
+        .success-text h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--neon-cyan);
+            margin-bottom: 4px;
+        }
+
+        .success-text p {
+            font-size: 13px;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="window-container">
+        <div class="window-header">
+            <div class="window-controls">
+                <div class="control-dot dot-red"></div>
+                <div class="control-dot dot-yellow"></div>
+                <div class="control-dot dot-green"></div>
+            </div>
+            <div class="url-bar">
+                <div class="url-text">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C9.243 2 7 4.243 7 7v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7c0-2.757-2.243-5-5-5zm-3 8V7c0-1.654 1.346-3 3-3s3 1.346 3 3v3H9z"></path></svg>
+                    http://localhost:8080/login.html
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+            </div>
+        </div>
+
+        <div class="form-body">
+            <div class="form-title-section">
+                <div class="icon-box">
+                    <svg viewBox="0 0 24 24"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"></path></svg>
+                </div>
+                <div class="form-titles">
+                    <h1>Acesso ao Sistema</h1>
+                    <p>Sistema Corporativo – Ambiente de Teste</p>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Mensagem de erro -->
+            <div id="mensagemErro" class="error-box">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path></svg>
+                <p>Usuário ou senha inválidos. Tente novamente.</p>
+            </div>
+
+            <!-- Mensagem de sucesso -->
+            <div id="mensagemSucesso" class="success-box">
+                <div class="success-icon">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
+                </div>
+                <div class="success-text">
+                    <h3>Bem-vindo!</h3>
+                    <p>Login realizado com sucesso.</p>
+                </div>
+            </div>
+
+            <form id="formLogin" action="#" method="POST">
+
+                <div class="form-group">
+                    <label for="usuario">Usuário ou E-mail <span>*</span></label>
+                    <input type="text" id="usuario" class="form-control" placeholder="seu.usuario@empresa.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha <span>*</span></label>
+                    <div class="password-wrapper">
+                        <input type="password" id="senha" class="form-control" placeholder="Digite sua senha" required>
+                        <span class="toggle-password" id="togglePassword">MOSTRAR</span>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="lembrar">
+                        Lembrar de mim
+                    </label>
+                    <a href="#" class="forgot-link">Esqueceu a senha?</a>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <svg viewBox="0 0 24 24"><path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"></path></svg>
+                    Entrar
+                </button>
+
+            </form>
+
+            <p class="signup-text">Não tem uma conta? <a href="#">Cadastre-se</a></p>
+
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('formLogin');
+        const mensagemSucesso = document.getElementById('mensagemSucesso');
+        const mensagemErro = document.getElementById('mensagemErro');
+        const togglePassword = document.getElementById('togglePassword');
+        const senhaInput = document.getElementById('senha');
+
+        togglePassword.addEventListener('click', function() {
+            const isPassword = senhaInput.getAttribute('type') === 'password';
+            senhaInput.setAttribute('type', isPassword ? 'text' : 'password');
+            togglePassword.textContent = isPassword ? 'OCULTAR' : 'MOSTRAR';
+        });
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            mensagemErro.classList.remove('show');
+            mensagemSucesso.classList.remove('show');
+
+            const usuario = document.getElementById('usuario').value.trim();
+            const senha = senhaInput.value.trim();
+
+            // Validação simples de exemplo (ambiente de teste)
+            if (usuario && senha) {
+                mensagemSucesso.classList.add('show');
+
+                // Aguarda um instante para o usuário ver a mensagem de sucesso
+                // e então redireciona para a próxima página do sistema
+                setTimeout(function() {
+                    window.location.href = "lote-teste.html"; // <- troque pelo nome/caminho da sua página
+                }, 1200);
+            } else {
+                mensagemErro.classList.add('show');
+            }
+        });
+    </script>
+
+</body>
+</html>

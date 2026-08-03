@@ -12,6 +12,7 @@ from botcity.maestro.model import AutomationTaskFinishStatus, Column
 from src.config import ROOT_DIR, obter_configuracao
 from src.maestro_client import criar_cliente
 from src.vault_client import obter_credencial_erp
+from src.playwright.web_automation import executar_cadastro_web
 
 
 CAMINHO_LOG = ROOT_DIR / "logs" / "botcity_performer.log"
