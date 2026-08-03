@@ -1,3 +1,18 @@
+hyperautomation
+__pycache__
+*.csv
+*.xlsx
+data/.~lock.*
+log/
+logs/
+resultados/
+.env
+*.env
+!.env.example
+data
+__init__.py
+*.zip
+bot/requirements.txt
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,pycharm,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,pycharm,python
 

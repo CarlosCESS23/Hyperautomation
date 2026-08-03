@@ -2,6 +2,26 @@
 
 ## Regra de negócio Implementadas
 
+## Auditoria de lotes com BotCity Maestro
+
+O projeto contém um Dispatcher e um Performer para a fila `FilaAuditoriaLotes_equipe1`.
+O Dispatcher lê [dados_entrada/lotes_auditoria.csv](dados_entrada/lotes_auditoria.csv) e cria os itens no DataPool. O Performer consome os itens, falha aqueles sem CPF, simula a validação dos demais por um segundo e registra cada resultado no Maestro.
+
+1. Copie `.env.example` para `.env` na raiz (ou mantenha o modelo já existente em `src/.env`) e informe as credenciais. Defina `MAESTRO_ENABLED=true`, `VAULT_ENABLED=true` e `AUDITORIA_DATAPOOL_LABEL=FilaAuditoriaLotes_equipe1`.
+2. No portal, crie a fila `FilaAuditoriaLotes_equipe1` e a credencial `credencial_erp`, com as chaves `username` e `password` (ou ajuste `CREDENTIAL_USER_KEY` e `CREDENTIAL_PASSWORD_KEY`).
+3. Ative o ambiente virtual e publique a entrada:
+
+   ```bash
+   ./hyperautomation/bin/python -m src.dispatcher
+   ```
+
+4. Execute `src.main` pelo BotCity Runner para que o portal forneça o `task_id` da execução. Ao terminar, o Maestro receberá o log de atividade `AuditoriaLotes`, o JSON de resultado e o arquivo `botcity_performer.log` como artefatos.
+
+Em uma execução direta local, o resultado e o log ainda são gerados em `resultados/` e `logs/`, mas não podem ser enviados como artefato sem o `task_id` do Runner.
+
+A auditoria de planilha que já existia foi preservada em `src.auditoria_planilha` e pode ser executada com `./hyperautomation/bin/python -m src.auditoria_planilha`.
+
+O objetivo deste repositório é centralizar o desenvolvimento das atividades, documentações e artefatos produzidos ao longo da disciplina, mantendo um padrão de organização que facilite a colaboração entre os integrantes da equipe.
 ### RN01 - Validação de Estrutura (Padrão de Colunas)
 
 * **Idea:** Foi criada uma funcionalidade para atender a regra RN01, que realiza a verificação de conformidade do layout da planilha recebida para garantir que ela possua exatamente os campos esperados pelo sistema.
@@ -80,3 +100,8 @@ Pandas|É usado para analisar e manipular dados em tabelas, como se fosse excel|
 openpyxl|É uma biblioteca que é usada para ler, criar e modificar os arqivos do Excel, não tendo necessidade do software Microsoft Office|3.1.5
 
 
+- Utilize nomes de arquivos e pastas em letras minúsculas.
+- Utilize nomes descritivos para branches e commits.
+- Não versione credenciais, arquivos temporários ou ambientes virtuais.
+- Mantenha o histórico Git limpo e organizado.
+- Sempre revise a documentação antes de realizar o merge para a branch principal.
