@@ -1,0 +1,14 @@
+hyperautomation
+__pycache__
+*.csv
+*.xlsx
+data/.~lock.*
+log/
+logs/
+resultados/
+.env
+*.env
+!.env.example
+data
+__init__.py
+*.zip
