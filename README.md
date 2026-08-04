@@ -1,107 +1,153 @@
-# Bot de Inspeção de Lotes Diários
+# Hyperautomation
 
-## Regra de negócio Implementadas
+Automação web de um fluxo demonstrativo de login e cadastro de lotes. O bot usa
+Playwright para abrir o portal estático, preencher as credenciais de teste,
+confirmar o login e registrar uma evidência da mensagem de sucesso.
 
-## Auditoria de lotes com BotCity Maestro
+> O portal é apenas um ambiente de demonstração: ele não autentica usuários nem
+> persiste dados de lotes.
 
-O projeto contém um Dispatcher e um Performer para a fila `FilaAuditoriaLotes_equipe1`.
-O Dispatcher lê [dados_entrada/lotes_auditoria.csv](dados_entrada/lotes_auditoria.csv) e cria os itens no DataPool. O Performer consome os itens, falha aqueles sem CPF, simula a validação dos demais por um segundo e registra cada resultado no Maestro.
+## O que o bot executa
 
-1. Copie `.env.example` para `.env` na raiz (ou mantenha o modelo já existente em `src/.env`) e informe as credenciais. Defina `MAESTRO_ENABLED=true`, `VAULT_ENABLED=true` e `AUDITORIA_DATAPOOL_LABEL=FilaAuditoriaLotes_equipe1`.
-2. No portal, crie a fila `FilaAuditoriaLotes_equipe1` e a credencial `credencial_erp`, com as chaves `username` e `password` (ou ajuste `CREDENTIAL_USER_KEY` e `CREDENTIAL_PASSWORD_KEY`).
-3. Ative o ambiente virtual e publique a entrada:
+1. Acessa `/login.html` no endereço definido por `URL_BASE`.
+2. Preenche o usuário e a senha de demonstração definidos no código.
+3. Clica em **Entrar** e espera a mensagem de sucesso do login.
+4. Salva uma captura dessa mensagem em `resultados/comprovante_lote_9999.png`.
+5. Registra eventos em JSON no terminal e em `logs/botcity_permofer.log`.
 
-   ```bash
-   ./hyperautomation/bin/python -m src.dispatcher
-   ```
+O redirecionamento posterior para `lote-teste.html` é realizado pelo próprio
+portal, após 1,2 segundo. O bot não preenche nem envia o formulário de lote
+nesta versão.
 
-4. Execute `src.main` pelo BotCity Runner para que o portal forneça o `task_id` da execução. Ao terminar, o Maestro receberá o log de atividade `AuditoriaLotes`, o JSON de resultado e o arquivo `botcity_performer.log` como artefatos.
+## Estrutura
 
-Em uma execução direta local, o resultado e o log ainda são gerados em `resultados/` e `logs/`, mas não podem ser enviados como artefato sem o `task_id` do Runner.
+| Caminho | Responsabilidade |
+| --- | --- |
+| `bot.py` | Ponto de entrada e configuração do log estruturado. |
+| `src/playwright/web_automation.py` | Fluxo automatizado no navegador. |
+| `src/config.py` | Endereço do portal, modo do navegador e caminhos locais. |
+| `frontend/` | Portal estático usado na demonstração. |
+| `docker-compose.yml` | Serviços do portal Nginx e do bot. |
+| `resultados/` e `logs/` | Saídas geradas durante a execução. |
+| `documentacao/` | PDD, BPMN e materiais de referência do projeto. |
 
-A auditoria de planilha que já existia foi preservada em `src.auditoria_planilha` e pode ser executada com `./hyperautomation/bin/python -m src.auditoria_planilha`.
+## Pré-requisitos
 
-O objetivo deste repositório é centralizar o desenvolvimento das atividades, documentações e artefatos produzidos ao longo da disciplina, mantendo um padrão de organização que facilite a colaboração entre os integrantes da equipe.
-### RN01 - Validação de Estrutura (Padrão de Colunas)
+- Python 3.12 ou superior (conforme `pyproject.toml`);
+- Docker e Docker Compose, para a execução em contêiner; ou
+- um ambiente Python com os navegadores do Playwright instalados, para a
+  execução local.
 
-* **Idea:** Foi criada uma funcionalidade para atender a regra RN01, que realiza a verificação de conformidade do layout da planilha recebida para garantir que ela possua exatamente os campos esperados pelo sistema.
-* **Como funciona:** O sistema extrai o cabeçalho da planilha carregada e realiza uma operação de diferença de conjuntos (`set`) contra uma coleção de colunas de referência (`lote_id`, `produto`, `linha`, `turno`, `status`, `responsavel`, `data`, `observacao`). A verificação ocorre de forma bidirecional, identificando tanto colunas obrigatórias que estão ausentes quanto colunas intrusas (não padronizadas) que foram inseridas.
-* **Tratamento:** Se a estrutura diferir da referência, o sistema levanta uma exceção `ValueError` detalhando exatamente quais colunas faltam ou sobram, registra o evento via *logger* como erro crítico e interrompe o processamento do arquivo.
+## Execução com Docker Compose
 
-### RN02 - Validação de Campos Obrigatórios (Valores Nulos)
-
-* **Idea:** Foi criada uma funcionalidade para atender a regra RN02, cujo objetivo é assegurar a completude dos dados processados, impedindo a ingestão de registros com informações essenciais em branco.
-* **Como funciona:** O sistema aplica uma máscara booleana vetorizada (`isna()`) sobre todo o *DataFrame* para rastrear a presença de valores nulos nativos (`None` ou `NaN`). Quando a máscara retorna verdadeiro, o algoritmo mapeia as coordenadas matriciais para isolar o índice exato da linha e o nome da coluna da ocorrência.
-* **Tratamento:** Ao detectar o primeiro campo vazio, o sistema levanta uma exceção `ValueError` contendo as coordenadas exatas da falha (ex: "linha 1, coluna 'produto'"), registra o evento no log de erros e aborta a validação.
-
-### RN03 - Validação de Existência (Cruzamento com base_referência)
-
-* **Idea:** Foi criado uma funcionalidade para atender a regra RN03, que  realiza o cruzamento de dados para garantir 
-a integridade dos lotes recebidos na inspeção diária.
-
-* **Como funciona:** O sistema lê a planilha exportada pelo operador e cruza a coluna `lote_id` com a aba `Base_Referencia`
-* **Tratamento:** Se o lote informado não existe na base_referencial, o sistema levanta uma exceção **"Lote não existente"**,
-que classifica o registro como divergência. Somente tem a responsabilidade de iniciar a leitura a partir de linha correta
-
-### RN04 - Validação e Normalização de Status
-
-* **Idea:** Foi criada uma funcionalidade para atender a regra RN04, cujo objetivo é assegurar que o status do lote inspecionado esteja contido no domínio de valores permitidos e padronizados pelo sistema.
-* **Como funciona:** O algoritmo intercepta o valor da coluna de status de cada registro, realiza uma limpeza de formatação (remoção de espaços em branco e conversão para maiúsculas) e aplica uma normalização preliminar (mapeando "OK" para "APROVADO" e "NOK" para "REPROVADO"). Após a normalização, o valor é validado contra um conjunto de referência de escopo fechado (`{"APROVADO", "REPROVADO", "PENDENTE"}`) utilizando busca em complexidade de tempo O(1).
-* **Tratamento:** Se o status recebido não for reconhecido e não puder ser normalizado, o sistema levanta uma exceção `ValueError` detalhando o erro e a linha correspondente, efetua o registro no *log* e interrompe o pipeline de processamento.
-
----
-
-### RN05 - [Nome da Validação - Necessita Definição]
-
-* **Idea:** [Inserir o objetivo de negócio da regra. Exemplo: Assegurar a unicidade dos registros, impedindo a ingestão de lotes duplicados no mesmo turno.]
-* **Como funciona:** [Inserir a mecânica de software da regra. Exemplo: O sistema aplica o método `.duplicated()` sobre a coluna `lote_id`, retornando uma máscara booleana para mapear colisões de dados na planilha atual.]
-* **Tratamento:** [Inserir o comportamento de falha. Exemplo: Ao identificar a duplicidade, o sistema levanta uma exceção `ValueError` indicando as linhas conflitantes e aborta o processamento.]
-
-### RN07 -  Condição de Campo de Observação
-Garante que todo o lote recusado pela produção possua uma justificativa rasterável.
-
-* **Ação:** O Sistema avalia se a coluna `status` de cada registro esteja REPROVADO
-* **Tratamento:** Caso a coluna `status` seja reprovado, ele verificará se possui o campo de observação, caso não tenha,
-registrará como um caso de divergência
-* 
-
-### Geração de Relatórios
-O bot consolida todas as divergências encontradas durante a validação das regras de negócio (Lotes Inexistentes, 
-Status divergentes, Falta de Observação, etc.) e exporta automaticamente um arquivo `.xlsx` estruturado, seguindo o 
-padrão da seção 12 do PDD.
-
-#### Rodando testes
-
-```python
-# Para rodar todos os testes com saída detalhada
-pytest test/ -v
-
-# Rodar apenas os testes que falharam na última execução
-pytest --last-failed
-```
-
-#### Rodando o bot
+Esta é a forma mais simples de executar o ambiente completo, pois o Compose
+inicia o portal e só inicia o bot quando ele estiver disponível.
 
 ```bash
-#Para rodar o bot, digite seguinte comando:
+docker compose up --build
+```
+
+Ao finalizar, verifique:
+
+```bash
+ls resultados/comprovante_lote_9999.png
+tail -n 20 logs/botcity_permofer.log
+```
+
+Para encerrar e remover os contêineres:
+
+```bash
+docker compose down
+```
+
+O portal pode ser aberto em `http://localhost:8080/login.html` enquanto os
+serviços estiverem em execução.
+
+## Execução local
+
+Crie o ambiente, instale as dependências e o Chromium do Playwright:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+Em outro terminal, sirva a pasta `frontend`:
+
+```bash
+python -m http.server 8080 --directory frontend
+```
+
+Então execute o bot:
+
+```bash
 python bot.py
 ```
 
+Por padrão, o navegador é executado sem interface. Para acompanhar a execução,
+defina `HEADLESS=false` antes do comando do bot:
 
+```bash
+HEADLESS=false python bot.py
+```
 
-## Dependência e Instalação
+## Configuração
 
-**Python:** Pode ser utilizado o Python entre 3.11 até 3.14
+O bot lê as variáveis de ambiente do processo. Para usar o modelo incluído,
+copie-o e exporte seu conteúdo no terminal antes de executar o bot:
 
-Biblioteca|Descrição|Versão
-:-:|:-:|:-:
-Pytest|É um framework de teste para Python que permite desenvolver teste unitários|9.1.1
-Pandas|É usado para analisar e manipular dados em tabelas, como se fosse excel|3.0.3
-openpyxl|É uma biblioteca que é usada para ler, criar e modificar os arqivos do Excel, não tendo necessidade do software Microsoft Office|3.1.5
+```bash
+cp .env.example .env
+set -a
+source .env
+set +a
+```
 
+As variáveis efetivamente usadas pelo fluxo atual são:
 
-- Utilize nomes de arquivos e pastas em letras minúsculas.
-- Utilize nomes descritivos para branches e commits.
-- Não versione credenciais, arquivos temporários ou ambientes virtuais.
-- Mantenha o histórico Git limpo e organizado.
-- Sempre revise a documentação antes de realizar o merge para a branch principal.
+| Variável | Padrão | Finalidade |
+| --- | --- | --- |
+| `URL_BASE` | `http://localhost:8080` | URL do portal a ser automatizado. |
+| `HEADLESS` | `true` | Use `false` para abrir a janela do Chromium. |
+| `BOT_ID` | `bot-auditoria-local` | Identificador incluído em cada linha de log. |
+| `EXECUCAO_ID` | `exec_dev_001` | Identificador da execução incluído nos logs. |
+
+`MAESTRO_*`, `VAULT_ENABLED`, `AUDITORIA_DATAPOOL_LABEL` e as variáveis de
+credencial permanecem no modelo para uma futura integração com o BotCity
+Maestro. Elas não são consultadas por `bot.py` nem enviam dados ao Maestro na
+implementação atual.
+
+Embora `src/config.py` tenha uma função para carregar um arquivo `.env`, o
+fluxo iniciado por `python bot.py` não a chama nesta versão. Por isso, somente
+criar o arquivo `.env` não altera a execução local sem exportá-lo, como no
+exemplo acima.
+
+## Saídas e diagnóstico
+
+- `logs/debug_login.png`: captura feita logo após abrir a página de login;
+- `logs/botcity_permofer.log`: eventos em JSON com `bot_id` e `execution_id`;
+- `resultados/comprovante_lote_9999.png`: evidência do sucesso ou, em caso de
+  timeout, captura da tela de erro.
+
+Se a execução expirar, confirme que o portal está acessível em
+`$URL_BASE/login.html` e que os seletores da página não foram alterados. O
+tempo de espera da mensagem de sucesso é de cinco segundos.
+
+## Materiais complementares
+
+- [PDD da equipe](documentacao/PDD/pdd_equipe1.docx)
+- [Diagrama BPMN](documentacao/BPMN/AS_IS_TO_DO.bpmn)
+- [Referência de Docker](documentacao/documentos_referencia/docker/docker.html)
+- [Referência de CI/CD](documentacao/documentos_referencia/CI-CD/ci-cd.html)
+- [Referência de Gitflow](documentacao/documentos_referencia/gitflow/gitflow.html)
+
+## Limitações atuais
+
+- As credenciais preenchidas pelo bot estão fixas no código e são exclusivas do
+  ambiente de demonstração.
+- Não há validação de planilhas, fila/DataPool, testes automatizados ou envio de
+  artefatos ao BotCity no código presente neste repositório.
+- O nome `executar_cadastro_web` é legado: o fluxo implementado automatiza o
+  login e coleta sua evidência.
