@@ -1,107 +1,80 @@
 # Bot de Inspeção de Lotes Diários
 
-## Regra de negócio Implementadas
+## Objetivo
+Automatizar o processo de auditoria, conferência e cadastramento de lotes diários da qualidade no portal web corporativo. 
+O robô atua validando dados em retaguarda e operacionalizando a interface gráfica da aplicação web por meio de simulações 
+de ações humanas, com geração contínua de evidências visuais e logs rastreáveis.
 
-## Auditoria de lotes com BotCity Maestro
+## Ideia
+Este projeto implementa uma arquitetura híbrida focada em **Hyperautomation**. Ao usar a infraestrutura do Docker, 
+o projeto sobe e orquestra o próprio ambiente hospedeiro do portal web (simulando um cenário produtivo), junto com o 
+*performer* robótico contido em Python. Todo o rastreio da operação emula as melhores práticas de logs estruturados 
+(JSON), tornando o robô facilmente monitorável num ecossistema de nuvem (Datadog, Kibana, etc).
 
-O projeto contém um Dispatcher e um Performer para a fila `FilaAuditoriaLotes_equipe1`.
-O Dispatcher lê [dados_entrada/lotes_auditoria.csv](dados_entrada/lotes_auditoria.csv) e cria os itens no DataPool. O Performer consome os itens, falha aqueles sem CPF, simula a validação dos demais por um segundo e registra cada resultado no Maestro.
-
-1. Copie `.env.example` para `.env` na raiz (ou mantenha o modelo já existente em `src/.env`) e informe as credenciais. Defina `MAESTRO_ENABLED=true`, `VAULT_ENABLED=true` e `AUDITORIA_DATAPOOL_LABEL=FilaAuditoriaLotes_equipe1`.
-2. No portal, crie a fila `FilaAuditoriaLotes_equipe1` e a credencial `credencial_erp`, com as chaves `username` e `password` (ou ajuste `CREDENTIAL_USER_KEY` e `CREDENTIAL_PASSWORD_KEY`).
-3. Ative o ambiente virtual e publique a entrada:
-
-   ```bash
-   ./hyperautomation/bin/python -m src.dispatcher
-   ```
-
-4. Execute `src.main` pelo BotCity Runner para que o portal forneça o `task_id` da execução. Ao terminar, o Maestro receberá o log de atividade `AuditoriaLotes`, o JSON de resultado e o arquivo `botcity_performer.log` como artefatos.
-
-Em uma execução direta local, o resultado e o log ainda são gerados em `resultados/` e `logs/`, mas não podem ser enviados como artefato sem o `task_id` do Runner.
-
-A auditoria de planilha que já existia foi preservada em `src.auditoria_planilha` e pode ser executada com `./hyperautomation/bin/python -m src.auditoria_planilha`.
-
-O objetivo deste repositório é centralizar o desenvolvimento das atividades, documentações e artefatos produzidos ao longo da disciplina, mantendo um padrão de organização que facilite a colaboração entre os integrantes da equipe.
-### RN01 - Validação de Estrutura (Padrão de Colunas)
-
-* **Idea:** Foi criada uma funcionalidade para atender a regra RN01, que realiza a verificação de conformidade do layout da planilha recebida para garantir que ela possua exatamente os campos esperados pelo sistema.
-* **Como funciona:** O sistema extrai o cabeçalho da planilha carregada e realiza uma operação de diferença de conjuntos (`set`) contra uma coleção de colunas de referência (`lote_id`, `produto`, `linha`, `turno`, `status`, `responsavel`, `data`, `observacao`). A verificação ocorre de forma bidirecional, identificando tanto colunas obrigatórias que estão ausentes quanto colunas intrusas (não padronizadas) que foram inseridas.
-* **Tratamento:** Se a estrutura diferir da referência, o sistema levanta uma exceção `ValueError` detalhando exatamente quais colunas faltam ou sobram, registra o evento via *logger* como erro crítico e interrompe o processamento do arquivo.
-
-### RN02 - Validação de Campos Obrigatórios (Valores Nulos)
-
-* **Idea:** Foi criada uma funcionalidade para atender a regra RN02, cujo objetivo é assegurar a completude dos dados processados, impedindo a ingestão de registros com informações essenciais em branco.
-* **Como funciona:** O sistema aplica uma máscara booleana vetorizada (`isna()`) sobre todo o *DataFrame* para rastrear a presença de valores nulos nativos (`None` ou `NaN`). Quando a máscara retorna verdadeiro, o algoritmo mapeia as coordenadas matriciais para isolar o índice exato da linha e o nome da coluna da ocorrência.
-* **Tratamento:** Ao detectar o primeiro campo vazio, o sistema levanta uma exceção `ValueError` contendo as coordenadas exatas da falha (ex: "linha 1, coluna 'produto'"), registra o evento no log de erros e aborta a validação.
-
-### RN03 - Validação de Existência (Cruzamento com base_referência)
-
-* **Idea:** Foi criado uma funcionalidade para atender a regra RN03, que  realiza o cruzamento de dados para garantir 
-a integridade dos lotes recebidos na inspeção diária.
-
-* **Como funciona:** O sistema lê a planilha exportada pelo operador e cruza a coluna `lote_id` com a aba `Base_Referencia`
-* **Tratamento:** Se o lote informado não existe na base_referencial, o sistema levanta uma exceção **"Lote não existente"**,
-que classifica o registro como divergência. Somente tem a responsabilidade de iniciar a leitura a partir de linha correta
-
-### RN04 - Validação e Normalização de Status
-
-* **Idea:** Foi criada uma funcionalidade para atender a regra RN04, cujo objetivo é assegurar que o status do lote inspecionado esteja contido no domínio de valores permitidos e padronizados pelo sistema.
-* **Como funciona:** O algoritmo intercepta o valor da coluna de status de cada registro, realiza uma limpeza de formatação (remoção de espaços em branco e conversão para maiúsculas) e aplica uma normalização preliminar (mapeando "OK" para "APROVADO" e "NOK" para "REPROVADO"). Após a normalização, o valor é validado contra um conjunto de referência de escopo fechado (`{"APROVADO", "REPROVADO", "PENDENTE"}`) utilizando busca em complexidade de tempo O(1).
-* **Tratamento:** Se o status recebido não for reconhecido e não puder ser normalizado, o sistema levanta uma exceção `ValueError` detalhando o erro e a linha correspondente, efetua o registro no *log* e interrompe o pipeline de processamento.
-
----
-
-### RN05 - [Nome da Validação - Necessita Definição]
-
-* **Idea:** [Inserir o objetivo de negócio da regra. Exemplo: Assegurar a unicidade dos registros, impedindo a ingestão de lotes duplicados no mesmo turno.]
-* **Como funciona:** [Inserir a mecânica de software da regra. Exemplo: O sistema aplica o método `.duplicated()` sobre a coluna `lote_id`, retornando uma máscara booleana para mapear colisões de dados na planilha atual.]
-* **Tratamento:** [Inserir o comportamento de falha. Exemplo: Ao identificar a duplicidade, o sistema levanta uma exceção `ValueError` indicando as linhas conflitantes e aborta o processamento.]
-
-### RN07 -  Condição de Campo de Observação
-Garante que todo o lote recusado pela produção possua uma justificativa rasterável.
-
-* **Ação:** O Sistema avalia se a coluna `status` de cada registro esteja REPROVADO
-* **Tratamento:** Caso a coluna `status` seja reprovado, ele verificará se possui o campo de observação, caso não tenha,
-registrará como um caso de divergência
-* 
-
-### Geração de Relatórios
-O bot consolida todas as divergências encontradas durante a validação das regras de negócio (Lotes Inexistentes, 
-Status divergentes, Falta de Observação, etc.) e exporta automaticamente um arquivo `.xlsx` estruturado, seguindo o 
-padrão da seção 12 do PDD.
-
-#### Rodando testes
-
-```python
-# Para rodar todos os testes com saída detalhada
-pytest test/ -v
-
-# Rodar apenas os testes que falharam na última execução
-pytest --last-failed
+## 📂 Estrutura de Diretórios
+```text
+conferencia-lotes-qualidade/
+   bot.py               # Orquestrador central e injeção do logger
+   requirements.txt     # Pacotes principais (Playwright, Pandas, Maestro, JSON-logger)
+   Dockerfile           # Receita de construção da imagem Linux (Jammy) do bot
+   docker-compose.yml   # Orquestrador de serviços (Frontend Nginx + Bot Python)
+   .env                 # Variáveis de ambiente e credenciais locais (ignorado no git)
+   CHANGELOG.md         # Histórico de modificações
+   README.md            # Documentação principal
+   frontend/            # Páginas web da aplicação-alvo mapeadas pelo Nginx
+       login.html
+       lote-teste.html
+   data/
+       samples/         # Planilhas de entrada para o modo offline
+   logs/                # Logs JSON estruturados de cada passo de execução
+   resultados/          # Evidências geradas (.png) e planilhas processadas
+   src/                 
+       config.py              # Concentrador de leitura do .env
+       playwright/
+           web_automation.py  # Ações e comandos de simulação na interface
 ```
 
-#### Rodando o bot
+## Requisito e Biblioteca
+
+* Docker e Docker Compose (V2+).
+* Python 3.12+ (Para ambientes de desenvolvimento local sem contaieners)
+
+* **Principais bibliotecas que estão sendo utilizada:**
+  * `playwright:` É o principal de automação de navegadores em web
+  * `python-json-loggers:` Estruturador oficial para transformações do logging nativo em JSON rastreável.
+  * `botcity-maestro-sdk`: SDK oficial para telemetria no servidor do Maestro
+  * `pandas` e `numpy`: Leitura de matrizes no processamento de planilhas locais
+
+### Como executar:
+
+#### 1. Clonando e Configurando o ambiente
+primeiro, clone o repositório em sua máquina. Após isso coopie o arquivo `env.example` e renomeie para `.env`.
+Configure a FLAG HEADLESS para definir se o container deve mostrar a interface do navegador durante o processo de teste
+ou não, e preenche a URL interna do compose:
+
 
 ```bash
-#Para rodar o bot, digite seguinte comando:
-python bot.py
+git clone <url-do-repositorio>
+cd Hyperautomation
+
+
+# para arquivo .env
+BASE_URL=http://frontend
+HEADLESS=true
+BOT_ID=bot-conferencia-docker
+EXECUCAO_ID=exec-0001
 ```
+#### 2. Disparando os Container (Docker compose)
+Agora, toda aplicação está modularizada. Não ŕe preciso instalar o Python nativamente na sua máquina
+com o Docker ligado, execute:
 
+`docker compose up --build`
 
+Isso fará com que:
 
-## Dependência e Instalação
+1. Um servidor Nginx levante na porta 8080, servindo as páginas localizadas na pasta `frontend`
+2. O *bot* em sua imagem customizada do Playwright seja ligada logo na sequência, conecntado-se ao Nginx via rede interna
+, procedendo com as rotinas de preenchimento, e salvando o .png final.
 
-**Python:** Pode ser utilizado o Python entre 3.11 até 3.14
-
-Biblioteca|Descrição|Versão
-:-:|:-:|:-:
-Pytest|É um framework de teste para Python que permite desenvolver teste unitários|9.1.1
-Pandas|É usado para analisar e manipular dados em tabelas, como se fosse excel|3.0.3
-openpyxl|É uma biblioteca que é usada para ler, criar e modificar os arqivos do Excel, não tendo necessidade do software Microsoft Office|3.1.5
-
-
-- Utilize nomes de arquivos e pastas em letras minúsculas.
-- Utilize nomes descritivos para branches e commits.
-- Não versione credenciais, arquivos temporários ou ambientes virtuais.
-- Mantenha o histórico Git limpo e organizado.
-- Sempre revise a documentação antes de realizar o merge para a branch principal.
+Após isso, acompanhe a execução do bot, que ele mostrará as fotos comprovando o sucesso e estrá salvas no mapeamento local em
+`resultados/` e também uma telemetria da operação poderá ser lida nativamente através do log estruturado localizado em `logs/botcity_permofer.log`
