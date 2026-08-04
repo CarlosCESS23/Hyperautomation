@@ -1,12 +1,17 @@
-from playwright.sync_api import sync_playwright
-import os
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook
+from playwright.sync_api import sync_playwright
 
-from src.config import INTERFACE_NAVEGADOR, CAMINHO_EVIDENCIA, URL_BASE
+from src.config import obter_configuracao
+from ..pages.formulario_login_pages import PlaywrightFormularioLoginPage
+from ..pages.formulario_lotes_page import PlaywrightFormularioLotesPage
+
+# Instanciando o objeto
+config = obter_configuracao()
 
 
 def iniciar_browser(playwright):
@@ -22,7 +27,7 @@ def iniciar_browser(playwright):
         ]
 
     return playwright.chromium.launch(
-        headless=True if em_container else INTERFACE_NAVEGADOR,
+        headless=True if em_container else obter_configuracao().interface_navegador,
         args=args,
     )
 
@@ -41,7 +46,7 @@ def gerar_relatorio_execucao() -> Path:
         [
             datetime.now().isoformat(timespec="seconds"),
             "sucesso",
-            CAMINHO_EVIDENCIA,
+            config.caminho_evidencia,
         ]
     )
     workbook.save(caminho_relatorio)
@@ -52,22 +57,20 @@ def gerar_relatorio_execucao() -> Path:
 def executar_cadastro_web(logger : logging):
     with sync_playwright() as p:
         # Essa parte será responsável por background, irá verificar se vai abrir o navegador ou não (Pois docker não inicia com navegador)
-
         browser = iniciar_browser(p)
         context = browser.new_context()
         page = context.new_page()
 
-        logger.info("Acessando a pagina de LOGIN...")
-        page.goto(f"{URL_BASE}/login.html")
-        page.screenshot(path="logs/debug_login.png")
+        # Instanciamos o nosso objeto base
+        login_page = PlaywrightFormularioLoginPage(page, f"{config.url_base}/login.html")
+        lotes_page = PlaywrightFormularioLotesPage(page, f"{config.url_base}/lotes.html")
 
-        # A partir que é carregado a tela, ele vai fazer o preenchimento
-        page.get_by_placeholder("seu.usuario@empresa.com").fill("bot.automacao@empresa.com")
-        page.get_by_placeholder("Digite sua senha").fill("senha_muito_legal")
-        page.get_by_role("button", name="Entrar").click()
+        logger.info("Acessando a pagina de LOGIN...")
+        login_page.navegar()
+        login_page.realizar_login("UsuarioSuperSeguro@gmail.com",'SenhaSuperSeguro')
 
         # Cria o diretório de screenshots caso ele ainda não exista.
-        Path(CAMINHO_EVIDENCIA).parent.mkdir(parents=True, exist_ok=True)
+        Path(config.caminho_evidencia).parent.mkdir(parents=True, exist_ok=True)
 
         logger.info("Aguardando redirecionamento...")
 
@@ -79,14 +82,14 @@ def executar_cadastro_web(logger : logging):
             box_sucesso.wait_for(state='visible',timeout=5000)
 
             # É necessário que aguarde o 1 segundo de animação
-            page.wait_for_timeout(timeout=1000)
+            page.wait_for_load_state("networkidle")
 
-            box_sucesso.screenshot(path = CAMINHO_EVIDENCIA)
+            box_sucesso.screenshot(path=config.caminho_evidencia)
             caminho_relatorio = gerar_relatorio_execucao()
 
             logger.info(
                 "Sucesso! Evidência e relatório gerados em %s e %s",
-                CAMINHO_EVIDENCIA,
+                config.caminho_evidencia,
                 caminho_relatorio,
             )
         except TimeoutError:
@@ -94,7 +97,7 @@ def executar_cadastro_web(logger : logging):
             logger.error("Erro de tempo: Não foi possível, pois está fora do tempo de limite")
 
             # Vamos tirar o print para demostrar que teve o erro
-            page.screenshot(path = CAMINHO_EVIDENCIA)
+            page.screenshot(path=config.caminho_evidencia)
             raise Exception("Falha de Automação, pois carregou fora do esperado")
 
         browser.close()
