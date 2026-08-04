@@ -25,8 +25,12 @@ nesta versão.
 | --- | --- |
 | `bot.py` | Ponto de entrada e configuração do log estruturado. |
 | `src/playwright/web_automation.py` | Fluxo automatizado no navegador. |
+| `src/pages/formulario_lotes_page.py` | Page Object do formulário de cadastro de lotes. |
 | `src/config.py` | Endereço do portal, modo do navegador e caminhos locais. |
 | `frontend/` | Portal estático usado na demonstração. |
+| `tests/e2e/` | Testes E2E do formulário executados em Chromium real. |
+| `tests/conftest.py` | Fixtures compartilhadas da suíte E2E. |
+| `.github/workflows/ci-cd.yml` | Testes automatizados e publicação de evidências no CI. |
 | `docker-compose.yml` | Serviços do portal Nginx e do bot. |
 | `resultados/` e `logs/` | Saídas geradas durante a execução. |
 | `documentacao/` | PDD, BPMN e materiais de referência do projeto. |
@@ -93,6 +97,54 @@ defina `HEADLESS=false` antes do comando do bot:
 HEADLESS=false python bot.py
 ```
 
+## Testes End-to-End (E2E)
+
+A suíte E2E valida o formulário `frontend/lote-teste.html` com Chromium real.
+Ela exercita o Page Object `PlaywrightFormularioLotesPage`, incluindo entrada
+de lote, seleção de produto e status, validação de campos obrigatórios,
+submissão e captura de evidência. Como o formulário é estático, os testes o
+abrem diretamente do sistema de arquivos; não é necessário iniciar o servidor
+HTTP para esta suíte.
+
+Após instalar as dependências e o Chromium conforme a seção anterior, execute:
+
+```bash
+pytest tests/e2e/ -v
+```
+
+Para acompanhar o navegador durante a execução:
+
+```bash
+pytest tests/e2e/ -v --headed
+pytest tests/e2e/ -v --headed --slowmo=500
+```
+
+Os oito cenários cobertos são:
+
+- carregamento da página com o título esperado;
+- preenchimento do número do lote;
+- seleção de produto;
+- status `Pendente` selecionado por padrão;
+- submissão completa com mensagem de sucesso;
+- bloqueio de sucesso sem produto;
+- bloqueio de sucesso sem número do lote;
+- geração de screenshot como evidência.
+
+A evidência é gerada em `tests/e2e/screenshots/evidencia_formulario.png`.
+Esse arquivo é ignorado pelo Git para não versionar resultados de execução.
+
+## Integração contínua
+
+O workflow em `.github/workflows/ci-cd.yml` executa dois jobs em sequência:
+
+1. `test`: executa a suíte unitária quando ela estiver presente;
+2. `test-e2e`: instala as dependências, instala o Chromium com as bibliotecas
+   necessárias, executa `pytest tests/e2e/ -v --tb=short` e publica as capturas
+   em `tests/e2e/screenshots/` como artefato do GitHub Actions.
+
+O job E2E só começa após a conclusão do job de testes unitários. Os screenshots
+são enviados mesmo quando algum teste falha, facilitando o diagnóstico no CI.
+
 ## Configuração
 
 O bot lê as variáveis de ambiente do processo. Para usar o modelo incluído,
@@ -147,7 +199,7 @@ tempo de espera da mensagem de sucesso é de cinco segundos.
 
 - As credenciais preenchidas pelo bot estão fixas no código e são exclusivas do
   ambiente de demonstração.
-- Não há validação de planilhas, fila/DataPool, testes automatizados ou envio de
-  artefatos ao BotCity no código presente neste repositório.
+- Não há validação de planilhas, fila/DataPool ou envio de artefatos ao BotCity
+  no código presente neste repositório.
 - O nome `executar_cadastro_web` é legado: o fluxo implementado automatiza o
   login e coleta sua evidência.
