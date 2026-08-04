@@ -1,5 +1,7 @@
 from playwright.sync_api import sync_playwright
+import os
 
+CAMINHO_EVIDENCIA = 'resultados/comprovante_lote_9999.png'
 
 # Código principal de playwright
 def executar_cadastro_web():
@@ -16,26 +18,31 @@ def executar_cadastro_web():
         page.get_by_placeholder("Digite sua senha").fill("senha_muito_legal")
         page.get_by_role("button", name="Entrar").click()
 
+        # Vamos criar a pasta resultados/, caso realmente existe, ele não vai criar novamente
+        os.makedirs('resultados', exist_ok=True)
+
         print("Aguardando redirecionamento...")
 
-        #Após o bot clica em submit, vamos aguardar o carregamento de outra página
-        page.wait_for_url("**/lote-teste.html")
+    # Waits e evidências
+        try:
+            # Aguardamos o elemento de sucesso ficar vísivel
+            # Iremos utilizar o ID 'mesagemSucesso' que está presente no HTML
+            box_sucesso = page.locator("#mensagemSucesso")
+            box_sucesso.wait_for(state='visible',timeout=5000)
 
-        print("Sucesso!!!\nAcessando a página de Cadastro de Lotes")
+            # É necessário que aguarde o 1 segundo de animação
+            page.wait_for_timeout(timeout=1000)
 
-        # Agora, chegamos na parte de preenchimento de cadastro, é preencher o formulário
-        page.get_by_label("Número do Lote *").fill("LOTE-2026-9999")
+            box_sucesso.screenshot(path = CAMINHO_EVIDENCIA)
 
-        page.get_by_label("Produto *").select_option("2")
+            print('Sucesso! o Bot teve sucesso e foi printado a evidência')
+        except TimeoutError:
+            # Caso realmente não deu certo:
+            print("Erro de tempo: Não foi possível, pois está fora do tempo de limite")
 
-        # O Bot vai clicar em processamento
-        page.get_by_label("Em Processamento").check()
-
-        # Agora vamos submeter
-        page.get_by_role("button", name="Processar Lote").click()
-
-        print("Formulario preenchido com sucesso, vamos pausar para visualização")
-        page.wait_for_timeout(3000)
+            # Vamos tirar o print para demostrar que teve o erro
+            page.screenshot(path = CAMINHO_EVIDENCIA)
+            raise Exception("Falha de Automação, pois carregou fora do esperado")
 
         browser.close()
         print("Concluido com sucesso")
