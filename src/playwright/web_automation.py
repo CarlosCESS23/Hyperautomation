@@ -1,18 +1,20 @@
 from playwright.sync_api import sync_playwright
 import os
 import logging
+from config import INTERFACE_NAVEGADOR, CAMINHO_EVIDENCIA, URL_BASE
 
-CAMINHO_EVIDENCIA = 'resultados/comprovante_lote_9999.png'
 
 # Código principal de playwright
 def executar_cadastro_web(logger : logging):
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False) # headless -> faz que visualizamos o uso desse script pelo navegador
+        # Essa parte será responsável por background, irá verificar se vai abrir o navegador ou não (Pois docker não inicia com navegador)
+
+        browser = p.chromium.launch(headless=INTERFACE_NAVEGADOR) # headless -> faz que visualizamos o uso desse script pelo navegador
         context = browser.new_context()
         page = context.new_page()
 
         logger.info("Acessando a página de LOGIN...")
-        page.goto("http://127.0.0.1:3000/html/login(1).html")
+        page.goto(f"{URL_BASE}/login.html")
 
         # A partir que é carregado a tela, ele vai fazer o preenchimento
         page.get_by_placeholder("seu.usuario@empresa.com").fill("bot.automacao@empresa.com")
