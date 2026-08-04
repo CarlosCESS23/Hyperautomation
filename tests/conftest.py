@@ -17,7 +17,7 @@ from src.pages.formulario_lotes_page import PlaywrightFormularioLotesPage
 @pytest.fixture
 def pagina_html() -> str:
     """Retorna o caminho absoluto do formulário alvo dos testes E2E."""
-    caminho = RAIZ_PROJETO / "frontend" / "lote-teste.html"
+    caminho = RAIZ_PROJETO / "web" / "lote-teste.html"
     if not caminho.exists():
         pytest.skip(f"Arquivo {caminho} não encontrado — teste E2E ignorado")
     return str(caminho)
