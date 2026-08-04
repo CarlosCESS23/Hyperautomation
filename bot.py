@@ -8,7 +8,6 @@ from pythonjsonlogger import jsonlogger
 
 
 CAMINHO_LOG = ROOT_DIR / 'logs' / 'botcity_permofer.log'
-PASTA_RESULTADO = ROOT_DIR / 'resultados'
 ATIVIDADE_LOG = 'AuditoriasLotes'
 
 # Configurando o logger para web_automation
