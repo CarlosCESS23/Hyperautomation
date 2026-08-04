@@ -1,5 +1,5 @@
 # Utilizando a imagem oficial do PLAYWRIGHT que será baseada em UBUNTU 22.04
-FROM mcr.microsoft.com/playwright/python:v.1.40.0-jammy
+FROM mcr.microsoft.com/playwright/python:v1.62.0-jammy
 
 # Definindo o diretório de trabalho
 WORKDIR /app
@@ -15,4 +15,4 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 
 #Comando padrão que quando iniciar o docker, ele irá executar
-CMD['python','bot.py']
+CMD ["python","bot.py"]

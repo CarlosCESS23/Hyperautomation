@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 import os
 import logging
-from config import INTERFACE_NAVEGADOR, CAMINHO_EVIDENCIA, URL_BASE
+from src.config import INTERFACE_NAVEGADOR, CAMINHO_EVIDENCIA, URL_BASE
 
 
 # Código principal de playwright
@@ -13,8 +13,9 @@ def executar_cadastro_web(logger : logging):
         context = browser.new_context()
         page = context.new_page()
 
-        logger.info("Acessando a página de LOGIN...")
+        logger.info("Acessando a pagina de LOGIN...")
         page.goto(f"{URL_BASE}/login.html")
+        page.screenshot(path="logs/debug_login.png")
 
         # A partir que é carregado a tela, ele vai fazer o preenchimento
         page.get_by_placeholder("seu.usuario@empresa.com").fill("bot.automacao@empresa.com")
