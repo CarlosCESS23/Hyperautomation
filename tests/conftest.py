@@ -1,8 +1,15 @@
 """Fixtures compartilhadas pela suíte de testes."""
 
 from pathlib import Path
+import sys
 
 import pytest
+
+# Permite executar ``pytest tests/e2e/`` de qualquer diretório ou configuração
+# de importação do pytest, sem exigir que o projeto esteja instalado como pacote.
+RAIZ_PROJETO = Path(__file__).resolve().parents[1]
+if str(RAIZ_PROJETO) not in sys.path:
+    sys.path.insert(0, str(RAIZ_PROJETO))
 
 from src.pages.formulario_lotes_page import PlaywrightFormularioLotesPage
 
@@ -10,7 +17,7 @@ from src.pages.formulario_lotes_page import PlaywrightFormularioLotesPage
 @pytest.fixture
 def pagina_html() -> str:
     """Retorna o caminho absoluto do formulário alvo dos testes E2E."""
-    caminho = Path(__file__).resolve().parents[1] / "frontend" / "lote-teste.html"
+    caminho = RAIZ_PROJETO / "frontend" / "lote-teste.html"
     if not caminho.exists():
         pytest.skip(f"Arquivo {caminho} não encontrado — teste E2E ignorado")
     return str(caminho)
