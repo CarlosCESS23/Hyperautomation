@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
 # CAMINHOS PARA O PLAYWRIGHT
-CAMINHO_EVIDENCIA = 'resultados/comprovante_lote_9999.png'
+CAMINHO_EVIDENCIA = 'screenshots/comprovante_lote_9999.png'
 INTERFACE_NAVEGADOR = os.getenv("HEADLESS",'true').lower() == 'true'
 URL_BASE = os.getenv("URL_BASE", "http://localhost:8080")
 
