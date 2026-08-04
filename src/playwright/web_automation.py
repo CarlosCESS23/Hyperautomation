@@ -12,9 +12,9 @@ def executar_cadastro_web():
         page.goto("http://127.0.0.1:3000/html/login(1).html")
 
         # A partir que é carregado a tela, ele vai fazer o preenchimento
-        page.fill('#usuario','usuarioautomatizado@empresa.com')
-        page.fill('#senha','senha_muito_legal')
-        page.click('.btn-submit')
+        page.get_by_placeholder("seu.usuario@empresa.com").fill("bot.automacao@empresa.com")
+        page.get_by_placeholder("Digite sua senha").fill("senha_muito_legal")
+        page.get_by_role("button", name="Entrar").click()
 
         print("Aguardando redirecionamento...")
 
@@ -24,12 +24,16 @@ def executar_cadastro_web():
         print("Sucesso!!!\nAcessando a página de Cadastro de Lotes")
 
         # Agora, chegamos na parte de preenchimento de cadastro, é preencher o formulário
-        page.fill('#lote','LOTE-2026-9999')
-        page.select_option('#produto','2')
+        page.get_by_label("Número do Lote *").fill("LOTE-2026-9999")
+
+        page.get_by_label("Produto *").select_option("2")
+
         # O Bot vai clicar em processamento
-        page.click("input[value='processamento']")
+        page.get_by_label("Em Processamento").check()
+
         # Agora vamos submeter
-        page.click('.btn-submit')
+        page.get_by_role("button", name="Processar Lote").click()
+
         print("Formulario preenchido com sucesso, vamos pausar para visualização")
         page.wait_for_timeout(3000)
 
