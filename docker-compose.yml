@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  #Serviço1: será responsável por hospedar o HTML
+  frontend:
+    image: nginx:alpine
+    container_name: portal_lotes
+    ports:
+      - '8080:80'
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "-O", "-", "http://localhost/login.html" ]
+      interval: 5s
+      retries: 5
+
+#Serviço2: A execução do bot
+  bot:
+    build: .
+    container_name: bot-conferencia
+    environment:
+      # URL interna do Docker: O bot acessa o Nginx pelo nome do serviço ("frontend")
+      - URL_BASE=http://frontend
+      - HEADLESS=true
+      - BOT_ID=bot-docker-001
+      - EXECUCAO_ID=exec-compose-001
+    volumes:
+      # Mapeia as pastas do container para a máquina host
+      - ./resultados:/app/resultados
+      - ./logs:/app/logs
+    depends_on:
+      frontend:
+        condition: service_healthy
