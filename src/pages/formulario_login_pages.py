@@ -25,6 +25,10 @@ class PlaywrightFormularioLoginPage:
             """
             Preenchendo os campos de usuário e senha
             """
+            #Limpando o campo, caso o usuário tenha digitado algo
+            self.__input_usuario.clear()
+            self.__input_senha.clear()
+
             self.__input_usuario.fill(usuario)
             self.__input_senha.fill(senha)
 
