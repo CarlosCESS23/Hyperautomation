@@ -59,7 +59,7 @@ jobs:
       - name: Build da imagem
         run: docker compose build
       - name: Executar bot em container
-        run: docker compose run --rm bot-conferencia
+        run: docker compose run --rm -e MAESTRO_ENABLED=false bot-conferencia
         env:
           ENVIRONMENT: container
       - name: Verificar evidências geradas

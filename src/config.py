@@ -21,7 +21,7 @@ def carregar_ambiente() -> None:
     """Carrega o .env da raiz; mantém compatibilidade com o antigo src/.env."""
     load_dotenv(ROOT_DIR / ".env")
     load_dotenv(Path(__file__).with_name(".env"), override=False)
-    CAMINHO_EVIDENCIA = 'screenshots/comprovante_lote_9999.png'
+
 
 
 @dataclass(frozen=True)
@@ -56,7 +56,7 @@ def obter_configuracao() -> Configuracao:
         credential_password_key=os.getenv("CREDENTIAL_PASSWORD_KEY", "password"),
         interface_navegador=os.getenv("HEADLESS", 'true').lower() == 'true',
         url_base=os.getenv("URL_BASE", "http://localhost:8080"),
-        caminho_evidencia=os.getenv("CAMINHO_EVIDENCIA", "/screenshots/comprovante_lote_9999.png"),
+        caminho_evidencia=os.getenv("CAMINHO_EVIDENCIA", "screenshots/comprovante_lote_9999.png"),
     )
 
 

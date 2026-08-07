@@ -68,6 +68,7 @@ def executar_cadastro_web(logger : logging):
         logger.info("Acessando a pagina de LOGIN...")
         login_page.navegar()
         login_page.realizar_login("UsuarioSuperSeguro@gmail.com",'SenhaSuperSeguro')
+
         # Cria o diretório de screenshots caso ele ainda não exista.
         Path(config.caminho_evidencia).parent.mkdir(parents=True, exist_ok=True)
         logger.info("Aguardando redirecionamento...")
@@ -77,7 +78,7 @@ def executar_cadastro_web(logger : logging):
             lotes_page.abrir()
             lotes_page.realizar_cadastro(
                 lote="LT-2026-001",
-                produto='Produto A',
+                produto='1',
                 status='concluido',
                 caminho_evidencia=config.caminho_evidencia,
             )

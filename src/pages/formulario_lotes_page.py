@@ -6,7 +6,7 @@ from playwright.sync_api import Page
 
 
 class PlaywrightFormularioLotesPage:
-    """Encapsula as interações com ``frontend/lote-teste.html``."""
+    """Encapsula as interações com ``web/lote-teste.html``."""
 
     def __init__(self, page: Page, pagina_html: str) -> None:
         self.page = page

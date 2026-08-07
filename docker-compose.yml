@@ -7,7 +7,6 @@ services:
       - '8081:80'
     volumes:
       - ./web:/usr/share/nginx/html:ro
-      - ./data/output:/app/data/output
     healthcheck:
       test: [ "CMD", "wget", "-q", "-O", "-", "http://localhost/login.html" ]
       interval: 5s
