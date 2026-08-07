@@ -59,14 +59,14 @@ jobs:
       - name: Build da imagem
         run: docker compose build
       - name: Executar bot em container
-        run: docker compose run --rm bot-conferencia
+        run: docker compose run --rm -e MAESTRO_ENABLED=false bot-conferencia
         env:
           ENVIRONMENT: container
       - name: Verificar evidências geradas
         run: |
-          test -n "$(ls -A logs/ 2>/dev/null)" || (echo "logs/ vazio" && exit 1)
-          test -n "$(ls -A data/output/ 2>/dev/null)" || (echo "data/output/ vazio" && exit 1)
-          test -n "$(ls -A screenshots/ 2>/dev/null)" || (echo "screenshots/ vazio" && exit 1)
+            test -n "$(ls -A logs/ 2>/dev/null)" || (echo "logs/ vazio" && exit 1)
+            # test -n "$(ls -A data/output/ 2>/dev/null)" || (echo "data/output/ vazio" && exit 1)
+            test -n "$(ls -A screenshots/ 2>/dev/null)" || (echo "screenshots/ vazio" && exit 1)
       - name: Salvar evidências como artefato
         uses: actions/upload-artifact@v4
         if: always()

@@ -6,7 +6,7 @@ services:
     ports:
       - '8081:80'
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro
+      - ./web:/usr/share/nginx/html:ro
     healthcheck:
       test: [ "CMD", "wget", "-q", "-O", "-", "http://localhost/login.html" ]
       interval: 5s
