@@ -1,17 +1,15 @@
 """Configurações locais para a integração com o BotCity Maestro."""
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
-import os
 
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
 # CAMINHOS PARA O PLAYWRIGHT
-CAMINHO_EVIDENCIA = 'resultados/comprovante_lote_9999.png'
-INTERFACE_NAVEGADOR = os.getenv("HEADLESS",'true').lower() == 'true'
-URL_BASE = os.getenv("URL_BASE", "http://localhost:8080")
+
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
     if value is None:
@@ -25,6 +23,7 @@ def carregar_ambiente() -> None:
     load_dotenv(Path(__file__).with_name(".env"), override=False)
 
 
+
 @dataclass(frozen=True)
 class Configuracao:
     maestro_server: str
@@ -36,6 +35,9 @@ class Configuracao:
     credential_label: str
     credential_user_key: str
     credential_password_key: str
+    url_base: str
+    interface_navegador: bool
+    caminho_evidencia: str
 
 
 def obter_configuracao() -> Configuracao:
@@ -52,6 +54,9 @@ def obter_configuracao() -> Configuracao:
         credential_label=os.getenv("CREDENTIAL_LABEL", "credencial_erp"),
         credential_user_key=os.getenv("CREDENTIAL_USER_KEY", "username"),
         credential_password_key=os.getenv("CREDENTIAL_PASSWORD_KEY", "password"),
+        interface_navegador=os.getenv("HEADLESS", 'true').lower() == 'true',
+        url_base=os.getenv("URL_BASE", "http://localhost:8080"),
+        caminho_evidencia=os.getenv("CAMINHO_EVIDENCIA", "screenshots/comprovante_lote_9999.png"),
     )
 
 

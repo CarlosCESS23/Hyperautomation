@@ -6,6 +6,9 @@ data/.~lock.*
 log/
 logs/
 resultados/
+screenshots/
+reports/
+data/output/
 .env
 *.env
 !.env.example
@@ -314,7 +317,7 @@ pyrightconfig.json
 
 # Local History for Visual Studio Code
 .history/
-
+.vscode/
 # Built Visual Studio Code Extensions
 *.vsix
 
