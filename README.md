@@ -9,6 +9,79 @@ confirmar o login e registrar uma evidência da mensagem de sucesso.
 > O portal é apenas um ambiente de demonstração: ele não autentica usuários nem
 > persiste dados de lotes.
 
+## Dashboard de conferência de lotes
+
+O script `gerar_relatorio.py` processa as dez abas diárias de
+`inspecao_lotes_10dias.xlsx`, aplica as regras RN01–RN12 e gera o relatório
+executivo de conferência. O dashboard principal fica dentro do Excel, na aba
+**Resumo**. O PDF é somente uma cópia estática para impressão ou entrega.
+
+### Instalação
+
+No PowerShell, acesse a pasta do projeto e instale as dependências:
+
+```powershell
+cd "C:\Users\matutino\Documents\hyperautomation 2\Hyperautomation"
+python -m pip install -r requirements.txt
+```
+
+### Execução
+
+Informe o caminho da planilha de entrada:
+
+```powershell
+python gerar_relatorio.py "C:\Users\matutino\Downloads\inspecao_lotes_10dias.xlsx"
+```
+
+Se o arquivo estiver em `Downloads` com o nome
+`inspecao_lotes_10dias.xlsx`, o caminho pode ser omitido:
+
+```powershell
+python gerar_relatorio.py
+```
+
+Saída esperada no terminal:
+
+```text
+Relatório: C:\Users\matutino\Documents\hyperautomation 2\Hyperautomation\reports\relatorio_conferencia_lotes.xlsx
+Total: 250 | Válido: 150 | Divergência: 50 | Ambíguo: 20 | Erro de Entrada: 30
+PDF: gerado
+```
+
+### Arquivos gerados
+
+| Arquivo | Finalidade |
+| --- | --- |
+| `reports/relatorio_conferencia_lotes.xlsx` | Relatório completo e dashboard na aba **Resumo**. |
+| `reports/dashboard_resumo.pdf` | Cópia estática do dashboard para impressão. |
+| `reports/log_execucao.txt` | Evidência da execução e totais processados. |
+
+O Excel possui exatamente seis abas: **Resumo**, **Todos**, **Válidos**,
+**Divergências**, **Ambíguos** e **Erros de Entrada**. Os gráficos de rosca e
+evolução são objetos nativos do Excel. A duplicidade é verificada por dia e
+somente a segunda ocorrência em diante é classificada como divergência.
+
+Para abrir os resultados:
+
+```powershell
+# Abrir a pasta
+explorer ".\reports"
+
+# Abrir o dashboard dentro do Excel
+Start-Process ".\reports\relatorio_conferencia_lotes.xlsx"
+
+# Abrir a cópia em PDF
+Start-Process ".\reports\dashboard_resumo.pdf"
+```
+
+### Definir outro local de saída
+
+```powershell
+python gerar_relatorio.py "C:\Users\matutino\Downloads\inspecao_lotes_10dias.xlsx" --saida "C:\Users\matutino\Downloads\relatorio_conferencia_lotes.xlsx"
+```
+
+Nesse caso, o PDF e o log são gravados na mesma pasta escolhida para o Excel.
+
 ## O que o bot executa
 
 1. Acessa `/login.html` no endereço definido por `URL_BASE`.
