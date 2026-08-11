@@ -388,6 +388,8 @@ def gerar_pdf_resumo(df: pd.DataFrame, saida: Path) -> bool:
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        import numpy as np
+        from matplotlib.patches import Patch
     except ImportError:
         return False
     contagens = df["Classificação"].value_counts().reindex(CLASSIFICACOES, fill_value=0)
@@ -403,16 +405,71 @@ def gerar_pdf_resumo(df: pd.DataFrame, saida: Path) -> bool:
         pct = "" if nome == "TOTAL" else f"\n{valor / len(df):.1%}"
         ax.text(0.5, 0.5, f"{nome}\n{valor}{pct}", ha="center", va="center", color="white", fontsize=12, fontweight="bold", bbox=dict(boxstyle="round,pad=0.8", facecolor=cor, edgecolor=cor))
     ax1 = fig.add_subplot(grade[1, :2])
-    ax1.pie(contagens, labels=CLASSIFICACOES, autopct="%1.1f%%", startangle=90, colors=["#" + CORES[n] for n in CLASSIFICACOES], wedgeprops=dict(width=0.42, edgecolor="white"))
+    cores_distribuicao = ["#" + CORES[n] for n in CLASSIFICACOES]
+    ax1.pie(
+        contagens,
+        labels=None,
+        autopct="%1.1f%%",
+        pctdistance=0.78,
+        startangle=90,
+        colors=cores_distribuicao,
+        textprops={"color": "white", "fontweight": "bold", "fontsize": 11},
+        wedgeprops=dict(width=0.48, edgecolor="white", linewidth=2),
+    )
     ax1.set_title("Distribuição dos registros", fontweight="bold", color="#17365D")
+    legenda = [
+        Patch(facecolor=cor, edgecolor="none", label=nome)
+        for nome, cor in zip(CLASSIFICACOES, cores_distribuicao)
+    ]
+    ax1.legend(
+        handles=legenda,
+        loc="lower left",
+        bbox_to_anchor=(-0.12, -0.18),
+        ncol=2,
+        frameon=True,
+        fancybox=True,
+        framealpha=1,
+        facecolor="white",
+        edgecolor="#CBD5E1",
+        fontsize=9,
+        title="Legenda",
+        title_fontproperties={"weight": "bold", "size": 9},
+    )
     ax2 = fig.add_subplot(grade[1, 2:])
     eixo_x = diario.index.strftime("%d/%m")
-    ax2.plot(eixo_x, diario["Divergência"], marker="o", label="Divergências", color="#F59E0B")
-    ax2.plot(eixo_x, diario["Ambíguo"], marker="o", label="Ambíguos", color="#8B5CF6")
     total_problemas = diario[["Divergência", "Ambíguo", "Erro de Entrada"]].sum(axis=1)
-    ax2.plot(eixo_x, total_problemas, marker="o", linewidth=2.5, label="Total de problemas", color="#EF4444")
+    posicoes = np.arange(len(eixo_x))
+    largura = 0.25
+    barras_divergencias = ax2.bar(
+        posicoes - largura,
+        diario["Divergência"],
+        largura,
+        label="Divergências",
+        color="#F59E0B",
+    )
+    barras_ambiguos = ax2.bar(
+        posicoes,
+        diario["Ambíguo"],
+        largura,
+        label="Ambíguos",
+        color="#8B5CF6",
+    )
+    barras_total = ax2.bar(
+        posicoes + largura,
+        total_problemas,
+        largura,
+        label="Total de problemas",
+        color="#EF4444",
+    )
+    for barras in (barras_divergencias, barras_ambiguos, barras_total):
+        ax2.bar_label(barras, padding=2, fontsize=7, color="#334155")
     ax2.set_title("Evolução dos registros", fontweight="bold", color="#17365D")
-    ax2.set_ylabel("Quantidade"); ax2.grid(axis="y", alpha=.25); ax2.legend()
+    ax2.set_ylabel("Quantidade")
+    ax2.set_xticks(posicoes, eixo_x, rotation=35, ha="right")
+    ax2.set_ylim(0, max(total_problemas) + 4)
+    ax2.grid(axis="y", alpha=.25)
+    ax2.set_axisbelow(True)
+    ax2.legend(loc="upper left", ncol=3, frameon=False, fontsize=8)
     ax3 = fig.add_subplot(grade[2, :]); ax3.axis("off")
     ax3.text(0, .75, f"Corrigir na origem: {contagens['Erro de Entrada']}  |  Conciliar: {contagens['Divergência']}  |  Decisão humana: {contagens['Ambíguo']}", fontsize=13, fontweight="bold", color="#17365D")
     ax3.text(0, .25, "Duplicidades são avaliadas separadamente em cada dia e somente a partir da 2ª ocorrência.", fontsize=10, color="#475569")
