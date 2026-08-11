@@ -334,3 +334,7 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,pycharm,python
 tests/e2e/screenshots/*.png
+
+screenshots
+
+inspe
