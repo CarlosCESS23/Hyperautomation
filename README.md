@@ -12,8 +12,9 @@ confirmar o login e registrar uma evidência da mensagem de sucesso.
 ## Dashboard de conferência de lotes
 
 O script `gerar_relatorio.py` processa as dez abas diárias de
-`inspecao_lotes_10dias.xlsx`, aplica as regras RN01–RN12 e gera o relatório
-executivo de conferência. O dashboard principal fica dentro do Excel, na aba
+`inspecao_lotes_10dias.xlsx` e gera o relatório executivo de conferência. A
+lógica RN01–RN12 está centralizada em `src/validacao_lotes.py` e é apenas
+consumida pelo gerador. O dashboard principal fica dentro do Excel, na aba
 **Resumo**. O PDF é somente uma cópia estática para impressão ou entrega.
 
 ### Instalação
@@ -55,11 +56,29 @@ PDF: gerado
 | `reports/relatorio_conferencia_lotes.xlsx` | Relatório completo e dashboard na aba **Resumo**. |
 | `reports/dashboard_resumo.pdf` | Cópia estática do dashboard para impressão. |
 | `reports/log_execucao.txt` | Evidência da execução e totais processados. |
+| `documentacao/roteiro_apresentacao_exercicio22.md` | Roteiro da apresentação de cinco minutos. |
 
 O Excel possui exatamente seis abas: **Resumo**, **Todos**, **Válidos**,
 **Divergências**, **Ambíguos** e **Erros de Entrada**. Os gráficos de rosca e
 evolução são objetos nativos do Excel. A duplicidade é verificada por dia e
 somente a segunda ocorrência em diante é classificada como divergência.
+
+O gabarito operacional é **150 válidos, 50 divergências, 20 ambíguos e 30
+erros de entrada**. Assim, há 100 registros problemáticos no total; “100” não
+representa apenas a classificação Divergência.
+
+### Verificação rápida dos artefatos
+
+Após gerar o relatório, execute a conferência independente, que usa somente a
+biblioteca padrão do Python:
+
+```powershell
+python scripts/verificar_exercicio22.py
+```
+
+Ela valida nomes das abas, totais, gráficos nativos, ausência de gráficos
+colados como imagem, log e PDF. O resultado esperado termina com
+`ACEITE DO EXERCÍCIO 22: APROVADO`.
 
 Para abrir os resultados:
 

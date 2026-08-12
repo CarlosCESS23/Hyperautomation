@@ -10,10 +10,8 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -24,8 +22,13 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
+from src.validacao_lotes import (
+    CLASSIFICACOES,
+    RegistroValidado,
+    texto,
+    validar_registro,
+)
 
-CLASSIFICACOES = ("Válido", "Divergência", "Ambíguo", "Erro de Entrada")
 CORES = {
     "Válido": "22C55E",
     "Divergência": "F59E0B",
@@ -38,149 +41,15 @@ ABAS = {
     "Ambíguo": "Ambíguos",
     "Erro de Entrada": "Erros de Entrada",
 }
-
-
-def texto(valor: Any) -> str:
-    """Converte célula vazia/NaN em texto vazio e remove espaços externos."""
-    if pd.isna(valor):
-        return ""
-    return str(valor).strip()
-
-
-def data_valida(valor: Any) -> bool:
-    """RN12: aceita somente data real ou texto estritamente DD/MM/AAAA."""
-    if isinstance(valor, (pd.Timestamp, datetime)):
-        return True
-    bruto = texto(valor)
-    if len(bruto) != 10:
-        return False
-    try:
-        return datetime.strptime(bruto, "%d/%m/%Y").strftime("%d/%m/%Y") == bruto
-    except ValueError:
-        return False
-
-
-@dataclass(frozen=True)
-class RegistroValidado:
-    """Resultado de negócio de uma linha da planilha de inspeção."""
-
-    data_referencia: str
-    lote: str
-    produto: str
-    linha: str
-    turno: str
-    status: str
-    responsavel: str
-    data_inspecao: str
-    observacao: str
-    classificacao: str
-    motivo: str
-    acao_recomendada: str
-
-    def to_dict(self) -> dict[str, str]:
-        nomes = {
-            "data_referencia": "Data de Referência",
-            "lote": "Lote",
-            "produto": "Produto",
-            "linha": "Linha",
-            "turno": "Turno",
-            "status": "Status",
-            "responsavel": "Responsável",
-            "data_inspecao": "Data da Inspeção",
-            "observacao": "Observação",
-            "classificacao": "Classificação",
-            "motivo": "Motivo",
-            "acao_recomendada": "Ação Recomendada",
-        }
-        return {nomes[chave]: valor for chave, valor in asdict(self).items()}
-
-
-def validar_registro(
-    registro: pd.Series,
-    data_referencia: str,
-    lotes_referencia: set[str],
-    ocorrencia_no_dia: int,
-) -> RegistroValidado:
-    """Aplica RN01–RN12, com uma classificação exclusiva por registro.
-
-    A precedência evita mistura de categorias: erros estruturais primeiro,
-    conciliações em seguida e, por último, estados que pedem decisão humana.
-    """
-    lote = texto(registro.get("lote_id"))
-    produto = texto(registro.get("produto"))
-    linha = texto(registro.get("linha"))
-    status_original = texto(registro.get("status")).upper()
-    status = {"OK": "APROVADO", "NOK": "REPROVADO"}.get(
-        status_original, status_original
-    )
-    observacao = texto(registro.get("observacao"))
-    data_bruta = registro.get("data")
-    data_inspecao = (
-        data_bruta.strftime("%d/%m/%Y")
-        if isinstance(data_bruta, (pd.Timestamp, datetime))
-        else texto(data_bruta)
-    )
-
-    # O arquivo fornecido também marca o responsável como obrigatório no seu
-    # gabarito operacional (dois casos). A validação preserva esse contrato.
-    campos_vazios = [
-        rotulo
-        for rotulo, valor in (
-            ("lote", lote),
-            ("produto", produto),
-            ("linha", linha),
-            ("status", status_original),
-            ("responsável", texto(registro.get("responsavel"))),
-        )
-        if not valor
-    ]
-    if campos_vazios or not data_valida(data_bruta):
-        motivos = []
-        if campos_vazios:
-            motivos.append("Campo obrigatório vazio: " + ", ".join(campos_vazios))
-        if not data_valida(data_bruta):
-            motivos.append("Data ausente ou fora do formato DD/MM/AAAA")
-        classificacao = "Erro de Entrada"
-        motivo = "; ".join(motivos)
-        acao = "Corrigir os dados na planilha de origem"
-    else:
-        divergencias = []
-        if lote not in lotes_referencia:
-            divergencias.append("Lote não encontrado na base de referência")
-        if status == "REPROVADO" and not observacao:
-            divergencias.append("Lote reprovado sem observação")
-        if ocorrencia_no_dia > 1:
-            divergencias.append(
-                f"Duplicidade no dia {data_referencia} (ocorrência {ocorrencia_no_dia})"
-            )
-
-        if divergencias:
-            classificacao = "Divergência"
-            motivo = "; ".join(divergencias)
-            acao = "Conciliar com a base de referência ou com o processo"
-        elif status not in {"APROVADO", "REPROVADO", "PENDENTE"}:
-            classificacao = "Ambíguo"
-            motivo = f"Status não reconhecido: {status_original}"
-            acao = "Submeter à decisão da supervisão"
-        else:
-            classificacao = "Válido"
-            motivo = "Registro em conformidade"
-            acao = "Nenhuma ação necessária"
-
-    return RegistroValidado(
-        data_referencia=data_referencia,
-        lote=lote,
-        produto=produto,
-        linha=linha,
-        turno=texto(registro.get("turno")),
-        status=status,
-        responsavel=texto(registro.get("responsavel")),
-        data_inspecao=data_inspecao,
-        observacao=observacao,
-        classificacao=classificacao,
-        motivo=motivo,
-        acao_recomendada=acao,
-    )
+ABAS_DIARIAS_ESPERADAS = tuple(
+    f"Insp_{dia:02d}_06_2026" for dia in (15, 16, 17, 18, 19, 22, 23, 24, 25, 26)
+)
+TOTAIS_GABARITO = {
+    "Válido": 150,
+    "Divergência": 50,
+    "Ambíguo": 20,
+    "Erro de Entrada": 30,
+}
 
 
 def ler_e_validar(caminho: Path) -> list[RegistroValidado]:
@@ -189,8 +58,16 @@ def ler_e_validar(caminho: Path) -> list[RegistroValidado]:
         (aba for aba in planilha.sheet_names if aba.startswith("Insp_")),
         key=lambda aba: datetime.strptime(aba, "Insp_%d_%m_%Y"),
     )
-    if not abas_diarias:
-        raise ValueError("Nenhuma aba diária no padrão Insp_DD_MM_AAAA foi encontrada.")
+    faltantes = sorted(set(ABAS_DIARIAS_ESPERADAS) - set(abas_diarias))
+    inesperadas = sorted(set(abas_diarias) - set(ABAS_DIARIAS_ESPERADAS))
+    if faltantes or inesperadas:
+        raise ValueError(
+            "As abas diárias não correspondem aos 10 dias esperados. "
+            f"Faltantes: {faltantes or 'nenhuma'}; "
+            f"inesperadas: {inesperadas or 'nenhuma'}."
+        )
+    if "Base_Referencia" not in planilha.sheet_names:
+        raise ValueError("A aba obrigatória Base_Referencia não foi encontrada.")
 
     referencia = pd.read_excel(caminho, sheet_name="Base_Referencia", header=1)
     lotes_referencia = {texto(valor) for valor in referencia["lote_id"] if texto(valor)}
@@ -424,15 +301,18 @@ def gerar_pdf_resumo(df: pd.DataFrame, saida: Path) -> bool:
 def salvar_log(df: pd.DataFrame, caminho: Path, origem: Path, momento: datetime) -> None:
     contagens = df["Classificação"].value_counts().reindex(CLASSIFICACOES, fill_value=0)
     problemas = int(contagens[["Divergência", "Ambíguo", "Erro de Entrada"]].sum())
+    resultado_obtido = {nome: int(contagens[nome]) for nome in CLASSIFICACOES}
+    aceite = len(df) == 250 and resultado_obtido == TOTAIS_GABARITO
     linhas = [
         "LOG DE EXECUÇÃO — CONFERÊNCIA DE LOTES",
         f"Data/hora: {momento.strftime('%d/%m/%Y %H:%M:%S')}",
         f"Arquivo de origem: {origem.resolve()}",
         f"Total processado: {len(df)}",
         *(f"{nome}: {int(contagens[nome])}" for nome in CLASSIFICACOES),
-        f"Total que exige ação: {problemas}",
+        f"Total de registros problemáticos (todas as categorias): {problemas}",
+        "Gabarito: 150 válidos + 50 divergências + 20 ambíguos + 30 erros de entrada = 250.",
         "RN11: contagem reiniciada em cada aba diária; divergência somente a partir da 2ª ocorrência.",
-        "Validação de aceite: " + ("APROVADA" if len(df) == 250 and problemas == 100 else "REVISAR"),
+        "Validação de aceite: " + ("APROVADA" if aceite else "REVISAR"),
     ]
     # BOM facilita a abertura correta em Bloco de Notas/PowerShell legados.
     caminho.write_text("\n".join(linhas) + "\n", encoding="utf-8-sig")
