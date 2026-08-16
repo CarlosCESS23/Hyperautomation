@@ -36,6 +36,14 @@ def data_valida(valor: Any) -> bool:
         return False
 
 
+def normalizar_status(status: Any) -> str:
+    """Padroniza o status de inspeção usado pelas regras de negócio."""
+    status_tratado = texto(status).upper()
+    return {"OK": "APROVADO", "NOK": "REPROVADO"}.get(
+        status_tratado, status_tratado
+    )
+
+
 @dataclass(frozen=True)
 class RegistroValidado:
     """Resultado de negócio de uma linha, incluindo a data do dashboard."""
@@ -89,9 +97,7 @@ def validar_registro(
     produto = texto(registro.get("produto"))
     linha = texto(registro.get("linha"))
     status_original = texto(registro.get("status")).upper()
-    status = {"OK": "APROVADO", "NOK": "REPROVADO"}.get(
-        status_original, status_original
-    )
+    status = normalizar_status(registro.get("status"))
     responsavel = texto(registro.get("responsavel"))
     observacao = texto(registro.get("observacao"))
     data_bruta = registro.get("data")
