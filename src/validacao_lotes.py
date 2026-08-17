@@ -60,6 +60,7 @@ class RegistroValidado:
     classificacao: str
     motivo: str
     acao_recomendada: str
+    regra_aplicada : str # Regra aplicada de acordo com aula 24
 
     def to_dict(self) -> dict[str, str]:
         """Converte o resultado para as colunas públicas usadas pelo pandas."""
@@ -76,6 +77,7 @@ class RegistroValidado:
             "classificacao": "Classificação",
             "motivo": "Motivo",
             "acao_recomendada": "Ação Recomendada",
+            'regra_aplicada' : 'Regra Aplicada',
         }
         return {nomes[chave]: valor for chave, valor in asdict(self).items()}
 
@@ -106,6 +108,7 @@ def validar_registro(
         if isinstance(data_bruta, (pd.Timestamp, datetime))
         else texto(data_bruta)
     )
+    regra_aplicada = ''
 
     campos_vazios = [
         rotulo
@@ -118,38 +121,67 @@ def validar_registro(
         )
         if not valor
     ]
+    #Erros de Entrada
     if campos_vazios or not data_valida(data_bruta):
         motivos = []
+        regras = []
         if campos_vazios:
             motivos.append("Campo obrigatório vazio: " + ", ".join(campos_vazios))
+
+            # Acrescentando as regras que não foram atendidas:
+            if not lote:
+                regras.append('RN01')
+            if not produto:
+                regras.append('RN02')
+            if not linha:
+                regras.append('RN03')
+            if not status_original or not responsavel:
+                regras.append('RN04')
+
         if not data_valida(data_bruta):
             motivos.append("Data ausente ou fora do formato DD/MM/AAAA")
+            #Caso seja fora do padrão do esperado, ele acrescenterá essa regra que falta
+            regras.append('RN12')
         classificacao = "Erro de Entrada"
         motivo = "; ".join(motivos)
         acao = "Corrigir os dados na planilha de origem"
+        regra_aplicada = ', '.join(regras)
     else:
         divergencias = []
+        regras_divergencia = [] # Criação de lista
+
+        #RN05
         if lote not in lotes_referencia:
             divergencias.append("Lote não encontrado na base de referência")
+            regras_divergencia.append('RN05')
+        #RN10
         if status == "REPROVADO" and not observacao:
             divergencias.append("Lote reprovado sem observação")
+            regras_divergencia.append('RN10')
+        #RN11
         if ocorrencia_no_dia > 1:
             divergencias.append(
                 f"Duplicidade no dia {data_referencia} (ocorrência {ocorrencia_no_dia})"
             )
+            regras_divergencia.append('RN11')
 
         if divergencias:
             classificacao = "Divergência"
             motivo = "; ".join(divergencias)
             acao = "Conciliar com a base de referência ou com o processo"
+            regra_aplicada = ', '.join(regras_divergencia)
+
+        #RN09
         elif status not in {"APROVADO", "REPROVADO", "PENDENTE"}:
             classificacao = "Ambíguo"
             motivo = f"Status não reconhecido: {status_original}"
             acao = "Submeter à decisão da supervisão"
+            regra_aplicada = 'RN09'
         else:
             classificacao = "Válido"
             motivo = "Registro em conformidade"
             acao = "Nenhuma ação necessária"
+            regra_aplicada = ''
 
     return RegistroValidado(
         data_referencia=data_referencia,
@@ -164,4 +196,5 @@ def validar_registro(
         classificacao=classificacao,
         motivo=motivo,
         acao_recomendada=acao,
+        regra_aplicada = regra_aplicada,
     )
