@@ -3,6 +3,22 @@ from dataclasses import dataclass
 
 from src.validacao_lotes import RegistroValidado
 
+#Implementando nome_regras
+
+NOMES_REGRAS = {
+    "RN01": "Lote obrigatório não informado",
+    "RN02": "Produto obrigatório não informado",
+    "RN03": "Linha obrigatória não informada",
+    "RN04": "Status obrigatório não informado",
+    "RN05": "Lote não encontrado na base de referência",
+    "RN06": "Status OK é normalizado para APROVADO",
+    "RN07": "Status NOK é normalizado para REPROVADO",
+    "RN08": "Status padronizado é considerado válido",
+    "RN09": "Status desconhecido e não normalizável",
+    "RN10": "Lote reprovado sem observação",
+    "RN11": "Lote duplicado dentro da mesma planilha ou dia",
+    "RN12": "Data de inspeção ausente ou fora do formato DD/MM/AAAA",
+}
 
 @dataclass(frozen=True)
 class OperationalIndicators:
@@ -22,6 +38,7 @@ class OperationalIndicators:
 
     regra_mais_acionada: str
     quantidade_regra_mais_acionada: int
+    nome_regra_mais_acionada : str
 
     taxa_qualidade_entrada: float
     taxa_revisao_humana: float
@@ -44,6 +61,11 @@ def _percentual(
 
     return (parte / total) * 100
 
+
+
+def _nome_regra(codigo : str) -> str:
+    """Retorna o nome da regra"""
+    return NOMES_REGRAS.get(codigo , '')
 
 def _contar_regras(
     registros: list[RegistroValidado],
@@ -105,8 +127,10 @@ def calcular_indicadores(
         regra_mais_acionada, quantidade_regra_mais_acionada = (
             contagem_regras.most_common(1)[0]
         )
+        nome_regra_mais_acionada = _nome_regra(regra_mais_acionada)
     else:
-        regra_mais_acionada = ""
+        regra_mais_acionada = ''
+        nome_regra_mais_acionada = ''
         quantidade_regra_mais_acionada = 0
 
     percentual_validos = _percentual(validos, total)
@@ -162,6 +186,7 @@ def calcular_indicadores(
         percentual_erros_entrada=percentual_erros_entrada,
 
         regra_mais_acionada=regra_mais_acionada,
+        nome_regra_mais_acionada = nome_regra_mais_acionada,
         quantidade_regra_mais_acionada=(
             quantidade_regra_mais_acionada
         ),

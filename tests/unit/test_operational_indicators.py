@@ -3,6 +3,8 @@ import pytest
 from src.operational_indicators import (
     _percentual,
     calcular_indicadores,
+    _nome_regra,
+    NOMES_REGRAS
 )
 from src.validacao_lotes import RegistroValidado
 
@@ -93,6 +95,7 @@ def test_identifica_regra_mais_acionada():
     indicadores = calcular_indicadores(registros)
 
     assert indicadores.regra_mais_acionada == "RN10"
+    assert indicadores.nome_regra_mais_acionada == 'Lote reprovado sem observação'
     assert indicadores.quantidade_regra_mais_acionada == 2
 
 
@@ -204,6 +207,7 @@ def test_lista_vazia_retorna_indicadores_zerados():
     assert indicadores.percentual_erros_entrada == 0.0
 
     assert indicadores.regra_mais_acionada == ""
+    assert indicadores.nome_regra_mais_acionada == ''
     assert indicadores.quantidade_regra_mais_acionada == 0
 
     assert indicadores.taxa_qualidade_entrada == 0.0
@@ -212,3 +216,37 @@ def test_lista_vazia_retorna_indicadores_zerados():
 
     assert indicadores.ganho_estimado_tempo == 0.0
     assert indicadores.contagem_regras == {}
+
+def test_retorna_nome_da_regra():
+    assert _nome_regra('RN10') == 'Lote reprovado sem observação'
+
+def test_regra_desconhecida_retorna_texto_vazio():
+    assert _nome_regra('RN99') == ''
+
+@pytest.mark.parametrize(
+    ("codigo", "nome"),
+    [
+        (
+            "RN05",
+            "Lote não encontrado na base de referência",
+        ),
+        (
+            "RN09",
+            "Status desconhecido e não normalizável",
+        ),
+        (
+            "RN10",
+            "Lote reprovado sem observação",
+        ),
+        (
+            "RN11",
+            "Lote duplicado dentro da mesma planilha ou dia",
+        ),
+        (
+            "RN12",
+            "Data de inspeção ausente ou fora do formato DD/MM/AAAA",
+        ),
+    ],
+)
+def test_nomes_das_regras(codigo, nome):
+    assert _nome_regra(codigo) == nome
