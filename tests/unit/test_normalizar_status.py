@@ -16,29 +16,42 @@ pytestmark = pytest.mark.unit
         pytest.param("  Ok  ", "APROVADO", id="ok-misto-com-espacos"),
         pytest.param("APROVADO", "APROVADO", id="aprovado-maiusculo"),
         pytest.param("aprovado", "APROVADO", id="aprovado-minusculo"),
-        pytest.param(
-            "  Aprovado  ", "APROVADO", id="aprovado-misto-com-espacos"
-        ),
-        pytest.param("NOK", "REPROVADO", id="nok-maiusculo"),
-        pytest.param("nok", "REPROVADO", id="nok-minusculo"),
-        pytest.param("  Nok  ", "REPROVADO", id="nok-misto-com-espacos"),
+        pytest.param("  Aprovado  ","APROVADO",id="aprovado-misto-com-espacos",),
         pytest.param("REPROVADO", "REPROVADO", id="reprovado-maiusculo"),
         pytest.param("reprovado", "REPROVADO", id="reprovado-minusculo"),
-        pytest.param(
-            "  Reprovado  ", "REPROVADO", id="reprovado-misto-com-espacos"
-        ),
+        pytest.param( "  Reprovado  ","REPROVADO",id="reprovado-misto-com-espacos",),
     ],
 )
 def test_normaliza_status_reconhecido(entrada, esperado):
     # Arrange
     status = entrada
-
     # Act
+    resultado = normalizar_status(status)
+    # Assert
+    assert resultado == esperado
+@pytest.mark.regression
+@pytest.mark.parametrize(
+    "entrada",
+    [
+        pytest.param("NOK", id="nok-maiusculo"),
+        pytest.param("nok", id="nok-minusculo"),
+        pytest.param("NoK", id="nok-caixa-mista"),
+        pytest.param("  nOk  ",id="nok-caixa-mista-com-espacos", ),
+    ],
+)
+def test_regressao_normaliza_nok_para_reprovado(entrada):
+    """
+    Protegendo contra regressão a conversão crítica de NOK para reprovado
+    """
+
+    # Arrange
+    status = entrada
+
+    #Act
     resultado = normalizar_status(status)
 
     # Assert
-    assert resultado == esperado
-
+    assert resultado == 'REPROVADO'
 
 @pytest.mark.parametrize(
     "entrada",
