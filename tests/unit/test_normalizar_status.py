@@ -91,3 +91,14 @@ def test_preserva_status_nao_mapeado_apos_tratamento(entrada, esperado):
 
     # Assert
     assert resultado == esperado
+
+
+@pytest.mark.xfail(
+    reason=(
+        "RN04: o sinônimo 'APROVADA' ainda permanece como 'APROVADA', "
+        "em vez de ser normalizado para 'APROVADO'"
+    ),
+    strict=True,
+)
+def test_rn04_normaliza_status_aprovada_para_aprovado():
+    assert normalizar_status("APROVADA") == "APROVADO"
