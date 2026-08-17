@@ -198,41 +198,116 @@ defina `HEADLESS=false` antes do comando do bot:
 HEADLESS=false python bot.py
 ```
 
-## Testes End-to-End (E2E)
+## Testes automatizados
 
-A suíte E2E valida o formulário `web/lote-teste.html` com Chromium real.
-Ela exercita o Page Object `PlaywrightFormularioLotesPage`, incluindo entrada
-de lote, seleção de produto e status, validação de campos obrigatórios,
-submissão e captura de evidência. Como o formulário é estático, os testes o
-abrem diretamente do sistema de arquivos; não é necessário iniciar o servidor
-HTTP para esta suíte.
+### Pré-requisitos e instalação
 
-Após instalar as dependências e o Chromium conforme a seção anterior, execute:
+A suíte requer Python 3.12 ou superior, conforme `requires-python` em
+`pyproject.toml`. Para preparar um ambiente local a partir da raiz do
+repositório, crie e ative um ambiente virtual, instale as dependências de
+desenvolvimento e teste e instale o Chromium usado pelo Playwright:
 
 ```bash
-pytest tests/e2e/ -v
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
 ```
 
-Para acompanhar o navegador durante a execução:
+No PowerShell, somente o comando de ativação muda:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+```
+
+A instalação dos pacotes e do navegador exige acesso à internet apenas nessa
+etapa. Depois que o ambiente está preparado, a suíte não acessa a internet,
+não exige credenciais e não depende de arquivos manuais não versionados. O
+formulário E2E é aberto diretamente do arquivo estático local; não é necessário
+iniciar o servidor HTTP.
+
+### Organização da suíte
+
+| Caminho | Finalidade |
+| --- | --- |
+| `tests/unit/` | Valida funções e regras de negócio isoladamente, com dependências simuladas. |
+| `tests/integration/` | Valida a integração entre leitura da planilha, processamento e geração do relatório. |
+| `tests/e2e/` | Valida fluxos completos, incluindo o pipeline de relatório e o formulário local em Chromium real. |
+| `tests/conftest.py` | Centraliza fixtures e fábricas compartilhadas para registros, planilhas, Base de Referência, data/hora e páginas do Playwright. |
+
+Os testes de regressão permanecem no diretório da camada à qual pertencem e
+recebem também o marker `regression`; portanto, não existe um diretório
+`tests/regression/` separado.
+
+As planilhas e os relatórios criados pelos testes de integração e do pipeline
+E2E são gravados em diretórios temporários fornecidos pela fixture `tmp_path` e
+são descartados pelo Pytest. A Base de Referência, os arquivos de entrada e a
+data/hora de execução são controlados por fixtures, mocks e `monkeypatch`, o
+que torna esses cenários determinísticos. O teste visual do formulário mantém
+apenas a evidência `tests/e2e/screenshots/evidencia_formulario.png`, ignorada
+pelo Git.
+
+### Comandos de execução
+
+Execute a suíte completa:
 
 ```bash
-pytest tests/e2e/ -v --headed
-pytest tests/e2e/ -v --headed --slowmo=500
+python -m pytest -q
 ```
 
-Os oito cenários cobertos são:
+Execute cada camada separadamente por marker:
 
-- carregamento da página com o título esperado;
-- preenchimento do número do lote;
-- seleção de produto;
-- status `Pendente` selecionado por padrão;
-- submissão completa com mensagem de sucesso;
-- bloqueio de sucesso sem produto;
-- bloqueio de sucesso sem número do lote;
-- geração de screenshot como evidência.
+```bash
+python -m pytest -m unit -q
+python -m pytest -m integration -q
+python -m pytest -m regression -q
+python -m pytest -m e2e -q
+```
 
-A evidência é gerada em `tests/e2e/screenshots/evidencia_formulario.png`.
-Esse arquivo é ignorado pelo Git para não versionar resultados de execução.
+Markers podem ser combinados com expressões. Este exemplo executa testes
+marcados como unitários ou de integração:
+
+```bash
+python -m pytest -m "unit or integration" -q
+```
+
+Para executar um arquivo específico ou um único teste, informe o caminho ou o
+node ID:
+
+```bash
+python -m pytest tests/unit/test_normalizar_status.py -q
+python -m pytest tests/unit/test_normalizar_status.py::test_rn04_normaliza_status_aprovada_para_aprovado -q
+```
+
+Para listar os markers registrados e suas descrições:
+
+```bash
+python -m pytest --markers
+```
+
+Para exibir no resumo as razões dos casos ignorados ou esperadamente falhos,
+incluindo resultados inesperadamente aprovados, execute:
+
+```bash
+python -m pytest -rsxX -q
+```
+
+`skip` indica que o teste não pode ou não deve ser executado nas condições
+atuais, como o cenário que aguarda um ambiente autenticado de homologação.
+`xfail` executa o teste, mas registra a falha conhecida como esperada. Os casos
+`xfail` usam `strict=True` quando aplicável: se um deles passar sem que a marca
+seja removida, o resultado `XPASS(strict)` faz a suíte falhar e sinaliza que a
+expectativa precisa ser revisada.
+
+Para acompanhar o navegador nos testes de formulário, use:
+
+```bash
+python -m pytest tests/e2e/test_formulario_lotes_e2e.py -v --headed
+python -m pytest tests/e2e/test_formulario_lotes_e2e.py -v --headed --slowmo=500
+```
 
 ## Integração contínua
 
