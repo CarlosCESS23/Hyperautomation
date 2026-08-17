@@ -109,6 +109,30 @@ class TestValidarRegistroRN09RN12(unittest.TestCase):
                 self.assertEqual(motivo, resultado.motivo)
                 self.base_referencia.__contains__.assert_called_once_with("LOTE-001")
 
+    def test_regressao_rn10_reprovado_sem_observacao(self):
+        """Protegendo o bug que corrige de registros REPROVADO sem observação válida"""
+
+        observacoes_invalidas = (None, "", "   ")
+
+        for observacao in observacoes_invalidas:
+            with self.subTest(observacao=repr(observacao)):
+                # Arrange
+
+                registro = self.registro_base.copy()
+                registro["status"] = "REPROVADO"
+                registro["observacao"] = observacao
+
+                self.base_referencia.reset_mock()
+
+                # Act
+                resultado = validar_registro(registro,self.data_referencia,self.base_referencia,self.primeira_ocorrencia)
+
+                #Assert
+                self.assertEqual('Divergência',resultado.classificacao)
+                self.assertIn('Lote reprovado sem observação',resultado.motivo)
+                self.assertNotEqual('Válido',resultado.classificacao)
+                self.base_referencia.__contains__.assert_called_once_with('LOTE-001')
+
     def test_rn11_classifica_duplicidades_a_partir_da_segunda_ocorrencia(self):
         cenarios = (
             ("primeira ocorrência é válida", 1, "Válido", "Registro em conformidade"),
