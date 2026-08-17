@@ -21,4 +21,5 @@ dependencies = [
 [tool.pytest.ini_options]
 markers = [
     "unit: testes unitários isolados de dependências externas",
+    "integration: testes de integração entre leitura, validação e relatório",
 ]
