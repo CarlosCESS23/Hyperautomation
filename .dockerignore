@@ -1,0 +1,10 @@
+__pycache__/
+.venv/
+logs/
+resultados/
+screenshots/
+reports/
+data/output/
+hyperautomation/
+.env/
+.git/

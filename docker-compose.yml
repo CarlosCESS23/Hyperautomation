@@ -1,0 +1,35 @@
+services:
+  #Serviço1: será responsável por hospedar o HTML
+  frontend:
+    image: nginx:alpine
+    container_name: portal_lotes
+    ports:
+      - '8081:80'
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "-O", "-", "http://localhost/login.html" ]
+      interval: 5s
+      retries: 5
+
+# Serviço 2: execução do bot no container.
+  bot-conferencia:
+    build: .
+    environment:
+      # URL interna: o bot acessa o Nginx pelo nome do serviço.
+      URL_BASE: http://frontend
+      HEADLESS: "true"
+      BOT_ID: bot-docker-001
+      EXECUCAO_ID: exec-compose-001
+      ENVIRONMENT: container
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      TZ: America/Manaus
+    volumes:
+      # Evidências persistidas na máquina host.
+      - ./logs:/app/logs
+      - ./data/output:/app/data/output
+      - ./reports:/app/reports
+      - ./screenshots:/app/screenshots
+    depends_on:
+      frontend:
+        condition: service_healthy

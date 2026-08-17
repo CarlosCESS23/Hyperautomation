@@ -1,0 +1,8 @@
+# Dependências necessárias para desenvolvimento e testes automatizados.
+-r requirements.txt
+
+# Declarada explicitamente para facilitar a instalação isolada da suíte E2E.
+pytest-playwright==0.5.0
+
+# Coleta a cobertura da suíte e gera a evidência navegável em HTML.
+pytest-cov>=6,<8

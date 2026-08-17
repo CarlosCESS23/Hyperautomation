@@ -1,0 +1,39 @@
+[project]
+name = "hyperautomation"
+version = "1.0.0"
+description = "Inicializando o projeto utilizando o empacotador UV"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "botcity-maestro-sdk>=0.9,<1.0",
+    "numpy>=2.5.1",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.5",
+    "playwright>=1.40,<2.0",
+    "pytest>=8,<9",
+    "pytest-playwright==0.5.0",
+    "python-dotenv>=1.0,<2.0",
+    "python-json-logger>=4.1.0",
+    "reportlab>=4.0,<5.0",
+    "requests>=2.34.2",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "unit: testes unitários isolados de dependências externas",
+    "integration: testes de integração entre leitura, processamento e geração de relatórios",
+    "regression: testes que impedem o retorno de comportamentos incorretos já corrigidos",
+    "e2e: testes End-to-End do fluxo completo da aplicação",
+]
+
+[tool.coverage.run]
+# Mede as regras RN01-RN12 e o módulo responsável pela geração do Excel.
+source = ["src", "gerar_relatorio"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
