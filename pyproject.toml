@@ -25,3 +25,15 @@ markers = [
     "regression: testes que impedem o retorno de comportamentos incorretos já corrigidos",
     "e2e: testes End-to-End do fluxo completo da aplicação",
 ]
+
+[tool.coverage.run]
+# Mede as regras RN01-RN12 e o módulo responsável pela geração do Excel.
+source = ["src", "gerar_relatorio"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"

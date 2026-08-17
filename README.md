@@ -258,6 +258,39 @@ Execute a suíte completa:
 python -m pytest -q
 ```
 
+### Cobertura e evidência da suíte completa
+
+O `pytest-cov` mede tanto `src/`, onde estão as regras RN01–RN12, quanto
+`gerar_relatorio.py`, responsável pela leitura, processamento e geração do
+relatório Excel. As fontes, o limite global de **80%**, a exibição das linhas
+não cobertas e o diretório HTML estão centralizados em `pyproject.toml`.
+
+Após instalar `requirements-dev.txt`, gere a evidência reproduzível com:
+
+```bash
+python -m pytest --cov --cov-report=term-missing --cov-report=html -rsxX
+```
+
+O comando executa a suíte completa, falha se a cobertura total for inferior a
+80%, mantém `skip`, `xfail` e `xpass` visíveis no resumo e cria o relatório
+navegável em `htmlcov/index.html`. Para anexar a evidência à entrega, compacte
+a pasta `htmlcov/` depois da execução e anexe o arquivo compactado no canal da
+entrega. Não versione essa pasta: `htmlcov/`, `.coverage`, `.coverage.*` e
+`coverage.xml` estão no `.gitignore` por serem artefatos locais reproduzíveis.
+
+As lacunas relevantes que permanecem deliberadamente visíveis são:
+
+| Trecho | Justificativa |
+| --- | --- |
+| `src/config.py` e `src/pages/formulario_login_pages.py` | Pertencem ao fluxo separado do bot/Login e dependem da configuração do Maestro e do portal; não fazem parte das RN01–RN12 nem do pipeline do relatório desta entrega. |
+| `gerar_relatorio.py`: rejeição de estrutura inválida e ausência opcional do Matplotlib | São caminhos defensivos; a suíte desta entrega usa a estrutura válida de dez abas e possui a dependência de PDF instalada. |
+| `gerar_relatorio.py`: guarda de execução `__main__` | O E2E chama `main()` com argumentos controlados para evitar depender de arquivos manuais e do diretório de trabalho. |
+| `src/pages/formulario_lotes_page.py`: URL HTTP e método agregado legado | O E2E abre o HTML local diretamente e testa as operações públicas individualmente. |
+
+Esses trechos não são omitidos da medição e continuam destacados no relatório
+para revisão futura; nenhum módulo ou bloco funcional é excluído apenas para
+elevar o percentual.
+
 Execute cada camada separadamente por marker:
 
 ```bash
