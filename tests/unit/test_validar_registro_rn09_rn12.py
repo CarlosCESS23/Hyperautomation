@@ -109,6 +109,7 @@ class TestValidarRegistroRN09RN12(unittest.TestCase):
                 self.assertEqual(motivo, resultado.motivo)
                 self.base_referencia.__contains__.assert_called_once_with("LOTE-001")
 
+    @pytest.mark.regression
     def test_regressao_rn10_reprovado_sem_observacao(self):
         """Protegendo o bug que corrige de registros REPROVADO sem observação válida"""
 

@@ -2,6 +2,21 @@
 
 from pathlib import Path
 
+import pytest
+
+
+pytestmark = pytest.mark.e2e
+
+
+@pytest.mark.skip(
+    reason=(
+        "Dashboard de produção: ambiente autenticado de homologação "
+        "ainda não está disponível para a suíte E2E"
+    )
+)
+def test_dashboard_de_producao_exibe_lote_cadastrado():
+    """Documenta o fluxo futuro que depende do ambiente de homologação."""
+
 
 class TestFormularioCadastroLotes:
     def test_pagina_carrega_com_titulo_correto(self, formulario_page):
