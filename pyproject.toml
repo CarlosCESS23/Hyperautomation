@@ -21,6 +21,7 @@ dependencies = [
 [tool.pytest.ini_options]
 markers = [
     "unit: testes unitários isolados de dependências externas",
-    "regression: testes de regressão para compartamentos corrigidos"
+    "regression: testes de regressão para compartamentos corrigidos",
+    "e2e: testes End-to-End do fluxo completo da aplicação"
 ]
 
