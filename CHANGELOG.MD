@@ -6,8 +6,19 @@ Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ## [Não lançado]
 
+### Adicionado
+
+- Camada única de dez indicadores operacionais e ranking das regras acionadas.
+- Abas executivas `Ranking de Regras` e `Dicionário`, totalizando oito abas.
+- Geração automática de `resumo_executivo.md` a partir dos mesmos indicadores
+  utilizados no Excel.
+- Teste de integração consolidado da Aula 24 e checklist reproduzível de
+  evidências.
+
 ### Alterado
 
+- O dashboard `Resumo` agora apresenta os dez indicadores e preserva os dois
+  gráficos nativos do Excel.
 - A documentação foi revisada para refletir a automação web atual baseada em
   Playwright, sua execução local e via Docker Compose, as variáveis efetivamente
   usadas e as saídas geradas.

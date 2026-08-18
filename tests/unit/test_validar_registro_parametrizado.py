@@ -192,6 +192,18 @@ def test_validar_registro_aplica_regras_rn01_a_rn12(
     assert resultado.motivo == motivo_esperado
     assert resultado.status == status_esperado
 
+    regras_esperadas = {
+        "RN02": ("RN02",),
+        "RN05": ("RN05",),
+        "RN07": ("RN10",),
+        "RN09": ("RN09",),
+        "RN11": ("RN11",),
+        "RN12": ("RN12",),
+    }
+    if regra in regras_esperadas:
+        assert resultado.regras_acionadas == regras_esperadas[regra]
+        assert resultado.regra_aplicada == ", ".join(regras_esperadas[regra])
+
     if classificacao_esperada == "Erro de Entrada":
         base_referencia.__contains__.assert_not_called()
     else:

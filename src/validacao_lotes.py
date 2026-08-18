@@ -1,8 +1,4 @@
-"""Serviço de validação de lotes conforme as regras RN01–RN12 da Aula 22.
-
-Este módulo concentra a lógica de negócio. Consumidores como relatórios, bots e
-testes devem chamar :func:`validar_registro`, sem reproduzir as regras.
-"""
+"""Serviço de validação de lotes conforme as regras RN01–RN12."""
 
 from __future__ import annotations
 
@@ -11,7 +7,6 @@ from datetime import datetime
 from typing import Any
 
 import pandas as pd
-
 
 CLASSIFICACOES = ("Válido", "Divergência", "Ambíguo", "Erro de Entrada")
 
@@ -60,9 +55,21 @@ class RegistroValidado:
     classificacao: str
     motivo: str
     acao_recomendada: str
+    regra_aplicada: str = ""
+
+    def __post_init__(self) -> None:
+        if isinstance(self.regra_aplicada, tuple):
+            object.__setattr__(self, "regra_aplicada", ", ".join(self.regra_aplicada))
+
+    @property
+    def regras_acionadas(self) -> tuple[str, ...]:
+        return tuple(
+            regra.strip()
+            for regra in self.regra_aplicada.split(",")
+            if regra.strip()
+        )
 
     def to_dict(self) -> dict[str, str]:
-        """Converte o resultado para as colunas públicas usadas pelo pandas."""
         nomes = {
             "data_referencia": "Data de Referência",
             "lote": "Lote",
@@ -76,6 +83,7 @@ class RegistroValidado:
             "classificacao": "Classificação",
             "motivo": "Motivo",
             "acao_recomendada": "Ação Recomendada",
+            "regra_aplicada": "Regra Aplicada",
         }
         return {nomes[chave]: valor for chave, valor in asdict(self).items()}
 
@@ -86,13 +94,7 @@ def validar_registro(
     lotes_referencia: set[str],
     ocorrencia_no_dia: int,
 ) -> RegistroValidado:
-    """Aplica RN01–RN12, retornando uma classificação exclusiva.
-
-    A precedência é: erros estruturais, divergências de conciliação, estados
-    ambíguos e, por fim, registros válidos. RN11 recebe a ocorrência calculada
-    pelo consumidor dentro do dia; apenas a segunda ocorrência em diante é
-    divergente.
-    """
+    """Aplica RN01–RN12, retornando uma classificação exclusiva."""
     lote = texto(registro.get("lote_id"))
     produto = texto(registro.get("produto"))
     linha = texto(registro.get("linha"))
@@ -118,12 +120,22 @@ def validar_registro(
         )
         if not valor
     ]
+    regras_acionadas: list[str] = []
     if campos_vazios or not data_valida(data_bruta):
         motivos = []
         if campos_vazios:
             motivos.append("Campo obrigatório vazio: " + ", ".join(campos_vazios))
+            if not lote:
+                regras_acionadas.append("RN01")
+            if not produto:
+                regras_acionadas.append("RN02")
+            if not linha:
+                regras_acionadas.append("RN03")
+            if not status_original or not responsavel:
+                regras_acionadas.append("RN04")
         if not data_valida(data_bruta):
             motivos.append("Data ausente ou fora do formato DD/MM/AAAA")
+            regras_acionadas.append("RN12")
         classificacao = "Erro de Entrada"
         motivo = "; ".join(motivos)
         acao = "Corrigir os dados na planilha de origem"
@@ -131,12 +143,15 @@ def validar_registro(
         divergencias = []
         if lote not in lotes_referencia:
             divergencias.append("Lote não encontrado na base de referência")
+            regras_acionadas.append("RN05")
         if status == "REPROVADO" and not observacao:
             divergencias.append("Lote reprovado sem observação")
+            regras_acionadas.append("RN10")
         if ocorrencia_no_dia > 1:
             divergencias.append(
                 f"Duplicidade no dia {data_referencia} (ocorrência {ocorrencia_no_dia})"
             )
+            regras_acionadas.append("RN11")
 
         if divergencias:
             classificacao = "Divergência"
@@ -146,6 +161,7 @@ def validar_registro(
             classificacao = "Ambíguo"
             motivo = f"Status não reconhecido: {status_original}"
             acao = "Submeter à decisão da supervisão"
+            regras_acionadas.append("RN09")
         else:
             classificacao = "Válido"
             motivo = "Registro em conformidade"
@@ -164,4 +180,5 @@ def validar_registro(
         classificacao=classificacao,
         motivo=motivo,
         acao_recomendada=acao,
+        regra_aplicada=", ".join(regras_acionadas),
     )

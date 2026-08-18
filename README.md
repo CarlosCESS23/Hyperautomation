@@ -14,15 +14,16 @@ confirmar o login e registrar uma evidência da mensagem de sucesso.
 O script `gerar_relatorio.py` processa as dez abas diárias de
 `inspecao_lotes_10dias.xlsx` e gera o relatório executivo de conferência. A
 lógica RN01–RN12 está centralizada em `src/validacao_lotes.py` e é apenas
-consumida pelo gerador. O dashboard principal fica dentro do Excel, na aba
-**Resumo**. O PDF é somente uma cópia estática para impressão ou entrega.
+consumida pelo gerador. A consolidação dos dez indicadores é feita uma única
+vez e o mesmo resultado alimenta o Excel e `resumo_executivo.md`. O dashboard
+principal fica dentro do Excel, na aba **Resumo**.
 
 ### Instalação
 
 No PowerShell, acesse a pasta do projeto e instale as dependências:
 
 ```powershell
-cd "C:\Users\matutino\Documents\hyperautomation 2\Hyperautomation"
+cd "C:\caminho\para\Hyperautomation"
 python -m pip install -r requirements.txt
 ```
 
@@ -31,7 +32,7 @@ python -m pip install -r requirements.txt
 Informe o caminho da planilha de entrada:
 
 ```powershell
-python gerar_relatorio.py "C:\Users\matutino\Downloads\inspecao_lotes_10dias.xlsx"
+python gerar_relatorio.py "C:\caminho\para\inspecao_lotes_10dias.xlsx"
 ```
 
 Se o arquivo estiver em `Downloads` com o nome
@@ -44,7 +45,7 @@ python gerar_relatorio.py
 Saída esperada no terminal:
 
 ```text
-Relatório: C:\Users\matutino\Documents\hyperautomation 2\Hyperautomation\reports\relatorio_conferencia_lotes.xlsx
+Relatório: C:\caminho\para\Hyperautomation\reports\relatorio_conferencia_lotes.xlsx
 Total: 250 | Válido: 150 | Divergência: 50 | Ambíguo: 20 | Erro de Entrada: 30
 PDF: gerado
 ```
@@ -54,14 +55,21 @@ PDF: gerado
 | Arquivo | Finalidade |
 | --- | --- |
 | `reports/relatorio_conferencia_lotes.xlsx` | Relatório completo e dashboard na aba **Resumo**. |
+| `reports/resumo_executivo.md` | Síntese em linguagem de negócio, consistente com o Excel. |
 | `reports/dashboard_resumo.pdf` | Cópia estática do dashboard para impressão. |
 | `reports/log_execucao.txt` | Evidência da execução e totais processados. |
 | `documentacao/roteiro_apresentacao_exercicio22.md` | Roteiro da apresentação de cinco minutos. |
 
-O Excel possui exatamente seis abas: **Resumo**, **Todos**, **Válidos**,
-**Divergências**, **Ambíguos** e **Erros de Entrada**. Os gráficos de rosca e
+O Excel possui exatamente oito abas: **Resumo**, **Todos**, **Válidos**,
+**Divergências**, **Ambíguos**, **Erros de Entrada**, **Ranking de Regras** e
+**Dicionário**. Os gráficos de rosca e
 evolução são objetos nativos do Excel. A duplicidade é verificada por dia e
 somente a segunda ocorrência em diante é classificada como divergência.
+
+A aba **Resumo** apresenta os dez indicadores operacionais. O ranking usa as
+contagens já consolidadas, e o dicionário explica os termos para o público de
+negócio. O ganho de tempo é uma estimativa didática de cinco minutos por
+registro válido, premissa declarada também no resumo Markdown.
 
 O gabarito operacional é **150 válidos, 50 divergências, 20 ambíguos e 30
 erros de entrada**. Assim, há 100 registros problemáticos no total; “100” não
@@ -96,7 +104,7 @@ Start-Process ".\reports\dashboard_resumo.pdf"
 ### Definir outro local de saída
 
 ```powershell
-python gerar_relatorio.py "C:\Users\matutino\Downloads\inspecao_lotes_10dias.xlsx" --saida "C:\Users\matutino\Downloads\relatorio_conferencia_lotes.xlsx"
+python gerar_relatorio.py "C:\entrada\inspecao_lotes_10dias.xlsx" --saida "C:\saida\relatorio_conferencia_lotes.xlsx"
 ```
 
 Nesse caso, o PDF e o log são gravados na mesma pasta escolhida para o Excel.
