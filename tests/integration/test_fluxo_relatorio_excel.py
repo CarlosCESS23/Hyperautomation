@@ -47,6 +47,7 @@ CABECALHOS_RELATORIO = (
     "Classificação",
     "Motivo",
     "Ação Recomendada",
+    "Regra Aplicada",
 )
 CLASSIFICACOES_ESPERADAS = {
     "LOTE-VALIDO": "Válido",
@@ -159,6 +160,9 @@ def test_fluxo_da_planilha_ao_relatorio_preserva_e_classifica_registros(tmp_path
     assert {
         lote: registro["Classificação"] for lote, registro in todos.items()
     } == CLASSIFICACOES_ESPERADAS
+    assert todos["LOTE-DIVERGENTE"]["Regra Aplicada"] == "RN05"
+    assert todos["LOTE-AMBIGUO"]["Regra Aplicada"] == "RN09"
+    assert todos["LOTE-ERRO"]["Regra Aplicada"] == "RN02"
 
     contagens = Counter(registro["Classificação"] for registro in todos.values())
     resumo = relatorio["Resumo"]

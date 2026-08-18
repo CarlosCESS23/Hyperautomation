@@ -9,12 +9,18 @@ from src.validacao_lotes import RegistroValidado
 
 
 DESCRICOES_REGRAS = {
-    "RN01": "Preenchimento dos campos obrigatórios",
-    "RN08": "Status de inspeção não reconhecido",
-    "RN09": "Lote ausente da base de referência",
-    "RN10": "Reprovação sem observação",
-    "RN11": "Duplicidade de lote no mesmo dia",
-    "RN12": "Data ausente ou em formato inválido",
+    "RN01": "Lote obrigatório não informado",
+    "RN02": "Produto obrigatório não informado",
+    "RN03": "Linha obrigatória não informada",
+    "RN04": "Status obrigatório não informado",
+    "RN05": "Lote não encontrado na base de referência",
+    "RN06": "Status OK é normalizado para APROVADO",
+    "RN07": "Status NOK é normalizado para REPROVADO",
+    "RN08": "Status padronizado é considerado válido",
+    "RN09": "Status desconhecido e não normalizável",
+    "RN10": "Lote reprovado sem observação",
+    "RN11": "Lote duplicado dentro da mesma planilha ou dia",
+    "RN12": "Data de inspeção ausente ou fora do formato DD/MM/AAAA",
 }
 
 # Catálogo completo da API histórica da branch main. Ele permanece separado de

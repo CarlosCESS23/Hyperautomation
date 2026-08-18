@@ -60,7 +60,21 @@ class RegistroValidado:
     classificacao: str
     motivo: str
     acao_recomendada: str
-    regras_acionadas: tuple[str, ...] = ()
+    regra_aplicada: str = ""
+
+    def __post_init__(self) -> None:
+        """Aceita também a antiga tupla no último argumento posicional."""
+        if isinstance(self.regra_aplicada, tuple):
+            object.__setattr__(self, "regra_aplicada", ", ".join(self.regra_aplicada))
+
+    @property
+    def regras_acionadas(self) -> tuple[str, ...]:
+        """Formato estruturado usado pelo ranking e pelo dashboard atuais."""
+        return tuple(
+            regra.strip()
+            for regra in self.regra_aplicada.split(",")
+            if regra.strip()
+        )
 
     def to_dict(self) -> dict[str, str]:
         """Converte o resultado para as colunas públicas usadas pelo pandas."""
@@ -77,12 +91,9 @@ class RegistroValidado:
             "classificacao": "Classificação",
             "motivo": "Motivo",
             "acao_recomendada": "Ação Recomendada",
+            "regra_aplicada": "Regra Aplicada",
         }
-        return {
-            nomes[chave]: valor
-            for chave, valor in asdict(self).items()
-            if chave in nomes
-        }
+        return {nomes[chave]: valor for chave, valor in asdict(self).items()}
 
 
 def validar_registro(
@@ -128,7 +139,14 @@ def validar_registro(
         motivos = []
         if campos_vazios:
             motivos.append("Campo obrigatório vazio: " + ", ".join(campos_vazios))
-            regras_acionadas.append("RN01")
+            if not lote:
+                regras_acionadas.append("RN01")
+            if not produto:
+                regras_acionadas.append("RN02")
+            if not linha:
+                regras_acionadas.append("RN03")
+            if not status_original or not responsavel:
+                regras_acionadas.append("RN04")
         if not data_valida(data_bruta):
             motivos.append("Data ausente ou fora do formato DD/MM/AAAA")
             regras_acionadas.append("RN12")
@@ -139,7 +157,7 @@ def validar_registro(
         divergencias = []
         if lote not in lotes_referencia:
             divergencias.append("Lote não encontrado na base de referência")
-            regras_acionadas.append("RN09")
+            regras_acionadas.append("RN05")
         if status == "REPROVADO" and not observacao:
             divergencias.append("Lote reprovado sem observação")
             regras_acionadas.append("RN10")
@@ -157,7 +175,7 @@ def validar_registro(
             classificacao = "Ambíguo"
             motivo = f"Status não reconhecido: {status_original}"
             acao = "Submeter à decisão da supervisão"
-            regras_acionadas.append("RN08")
+            regras_acionadas.append("RN09")
         else:
             classificacao = "Válido"
             motivo = "Registro em conformidade"
@@ -176,5 +194,5 @@ def validar_registro(
         classificacao=classificacao,
         motivo=motivo,
         acao_recomendada=acao,
-        regras_acionadas=tuple(regras_acionadas),
+        regra_aplicada=", ".join(regras_acionadas),
     )
