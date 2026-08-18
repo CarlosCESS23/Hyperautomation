@@ -1,8 +1,4 @@
-"""Serviço de validação de lotes conforme as regras RN01–RN12 da Aula 22.
-
-Este módulo concentra a lógica de negócio. Consumidores como relatórios, bots e
-testes devem chamar :func:`validar_registro`, sem reproduzir as regras.
-"""
+"""Serviço de validação de lotes conforme as regras RN01–RN12."""
 
 from __future__ import annotations
 
@@ -11,7 +7,6 @@ from datetime import datetime
 from typing import Any
 
 import pandas as pd
-
 
 CLASSIFICACOES = ("Válido", "Divergência", "Ambíguo", "Erro de Entrada")
 
@@ -63,13 +58,11 @@ class RegistroValidado:
     regra_aplicada: str = ""
 
     def __post_init__(self) -> None:
-        """Aceita também a antiga tupla no último argumento posicional."""
         if isinstance(self.regra_aplicada, tuple):
             object.__setattr__(self, "regra_aplicada", ", ".join(self.regra_aplicada))
 
     @property
     def regras_acionadas(self) -> tuple[str, ...]:
-        """Formato estruturado usado pelo ranking e pelo dashboard atuais."""
         return tuple(
             regra.strip()
             for regra in self.regra_aplicada.split(",")
@@ -77,7 +70,6 @@ class RegistroValidado:
         )
 
     def to_dict(self) -> dict[str, str]:
-        """Converte o resultado para as colunas públicas usadas pelo pandas."""
         nomes = {
             "data_referencia": "Data de Referência",
             "lote": "Lote",
@@ -102,13 +94,7 @@ def validar_registro(
     lotes_referencia: set[str],
     ocorrencia_no_dia: int,
 ) -> RegistroValidado:
-    """Aplica RN01–RN12, retornando uma classificação exclusiva.
-
-    A precedência é: erros estruturais, divergências de conciliação, estados
-    ambíguos e, por fim, registros válidos. RN11 recebe a ocorrência calculada
-    pelo consumidor dentro do dia; apenas a segunda ocorrência em diante é
-    divergente.
-    """
+    """Aplica RN01–RN12, retornando uma classificação exclusiva."""
     lote = texto(registro.get("lote_id"))
     produto = texto(registro.get("produto"))
     linha = texto(registro.get("linha"))

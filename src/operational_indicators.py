@@ -7,24 +7,6 @@ from dataclasses import dataclass, replace
 
 from src.validacao_lotes import RegistroValidado
 
-
-DESCRICOES_REGRAS = {
-    "RN01": "Lote obrigatório não informado",
-    "RN02": "Produto obrigatório não informado",
-    "RN03": "Linha obrigatória não informada",
-    "RN04": "Status obrigatório não informado",
-    "RN05": "Lote não encontrado na base de referência",
-    "RN06": "Status OK é normalizado para APROVADO",
-    "RN07": "Status NOK é normalizado para REPROVADO",
-    "RN08": "Status padronizado é considerado válido",
-    "RN09": "Status desconhecido e não normalizável",
-    "RN10": "Lote reprovado sem observação",
-    "RN11": "Lote duplicado dentro da mesma planilha ou dia",
-    "RN12": "Data de inspeção ausente ou fora do formato DD/MM/AAAA",
-}
-
-# Catálogo completo da API histórica da branch main. Ele permanece separado de
-# DESCRICOES_REGRAS porque o validador atual consolidou/renumerou algumas RNs.
 NOMES_REGRAS = {
     "RN01": "Lote obrigatório não informado",
     "RN02": "Produto obrigatório não informado",
@@ -39,6 +21,7 @@ NOMES_REGRAS = {
     "RN11": "Lote duplicado dentro da mesma planilha ou dia",
     "RN12": "Data de inspeção ausente ou fora do formato DD/MM/AAAA",
 }
+DESCRICOES_REGRAS = NOMES_REGRAS
 
 
 @dataclass(frozen=True)
@@ -96,15 +79,15 @@ class OperationalIndicators:
 
     @property
     def ganho_estimado_tempo(self) -> float:
-        """Economia total em minutos, conforme a API histórica da main."""
         return self.total_registros * (
-            self.tempo_manual_por_registro
-            - self.tempo_automatizado_por_registro
+            self.tempo_manual_por_registro - self.tempo_automatizado_por_registro
         )
 
     @property
     def descricao_regra_mais_acionada(self) -> str:
-        return DESCRICOES_REGRAS.get(self.regra_mais_acionada, "Nenhuma regra acionada")
+        return DESCRICOES_REGRAS.get(
+            self.regra_mais_acionada, "Nenhuma regra acionada"
+        )
 
 
 def _percentual(parte: int | float, total: int | float) -> float:
@@ -120,10 +103,10 @@ def _nome_regra(codigo: str) -> str:
 def _contar_regras(registros: list[RegistroValidado]) -> Counter[str]:
     """Conta todos os acionamentos, inclusive mais de uma regra por registro."""
     return Counter(
-        regra.strip()
+        regra
         for registro in registros
         for regra in registro.regras_acionadas
-        if regra.strip()
+        if regra
     )
 
 
@@ -131,7 +114,7 @@ def consolidar_indicadores(
     registros: list[RegistroValidado],
     minutos_poupados_por_registro_valido: float = 5,
 ) -> OperationalIndicators:
-    """Consolida uma vez os dez indicadores e o ranking derivado das RNs."""
+    """Consolida indicadores e ranking para o relatório executivo."""
     classificacoes = Counter(registro.classificacao for registro in registros)
     regras = _contar_regras(registros)
     total = len(registros)
@@ -172,20 +155,18 @@ def calcular_indicadores(
     tempo_manual_por_registro: float = 5.0,
     tempo_automatizado_por_registro: float = 1.0,
 ) -> OperationalIndicators:
-    """Compatibilidade com a API da main usando o consolidador atual.
-
-    Os tempos recebidos estão em minutos. A diferença entre eles é usada como
-    economia por registro válido, mantendo o ganho expresso em horas.
-    """
+    """Expõe a API histórica, cujas taxas são percentuais de 0 a 100."""
     minutos_poupados = tempo_manual_por_registro - tempo_automatizado_por_registro
     indicadores = consolidar_indicadores(
-        registros,
-        minutos_poupados_por_registro_valido=minutos_poupados,
+        registros, minutos_poupados_por_registro_valido=minutos_poupados
     )
-    # A função histórica expõe taxas na escala percentual. O consolidador,
-    # consumido pelo relatório atual, mantém taxas normalizadas entre 0 e 1.
     return replace(
         indicadores,
+        regra_mais_acionada=(
+            indicadores.ranking_regras[0].codigo
+            if indicadores.ranking_regras
+            else ""
+        ),
         taxa_retrabalho=_percentual(indicadores.divergencias, indicadores.total_registros),
         taxa_revisao_humana=_percentual(indicadores.ambiguos, indicadores.total_registros),
         taxa_qualidade_entrada=_percentual(
