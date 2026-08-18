@@ -523,7 +523,55 @@ Para processo de instalação:
 ````bash
 uv sync
 ````
-
+### Para .venv
+````
+pip install -r requirements.dev.txt
 ````
 
-````
+### Observaçã sobre acurácia
+
+O dataset atual é sintético e sua lógica de geração possui padrões bem definidos.
+
+Por esse motivo, uma acurácia elevada no conjunto de teste não deve ser interpretada como evidência de 
+desempenho equivalente em dados reais de produção.
+
+Nesta etapa, o objetivo é construir e integrar corretamente a arquitetura de Machine Learning ao 
+processo de Hyperautomation. 
+
+```text
+
+Essa observação final é importante porque vocês estão vendo 100% no dataset sintético e documenta corretamente a limitação.
+
+---
+
+# 2. Preparar a seção da FastAPI no README
+
+Mesmo antes de implementar, podemos deixar a seção preparada:
+
+```md
+## API de Machine Learning
+
+O modelo é disponibilizado através de um serviço independente desenvolvido com FastAPI.
+
+Estrutura prevista:
+
+```text
+api_ml/
+├── __init__.py
+├── main.py
+├── requirements.txt
+└── Dockerfile
+```
+
+API vai disponibilizar 2 endpoints:
+
+```http
+GET /health
+POST /predict
+```
+
+
+
+
+
+

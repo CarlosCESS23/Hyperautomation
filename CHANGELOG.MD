@@ -48,3 +48,47 @@ Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 ### Modificado
 * **Configuração de Dependências:** Otimização do `requirements.txt`, mantendo apenas os pacotes de primeiro nível e flexibilizando os bloqueios de versão exatos para garantir um build fluido dentro de distribuições Linux no Docker.
 * **Mapeamento de Rotas:** O arquivo principal agora busca a variável `BASE_URL` para gerenciar requisições tanto de `localhost` quanto internas via Compose.
+
+# 3. Atualização do `CHANGELOG.MD`
+
+Como vocês estão adicionando uma camada nova, eu colocaria algo assim no topo:
+
+
+## [Unreleased]
+
+### Added
+
+- Adicionada camada inicial de Machine Learning para classificação inteligente de lotes.
+- Criado script `train_model.py` para geração de dataset sintético e treinamento do classificador.
+- Criado dataset fictício com no mínimo 200 amostras.
+- Adicionado `RandomForestClassifier` utilizando scikit-learn.
+- Adicionadas as features:
+  - `status_raw`
+  - `turno`
+  - `tem_obs`
+- Adicionadas as classes:
+  - `valido_automatico`
+  - `revisar`
+  - `recusar_automatico`
+- Adicionada serialização do modelo utilizando `joblib`.
+- Adicionado artefato do modelo em `models/classificador_lotes.pkl`.
+- Adicionado dataset gerado em `data/dataset_lotes.csv`.
+
+### Documentation
+
+- Documentada a arquitetura inicial da camada de Machine Learning.
+- Documentada a geração do dataset sintético.
+- Documentadas as features e classes utilizadas pelo classificador.
+- Documentado o processo de treinamento e serialização do modelo.
+- Documentadas as dependências de Machine Learning.
+- Adicionada observação sobre as limitações de avaliação utilizando dados sintéticos.
+
+### Planned
+
+- Serviço FastAPI para disponibilização do modelo.
+- Endpoint `POST /predict`.
+- Endpoint `GET /health`.
+- Validação de entrada utilizando Pydantic.
+- Integração com `MLClient`.
+- Circuit breaker e fallback `REVISAO_ML_OFFLINE`.
+- 
