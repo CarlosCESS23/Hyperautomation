@@ -21,6 +21,8 @@ MODEL_PATH = (
 #Variavel que será armazenado pelo modelo
 modelo_ml = MODEL_PATH
 
+modelo_ml = None
+
 #Modelo Pydantic
 class LoteInput(BaseModel):
     """Dados que serão recebdios pela API para realizar uma predição"""
@@ -97,7 +99,7 @@ def health():
 
     if modelo_ml is None:
         return{
-            'Status': 'unhealthy',
+            'status': 'unhealthy',
             'modelo_carregado' : False
         }
 
@@ -139,8 +141,8 @@ def predict(lote: LoteInput) -> PredictionOutput:
 
     if modelo_ml is None:
         raise HTTPException(
-            status_code = 503,
-            detail='Modelo de Machine Learning disponível'
+            status_code=503,
+            detail='Modelo de Machine Learning indisponível.'
         )
 
     features = preparar_features(lote)
