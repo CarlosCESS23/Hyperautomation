@@ -60,6 +60,7 @@ class RegistroValidado:
     classificacao: str
     motivo: str
     acao_recomendada: str
+    regras_acionadas: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, str]:
         """Converte o resultado para as colunas públicas usadas pelo pandas."""
@@ -77,7 +78,11 @@ class RegistroValidado:
             "motivo": "Motivo",
             "acao_recomendada": "Ação Recomendada",
         }
-        return {nomes[chave]: valor for chave, valor in asdict(self).items()}
+        return {
+            nomes[chave]: valor
+            for chave, valor in asdict(self).items()
+            if chave in nomes
+        }
 
 
 def validar_registro(
@@ -118,12 +123,15 @@ def validar_registro(
         )
         if not valor
     ]
+    regras_acionadas: list[str] = []
     if campos_vazios or not data_valida(data_bruta):
         motivos = []
         if campos_vazios:
             motivos.append("Campo obrigatório vazio: " + ", ".join(campos_vazios))
+            regras_acionadas.append("RN01")
         if not data_valida(data_bruta):
             motivos.append("Data ausente ou fora do formato DD/MM/AAAA")
+            regras_acionadas.append("RN12")
         classificacao = "Erro de Entrada"
         motivo = "; ".join(motivos)
         acao = "Corrigir os dados na planilha de origem"
@@ -131,12 +139,15 @@ def validar_registro(
         divergencias = []
         if lote not in lotes_referencia:
             divergencias.append("Lote não encontrado na base de referência")
+            regras_acionadas.append("RN09")
         if status == "REPROVADO" and not observacao:
             divergencias.append("Lote reprovado sem observação")
+            regras_acionadas.append("RN10")
         if ocorrencia_no_dia > 1:
             divergencias.append(
                 f"Duplicidade no dia {data_referencia} (ocorrência {ocorrencia_no_dia})"
             )
+            regras_acionadas.append("RN11")
 
         if divergencias:
             classificacao = "Divergência"
@@ -146,6 +157,7 @@ def validar_registro(
             classificacao = "Ambíguo"
             motivo = f"Status não reconhecido: {status_original}"
             acao = "Submeter à decisão da supervisão"
+            regras_acionadas.append("RN08")
         else:
             classificacao = "Válido"
             motivo = "Registro em conformidade"
@@ -164,4 +176,5 @@ def validar_registro(
         classificacao=classificacao,
         motivo=motivo,
         acao_recomendada=acao,
+        regras_acionadas=tuple(regras_acionadas),
     )

@@ -28,6 +28,10 @@ from src.validacao_lotes import (
     texto,
     validar_registro,
 )
+from src.operational_indicators import (
+    OperationalIndicators,
+    consolidar_indicadores,
+)
 
 CORES = {
     "Válido": "22C55E",
@@ -119,7 +123,12 @@ def estilizar_tabela(ws, nome_tabela: str) -> None:
             celula.alignment = Alignment(vertical="top", wrap_text=True)
 
 
-def montar_resumo(ws, df: pd.DataFrame, momento: datetime) -> None:
+def montar_resumo(
+    ws,
+    df: pd.DataFrame,
+    momento: datetime,
+    indicadores: OperationalIndicators,
+) -> None:
     azul, azul_claro, branco = "17365D", "D9EAF7", "FFFFFF"
     ws.sheet_view.showGridLines = False
     ws.merge_cells("A1:N2")
@@ -133,8 +142,15 @@ def montar_resumo(ws, df: pd.DataFrame, momento: datetime) -> None:
     ws["F3"] = "Atualizado em"
     ws["G3"] = momento.strftime("%d/%m/%Y %H:%M:%S")
 
-    contagens = df["Classificação"].value_counts().reindex(CLASSIFICACOES, fill_value=0)
-    total = len(df)
+    contagens = pd.Series(
+        {
+            "Válido": indicadores.validos,
+            "Divergência": indicadores.divergencias,
+            "Ambíguo": indicadores.ambiguos,
+            "Erro de Entrada": indicadores.erros_entrada,
+        }
+    )
+    total = indicadores.total_registros
     cards = [("TOTAL", total, "17365D")] + [
         (nome.upper(), int(contagens[nome]), CORES[nome]) for nome in CLASSIFICACOES
     ]
@@ -165,6 +181,26 @@ def montar_resumo(ws, df: pd.DataFrame, momento: datetime) -> None:
         ws.cell(i, 2, int(contagens[nome]))
         ws.cell(i, 3, int(contagens[nome]) / total if total else 0)
         ws.cell(i, 3).number_format = "0.0%"
+
+    ws["A51"] = "DEZ INDICADORES OPERACIONAIS"
+    ws["A51"].font = Font(size=14, bold=True, color=azul)
+    ws["A52"], ws["B52"] = "Indicador", "Resultado"
+    indicadores_dashboard = (
+        ("1. Total de registros", indicadores.total_registros, "0"),
+        ("2. Registros válidos", indicadores.validos, "0"),
+        ("3. Divergências", indicadores.divergencias, "0"),
+        ("4. Registros ambíguos", indicadores.ambiguos, "0"),
+        ("5. Erros de entrada", indicadores.erros_entrada, "0"),
+        ("6. Regra mais acionada", indicadores.regra_mais_acionada, "@"),
+        ("7. Taxa de retrabalho", indicadores.taxa_retrabalho, "0.0%"),
+        ("8. Taxa de revisão humana", indicadores.taxa_revisao_humana, "0.0%"),
+        ("9. Taxa de qualidade da entrada", indicadores.taxa_qualidade_entrada, "0.0%"),
+        ("10. Ganho estimado de tempo (horas)", indicadores.ganho_estimado_horas, "0.00"),
+    )
+    for row, (nome, valor, formato) in enumerate(indicadores_dashboard, start=53):
+        ws.cell(row, 1, nome)
+        ws.cell(row, 2, valor)
+        ws.cell(row, 2).number_format = formato
 
     rosca = DoughnutChart()
     rosca.title = "Distribuição dos 250 registros"
@@ -233,14 +269,47 @@ def montar_resumo(ws, df: pd.DataFrame, momento: datetime) -> None:
     for coluna, largura in {"A": 25, "B": 18, "C": 14, "D": 20, "E": 14, "F": 16, "G": 20, "H": 14, "I": 14, "J": 14, "K": 14, "L": 14, "M": 14, "N": 14}.items():
         ws.column_dimensions[coluna].width = largura
     ws.freeze_panes = "A4"
-    ws.print_area = "A1:N49"
+    ws.print_area = "A1:N62"
     ws.page_setup.orientation = "landscape"
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 1
     ws.sheet_properties.pageSetUpPr.fitToPage = True
 
 
-def gerar_excel(registros: list[RegistroValidado], saida: Path, momento: datetime) -> pd.DataFrame:
+def montar_ranking(ws, indicadores: OperationalIndicators) -> None:
+    ws.delete_rows(1, ws.max_row)
+    ws.append(("Código da Regra", "Descrição", "Quantidade", "% do Total de Acionamentos"))
+    for regra in indicadores.ranking_regras:
+        ws.append((regra.codigo, regra.descricao, regra.quantidade, regra.percentual))
+        ws.cell(ws.max_row, 4).number_format = "0.0%"
+    estilizar_tabela(ws, "TabelaRankingRegras")
+
+
+def montar_dicionario(ws) -> None:
+    ws.delete_rows(1, ws.max_row)
+    ws.append(("Termo", "Definição em linguagem de negócio"))
+    termos = (
+        ("Divergência", "Registro que não coincide com a referência ou com as condições esperadas do processo."),
+        ("Ambíguo", "Registro que precisa de decisão humana porque não permite uma conclusão automática segura."),
+        ("Erro de Entrada", "Informação ausente ou inválida que deve ser corrigida na origem."),
+        ("RN11", "Controle que identifica repetições do mesmo lote dentro do mesmo dia, a partir da segunda ocorrência."),
+        ("Taxa de Retrabalho", "Parcela dos registros que exige correção ou conciliação."),
+        ("Taxa de Revisão Humana", "Parcela dos registros encaminhada para uma decisão de uma pessoa."),
+        ("Taxa de Qualidade da Entrada", "Parcela dos registros recebida sem erros de preenchimento."),
+        ("Ganho Estimado de Tempo", "Estimativa didática das horas poupadas com a conferência automática dos registros válidos."),
+    )
+    for termo in termos:
+        ws.append(termo)
+    estilizar_tabela(ws, "TabelaDicionario")
+
+
+def gerar_excel(
+    registros: list[RegistroValidado],
+    saida: Path,
+    momento: datetime,
+    indicadores: OperationalIndicators | None = None,
+) -> pd.DataFrame:
+    indicadores = indicadores or consolidar_indicadores(registros)
     df = pd.DataFrame([registro.to_dict() for registro in registros])
     saida.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(saida, engine="openpyxl") as writer:
@@ -248,15 +317,59 @@ def gerar_excel(registros: list[RegistroValidado], saida: Path, momento: datetim
         df.to_excel(writer, sheet_name="Todos", index=False)
         for classificacao, aba in ABAS.items():
             df[df["Classificação"] == classificacao].to_excel(writer, sheet_name=aba, index=False)
+        pd.DataFrame().to_excel(writer, sheet_name="Ranking de Regras", index=False)
+        pd.DataFrame().to_excel(writer, sheet_name="Dicionário", index=False)
 
     wb = load_workbook(saida)
-    montar_resumo(wb["Resumo"], df, momento)
+    montar_resumo(wb["Resumo"], df, momento, indicadores)
     for numero, aba in enumerate(("Todos", *ABAS.values()), start=1):
         estilizar_tabela(wb[aba], f"Tabela{numero}")
+    montar_ranking(wb["Ranking de Regras"], indicadores)
+    montar_dicionario(wb["Dicionário"])
     wb.active = wb.sheetnames.index("Resumo")
     wb.calculation.fullCalcOnLoad = True
     wb.save(saida)
     return df
+
+
+def gerar_resumo_executivo(
+    indicadores: OperationalIndicators,
+    saida: Path,
+) -> None:
+    """Gera a leitura executiva usando o mesmo objeto entregue ao Excel."""
+    destaque = (
+        f"{indicadores.regra_mais_acionada} — "
+        f"{indicadores.descricao_regra_mais_acionada}"
+    )
+    saida.write_text(
+        "\n".join(
+            (
+                "# Resumo Executivo",
+                "",
+                "## Visão Geral",
+                f"Foram analisados **{indicadores.total_registros} registros**: "
+                f"**{indicadores.validos} válidos**, **{indicadores.divergencias} divergências**, "
+                f"**{indicadores.ambiguos} ambíguos** e **{indicadores.erros_entrada} erros de entrada**.",
+                "",
+                "## Indicadores Principais",
+                f"- Taxa de retrabalho: **{indicadores.taxa_retrabalho:.1%}**.",
+                f"- Taxa de revisão humana: **{indicadores.taxa_revisao_humana:.1%}**.",
+                f"- Taxa de qualidade da entrada: **{indicadores.taxa_qualidade_entrada:.1%}**.",
+                "",
+                "## Destaque",
+                f"A regra mais acionada foi **{destaque}**.",
+                "",
+                "## Ganho Estimado de Tempo",
+                f"O ganho estimado é de **{indicadores.ganho_estimado_horas:.2f} horas**, considerando "
+                f"**{indicadores.minutos_poupados_por_registro_valido} minutos poupados por registro válido**.",
+                "",
+                "## Observação",
+                "O ganho de tempo é uma estimativa didática baseada na premissa declarada acima; não representa medição de produtividade real.",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
 
 
 def gerar_pdf_resumo(df: pd.DataFrame, saida: Path) -> bool:
@@ -395,7 +508,9 @@ def main() -> None:
     origem, saida = localizar_entrada(args.entrada), Path(args.saida)
     momento = datetime.now()
     registros = ler_e_validar(origem)
-    df = gerar_excel(registros, saida, momento)
+    indicadores = consolidar_indicadores(registros)
+    df = gerar_excel(registros, saida, momento, indicadores)
+    gerar_resumo_executivo(indicadores, saida.with_name("resumo_executivo.md"))
     salvar_log(df, saida.with_name("log_execucao.txt"), origem, momento)
     pdf_ok = gerar_pdf_resumo(df, saida.with_name("dashboard_resumo.pdf"))
     contagens = df["Classificação"].value_counts().reindex(CLASSIFICACOES, fill_value=0)
