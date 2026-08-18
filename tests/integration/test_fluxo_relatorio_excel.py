@@ -21,6 +21,8 @@ ABAS_RELATORIO = (
     "Divergências",
     "Ambíguos",
     "Erros de Entrada",
+    "Ranking de Regras",
+    "Dicionário",
 )
 CABECALHOS_ENTRADA = (
     "lote_id",
