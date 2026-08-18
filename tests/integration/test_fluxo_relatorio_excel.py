@@ -45,6 +45,7 @@ CABECALHOS_RELATORIO = (
     "Classificação",
     "Motivo",
     "Ação Recomendada",
+    'Regra Aplicada'
 )
 CLASSIFICACOES_ESPERADAS = {
     "LOTE-VALIDO": "Válido",
