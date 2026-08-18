@@ -4,7 +4,7 @@
 from pathlib import Path
 import random
 
-import jotlib
+import joblib
 import pandas as pd
 
 # Importação de Modelo RandomForest
@@ -18,7 +18,7 @@ DATA_DIR = BASE_DIR / 'data'
 MODELS_DIR = BASE_DIR / 'models'
 
 DATASET_PATH = DATA_DIR / 'dataset_lotes.csv'
-MODELS_PATH = MODELS_DIR / 'classificador_lotes.pkl'
+MODEL_PATH = MODELS_DIR / 'classificador_lotes.pkl'
 
 STATUS_MAP =  {
     'APROVADO' : 0,
@@ -42,10 +42,10 @@ def gerar_amostra():
     tem_obs = random.choice([0,1])
 
     if status_raw == 'APROVADO':
-        classe = 'válido_automatico'
+        classe = 'valido_automatico'
     elif status_raw == 'REPROVADO':
         if tem_obs:
-            classe = 'recusar_automático'
+            classe = 'recusar_automatico'
         else:
             classe = 'revisar'
     elif status_raw == 'PENDENTE':
@@ -69,9 +69,11 @@ def gerar_dataset(quantidade: int = 300)-> pd.DataFrame:
 
 def treinar_modelo(df: pd.DataFrame):
     X = df[
+        [
         'status_raw',
         'turno',
         'tem_obs'
+    ]
     ]
 
     y = df['classe']
@@ -111,6 +113,10 @@ def main():
 
     modelo = treinar_modelo(dataset)
 
-    joblib.dump(modelo, MODELS_PATH)
+    joblib.dump(modelo, MODEL_PATH)
+
+    print(f'Dataset salvo em: {DATASET_PATH}')
+    print(f'Modelo salvo em {MODEL_PATH}')
+
 if __name__ == '__main__':
     main()
