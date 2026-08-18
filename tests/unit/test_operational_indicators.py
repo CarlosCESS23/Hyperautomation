@@ -1,6 +1,6 @@
 import pytest
 
-from src.operational_indicators import consolidar_indicadores
+from src.operational_indicators import calcular_indicadores, consolidar_indicadores
 from src.validacao_lotes import RegistroValidado
 
 
@@ -40,3 +40,22 @@ def test_base_vazia_tem_percentuais_e_ranking_neutros():
     assert indicadores.descricao_regra_mais_acionada == "Nenhuma regra acionada"
     assert indicadores.ranking_regras == ()
     assert indicadores.taxa_retrabalho == 0
+
+
+def test_api_da_main_permanece_compativel_com_modelo_atual():
+    indicadores = calcular_indicadores([
+        registro("Válido"),
+        registro("Divergência", ("RN11",)),
+    ])
+
+    assert indicadores.percentual_validos == 50
+    assert indicadores.percentual_divergencias == 50
+    assert indicadores.quantidade_regra_mais_acionada == 1
+    assert indicadores.nome_regra_mais_acionada == (
+        "Lote duplicado dentro da mesma planilha ou dia"
+    )
+    assert indicadores.contagem_regras == {"RN11": 1}
+    assert indicadores.taxa_retrabalho == 50
+    assert indicadores.taxa_qualidade_entrada == 100
+    assert indicadores.ganho_estimado_tempo == 8
+    assert indicadores.ganho_estimado_horas == pytest.approx(4 / 60)
