@@ -32,6 +32,7 @@ from src.operational_indicators import (
     OperationalIndicators,
     consolidar_indicadores,
 )
+from src.ml_decisions import DecisaoML
 
 CORES = {
     "Válido": "22C55E",
@@ -308,9 +309,24 @@ def gerar_excel(
     saida: Path,
     momento: datetime,
     indicadores: OperationalIndicators | None = None,
+    decisoes_ml: list[DecisaoML] | tuple[DecisaoML, ...] | None = None,
 ) -> pd.DataFrame:
+    """Gera as nove abas usando decisões de ML previamente registradas."""
     indicadores = indicadores or consolidar_indicadores(registros)
     df = pd.DataFrame([registro.to_dict() for registro in registros])
+    decisoes_ml = decisoes_ml or ()
+    df_decisoes = pd.DataFrame(
+        [decisao.to_excel_dict() for decisao in decisoes_ml],
+        columns=(
+            "Lote ID",
+            "Classe Prevista",
+            "Probabilidade",
+            "Nível de Confiança",
+            "Latência (ms)",
+            "Registrado em (UTC)",
+            "Versão do Modelo",
+        ),
+    )
     saida.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(saida, engine="openpyxl") as writer:
         pd.DataFrame().to_excel(writer, sheet_name="Resumo", index=False)
@@ -319,6 +335,7 @@ def gerar_excel(
             df[df["Classificação"] == classificacao].to_excel(writer, sheet_name=aba, index=False)
         pd.DataFrame().to_excel(writer, sheet_name="Ranking de Regras", index=False)
         pd.DataFrame().to_excel(writer, sheet_name="Dicionário", index=False)
+        df_decisoes.to_excel(writer, sheet_name="Decisões de ML", index=False)
 
     wb = load_workbook(saida)
     montar_resumo(wb["Resumo"], df, momento, indicadores)
@@ -326,6 +343,9 @@ def gerar_excel(
         estilizar_tabela(wb[aba], f"Tabela{numero}")
     montar_ranking(wb["Ranking de Regras"], indicadores)
     montar_dicionario(wb["Dicionário"])
+    estilizar_tabela(wb["Decisões de ML"], "TabelaDecisoesML")
+    for celula in wb["Decisões de ML"]["C"][1:]:
+        celula.number_format = "0.00%"
     wb.active = wb.sheetnames.index("Resumo")
     wb.calculation.fullCalcOnLoad = True
     wb.save(saida)
