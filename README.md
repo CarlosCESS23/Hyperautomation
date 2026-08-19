@@ -427,3 +427,151 @@ tempo de espera da mensagem de sucesso é de cinco segundos.
   no código presente neste repositório.
 - O nome `executar_cadastro_web` é legado: o fluxo implementado automatiza o
   login e coleta sua evidência.
+
+# Machine Learning — Classificação Inteligente
+
+A partir do Exercício 24-A, o projeto passa a utilizar uma camada de Machine Learning para auxiliar na classificação de registros ambíguos.
+
+O Machine Learning não substitui o motor de regras RN01–RN12. Ele funciona como uma camada adicional de decisão para registros que não puderam ser classificados de forma conclusiva pelas regras existentes.
+
+## Arquitetura
+
+O fluxo passa a seguir a estrutura:
+
+```text
+Planilha
+   ↓
+Motor RN01–RN12
+   ↓
+RegistroValidado
+   ↓
+Registro ambíguo?
+   │
+   ├── Não → fluxo normal
+   │
+   └── Sim
+        ↓
+      MLClient
+        ↓
+      FastAPI
+        ↓
+RandomForestClassifier
+        ↓
+Predição + probabilidade
+````
+
+Arquitetura mantém separação de responsabilidades:
+* O motor de regras continua responsável pelas RN01-RN12.
+* O bot/RPA continua responsável pela comunicação com o serviço de Machine Learning
+* A API FastAPI será responsável por servir o modelo.
+* O `RandomForestClassifier` será responsável apenas pela predição
+
+### DataSet de treinamento
+
+O dataset é utilizado pelo classificador é fictício e gerado pelo próprio projeto através do arquivo:
+
+````text
+train_model.py
+````
+
+Sendo que o dataset contém 300 registro e utiliza as três features:
+
+Feature|Descrição
+:-:|:-:
+`status_raw`|Status original do lote codificado numericamente
+`turno`| Turno de inspeção codificado numericamente
+`tem_obs`| Indica se o registro possui observação
+
+as classes utilizadas são:
+`valido_automatico`| Registro com características suficientes para aceite automático
+`revisar`| Registro que necessita de revisão
+`recusar_automatico` Registro com caracterísitcas para recusa automática
+
+### Modelo
+
+```text
+Random ForestClassifier
+```
+
+Treinamento utiliza:
+
+Treinamento|Teste
+:-:|:-:
+80%|20%
+
+O modelo treinado é serializado com `joblib` em:
+``models/classificador_lotes.pkl``
+
+Após a execução serão gerados:
+```data/dataset_lotes.csv```
+``models/classificador_lotes.pk1``
+
+### Dependências de Machine Learning
+
+As principais dependências utilizadas são:
+
+```
+Pandas
+scikit-learn
+joblib
+```
+
+Para processo de instalação:
+
+#### UV
+
+````bash
+uv sync
+````
+### Para .venv
+````
+pip install -r requirements.dev.txt
+````
+
+### Observaçã sobre acurácia
+
+O dataset atual é sintético e sua lógica de geração possui padrões bem definidos.
+
+Por esse motivo, uma acurácia elevada no conjunto de teste não deve ser interpretada como evidência de 
+desempenho equivalente em dados reais de produção.
+
+Nesta etapa, o objetivo é construir e integrar corretamente a arquitetura de Machine Learning ao 
+processo de Hyperautomation. 
+
+```text
+
+Essa observação final é importante porque vocês estão vendo 100% no dataset sintético e documenta corretamente a limitação.
+
+---
+
+# 2. Preparar a seção da FastAPI no README
+
+Mesmo antes de implementar, podemos deixar a seção preparada:
+
+```md
+## API de Machine Learning
+
+O modelo é disponibilizado através de um serviço independente desenvolvido com FastAPI.
+
+Estrutura prevista:
+
+```text
+api_ml/
+├── __init__.py
+├── main.py
+├── requirements.txt
+└── Dockerfile
+```
+
+API vai disponibilizar 2 endpoints:
+
+```http
+GET /health
+POST /predict
+```
+
+
+
+
+
+
