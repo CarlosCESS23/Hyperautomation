@@ -33,3 +33,20 @@ services:
     depends_on:
       frontend:
         condition: service_healthy
+
+# Serviço 3: execução do ML no container
+  api_ml:
+    build: # Buildando o nosso api_ml
+      context: .
+      dockerfile: api_ml/Dockerfile
+
+    container_name: hyperautomation-api-ml
+
+    ports:
+      - '8000:8000'
+    healthcheck:
+      test: ['CMD','python','-c','import',"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
