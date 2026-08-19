@@ -28,6 +28,7 @@ def test_excel_e_markdown_compartilham_os_indicadores(tmp_path):
     assert workbook.sheetnames == [
         "Resumo", "Todos", "Válidos", "Divergências", "Ambíguos",
         "Erros de Entrada", "Ranking de Regras", "Dicionário",
+        "Decisões de ML",
     ]
     resumo = workbook["Resumo"]
     assert resumo["B53"].value == indicadores.total_registros
