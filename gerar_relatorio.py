@@ -22,16 +22,19 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
+
 from src.validacao_lotes import (
     CLASSIFICACOES,
     RegistroValidado,
-    texto,
-    validar_registro,
+    texto
 )
+from src.item_processor import processar_item
+from src.ml_client import MLClient
 from src.operational_indicators import (
     OperationalIndicators,
     consolidar_indicadores,
 )
+
 
 CORES = {
     "Válido": "22C55E",
@@ -76,6 +79,8 @@ def ler_e_validar(caminho: Path) -> list[RegistroValidado]:
     referencia = pd.read_excel(caminho, sheet_name="Base_Referencia", header=1)
     lotes_referencia = {texto(valor) for valor in referencia["lote_id"] if texto(valor)}
     resultados: list[RegistroValidado] = []
+    ml_client = MLClient()
+
 
     for aba in abas_diarias:
         dados = pd.read_excel(caminho, sheet_name=aba, header=2)
@@ -94,9 +99,15 @@ def ler_e_validar(caminho: Path) -> list[RegistroValidado]:
                 ocorrencia = vistas[lote]
             else:
                 ocorrencia = 1
-            resultados.append(
-                validar_registro(registro, data_referencia, lotes_referencia, ocorrencia)
-            )
+                resultados.append(
+                    processar_item(
+                        registro=registro,
+                        data_referencia=data_referencia,
+                        lotes_referencia=lotes_referencia,
+                        ocorrencia_no_dia=ocorrencia,
+                        ml_client=ml_client,
+                    )
+                )
     return resultados
 
 
