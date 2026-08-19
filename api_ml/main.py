@@ -3,6 +3,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import unicodedata
 import joblib
 import pandas as pd
 
@@ -23,6 +24,16 @@ modelo_ml = MODEL_PATH
 
 modelo_ml = None
 
+def normalizar_status_ml(valor: str) -> str:
+    """Normaliza variações de status para a codificação usada pelo modelo."""
+
+    sem_acento = (
+        unicodedata.normalize("NFKD", valor)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+
+    return "_".join(sem_acento.strip().upper().split())
 #Modelo Pydantic
 class LoteInput(BaseModel):
     """Dados que serão recebdios pela API para realizar uma predição"""
@@ -31,16 +42,18 @@ class LoteInput(BaseModel):
     turno : str
     tem_obs: bool
 
-    @field_validator('status_raw')
+    @field_validator("status_raw")
     @classmethod
-    def validar_status(cls,valor: str) -> str:
+    def validar_status(cls, valor: str) -> str:
         """Validando e normaliza os status que recebe"""
-        status = valor.strip().upper()
+        status = normalizar_status_ml(valor)
 
         if status not in STATUS_MAP:
             raise ValueError(
-                'Status inválido.\nValores permitido:\nAprovado, Reprovado, Pendente e em Análise '
+                "Status inválido. Valores permitidos: "
+                "APROVADO, REPROVADO, PENDENTE e EM_ANALISE."
             )
+
         return status
 
 
