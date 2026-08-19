@@ -430,145 +430,123 @@ tempo de espera da mensagem de sucesso é de cinco segundos.
 
 # Machine Learning — Classificação Inteligente
 
-A partir do Exercício 24-A, o projeto passa a utilizar uma camada de Machine Learning para auxiliar na classificação de registros ambíguos.
-
-O Machine Learning não substitui o motor de regras RN01–RN12. Ele funciona como uma camada adicional de decisão para registros que não puderam ser classificados de forma conclusiva pelas regras existentes.
+O projeto utiliza uma camada de Machine Learning para auxiliar no tratamento de registros ambíguos. Essa camada não substitui o motor de regras RN01–RN12: a validação de negócio continua sendo a fonte primária da classificação.
 
 ## Arquitetura
 
-O fluxo passa a seguir a estrutura:
-
 ```text
 Planilha
-   ↓
+  ↓
 Motor RN01–RN12
-   ↓
+  ↓
 RegistroValidado
-   ↓
+  ↓
 Registro ambíguo?
-   │
-   ├── Não → fluxo normal
-   │
-   └── Sim
-        ↓
-      MLClient
-        ↓
-      FastAPI
-        ↓
-RandomForestClassifier
-        ↓
-Predição + probabilidade
-````
-
-Arquitetura mantém separação de responsabilidades:
-* O motor de regras continua responsável pelas RN01-RN12.
-* O bot/RPA continua responsável pela comunicação com o serviço de Machine Learning
-* A API FastAPI será responsável por servir o modelo.
-* O `RandomForestClassifier` será responsável apenas pela predição
-
-### DataSet de treinamento
-
-O dataset é utilizado pelo classificador é fictício e gerado pelo próprio projeto através do arquivo:
-
-````text
-train_model.py
-````
-
-Sendo que o dataset contém 300 registro e utiliza as três features:
-
-Feature|Descrição
-:-:|:-:
-`status_raw`|Status original do lote codificado numericamente
-`turno`| Turno de inspeção codificado numericamente
-`tem_obs`| Indica se o registro possui observação
-
-as classes utilizadas são:
-`valido_automatico`| Registro com características suficientes para aceite automático
-`revisar`| Registro que necessita de revisão
-`recusar_automatico` Registro com caracterísitcas para recusa automática
-
-### Modelo
-
-```text
-Random ForestClassifier
+  ├── Não → fluxo normal
+  └── Sim → item_processor → MLClient → API FastAPI → modelo RandomForest
 ```
 
-Treinamento utiliza:
+O `MLClient` isola a comunicação HTTP com a API. Em caso de timeout, erro de conexão, erro HTTP ou resposta inválida, ele retorna `None` sem interromper o processamento.
 
-Treinamento|Teste
-:-:|:-:
-80%|20%
+Após cinco falhas consecutivas, o circuit breaker é aberto e as próximas chamadas retornam `None` imediatamente, sem novas tentativas de rede. Quando a predição não está disponível, o item recebe a ação `REVISAO_ML_OFFLINE`.
 
-O modelo treinado é serializado com `joblib` em:
-``models/classificador_lotes.pkl``
+## API ML
 
-Após a execução serão gerados:
-```data/dataset_lotes.csv```
-``models/classificador_lotes.pk1``
-
-### Dependências de Machine Learning
-
-As principais dependências utilizadas são:
-
-```
-Pandas
-scikit-learn
-joblib
-```
-
-Para processo de instalação:
-
-#### UV
-
-````bash
-uv sync
-````
-### Para .venv
-````
-pip install -r requirements.dev.txt
-````
-
-### Observaçã sobre acurácia
-
-O dataset atual é sintético e sua lógica de geração possui padrões bem definidos.
-
-Por esse motivo, uma acurácia elevada no conjunto de teste não deve ser interpretada como evidência de 
-desempenho equivalente em dados reais de produção.
-
-Nesta etapa, o objetivo é construir e integrar corretamente a arquitetura de Machine Learning ao 
-processo de Hyperautomation. 
-
-```text
-
-Essa observação final é importante porque vocês estão vendo 100% no dataset sintético e documenta corretamente a limitação.
-
----
-
-# 2. Preparar a seção da FastAPI no README
-
-Mesmo antes de implementar, podemos deixar a seção preparada:
-
-```md
-## API de Machine Learning
-
-O modelo é disponibilizado através de um serviço independente desenvolvido com FastAPI.
-
-Estrutura prevista:
-
-```text
-api_ml/
-├── __init__.py
-├── main.py
-├── requirements.txt
-└── Dockerfile
-```
-
-API vai disponibilizar 2 endpoints:
+A API está disponível no diretório `api_ml/` e expõe os endpoints:
 
 ```http
 GET /health
 POST /predict
 ```
+
+O modelo utiliza as features `status_raw`, `turno` e `tem_obs` para retornar `classe`, `probabilidade` e `nivel_confianca`.
+
+As seguintes variações de status são normalizadas para `EM_ANALISE`:
+
+```text
+EM ANALISE
+EM ANÁLISE
+EM_ANALISE
+```
+
+Outros status não previstos pelo modelo continuam sendo rejeitados pela API, pois não possuem codificação válida para a predição.
+
+## Execução e validação
+
+### Subir a API ML pelo Docker Compose
+
+```bash
+docker compose up -d --build api_ml
+docker compose ps
+```
+
+### Consultar a saúde da API
+
+```bash
+curl http://localhost:8000/health
+```
+
+O resultado esperado é semelhante a:
+
+```json
+{"status":"healthy","modelo_carregado":true}
+```
+
+### Testar uma predição
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status_raw": "EM ANÁLISE",
+    "turno": "MANHA",
+    "tem_obs": false
+  }'
+```
+
+### Gerar o relatório com a API disponível
+
+Quando o relatório é executado diretamente na máquina host, informe a URL local da API:
+
+```bash
+ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
+  --saida reports/relatorio_ml_online.xlsx
+```
+
+Dentro do Docker Compose, o hostname interno do serviço é `http://api_ml:8000`.
+
+### Validar fallback e circuit breaker
+
+Interrompa somente a API ML:
+
+```bash
+docker compose stop api_ml
+```
+
+Execute novamente o relatório:
+
+```bash
+ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
+  --saida reports/relatorio_ml_offline.xlsx
+```
+
+O processamento deve finalizar normalmente e os itens encaminhados à camada ML devem receber `REVISAO_ML_OFFLINE`. Após cinco falhas consecutivas, o cliente deixa de realizar novas chamadas de rede.
+
+Para restaurar o serviço:
+
+```bash
+docker compose up -d api_ml
+```
+
+### Testes automatizados
+
+```bash
+python -m pytest tests/unit/test_ml_client.py -q
+python -m pytest tests/unit/test_item_processor.py -q
+python -m pytest -m unit -q
+python -m pytest -q
+```
+
 
 
 
