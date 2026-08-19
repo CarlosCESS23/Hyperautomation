@@ -60,11 +60,13 @@ PDF: gerado
 | `reports/log_execucao.txt` | Evidência da execução e totais processados. |
 | `documentacao/roteiro_apresentacao_exercicio22.md` | Roteiro da apresentação de cinco minutos. |
 
-O Excel possui exatamente oito abas: **Resumo**, **Todos**, **Válidos**,
+O Excel possui exatamente nove abas: **Resumo**, **Todos**, **Válidos**,
 **Divergências**, **Ambíguos**, **Erros de Entrada**, **Ranking de Regras** e
-**Dicionário**. Os gráficos de rosca e
-evolução são objetos nativos do Excel. A duplicidade é verificada por dia e
-somente a segunda ocorrência em diante é classificada como divergência.
+**Dicionário** e **Decisões de ML**. A última preserva a classe, a
+probabilidade, o nível de confiança e a latência retornados em cada chamada ao
+classificador, sem recalcular a predição. Os gráficos de rosca e evolução são
+objetos nativos do Excel. A duplicidade é verificada por dia e somente a segunda
+ocorrência em diante é classificada como divergência pelas regras RN01–RN12.
 
 A aba **Resumo** apresenta os dez indicadores operacionais. O ranking usa as
 contagens já consolidadas, e o dicionário explica os termos para o público de
