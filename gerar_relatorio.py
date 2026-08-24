@@ -577,7 +577,6 @@ def main() -> None:
         indicadores=indicadores,
         decisoes_ml=auditoria_ml.decisoes,
     )
-    df = gerar_excel(registros, saida, momento, indicadores)
     gerar_resumo_executivo(indicadores, saida.with_name("resumo_executivo.md"))
     salvar_log(df, saida.with_name("log_execucao.txt"), origem, momento)
     pdf_ok = gerar_pdf_resumo(df, saida.with_name("dashboard_resumo.pdf"))

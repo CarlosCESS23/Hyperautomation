@@ -34,7 +34,7 @@ class DecisaoML():
     status_chamada: str = STATUS_SUCESSO
     detalhe_erro: str = ''
 
-    def __post_init(self):
+    def __post_init__(self):
         """Isso valida os dados que é conforme o resultado da chamada"""
 
         if not self.lote_id.strip():
