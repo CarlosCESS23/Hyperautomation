@@ -65,12 +65,16 @@ TOTAIS_GABARITO = {
 }
 
 
-def ler_e_validar(caminho,auditoria_ml: AuditoriaPipelineHibrido | None = None,classificador: ClassificadorDivergencia | None = None):
+def ler_e_validar(
+    caminho: Path,
+    auditoria_ml: AuditoriaPipelineHibrido | None = None,
+    classificador: ClassificadorDivergencia | None = None,
+) -> list[RegistroValidado]:
     if classificador is None:
-        classificador = (
-            ClassificadorDivergencia
-            .de_configuracao()
-        )
+        classificador = ClassificadorDivergencia.de_configuracao()
+
+    if auditoria_ml is None:
+        auditoria_ml = AuditoriaPipelineHibrido()
 
     planilha = pd.ExcelFile(caminho)
     abas_diarias = sorted(
@@ -138,6 +142,62 @@ def ler_e_validar(caminho,auditoria_ml: AuditoriaPipelineHibrido | None = None,c
                 )
             )
     return resultados
+
+def formatar_rastreabilidade(ws) -> None:
+    """
+    Aplica formatação às colunas do pipeline híbrido.
+
+    A coluna de confiança é exibida como percentual.
+    A origem da decisão recebe uma cor para facilitar a conferência.
+    """
+
+    cabecalhos = {
+        celula.value: celula.column
+        for celula in ws[1]
+        if celula.value
+    }
+
+    coluna_confianca = cabecalhos.get("Confiança ML")
+    coluna_origem = cabecalhos.get("Origem da Decisão")
+
+    if coluna_confianca is not None:
+        for linha in range(2, ws.max_row + 1):
+            celula = ws.cell(
+                row=linha,
+                column=coluna_confianca,
+            )
+
+            # O valor continua sendo float, por exemplo 0.92.
+            # O Excel apenas mostra esse número como 92.00%.
+            if celula.value is not None:
+                celula.number_format = "0.00%"
+
+    if coluna_origem is not None:
+        for linha in range(2, ws.max_row + 1):
+            celula = ws.cell(
+                row=linha,
+                column=coluna_origem,
+            )
+
+            if celula.value == "ml":
+                celula.fill = PatternFill(
+                    "solid",
+                    fgColor="DCFCE7",
+                )
+                celula.font = Font(
+                    color="166534",
+                    bold=True,
+                )
+
+            elif celula.value == "fallback":
+                celula.fill = PatternFill(
+                    "solid",
+                    fgColor="FEF3C7",
+                )
+                celula.font = Font(
+                    color="92400E",
+                    bold=True,
+                )
 
 def estilizar_tabela(ws, nome_tabela: str) -> None:
     ws.freeze_panes = "A2"
@@ -377,8 +437,18 @@ def gerar_excel(
 
     wb = load_workbook(saida)
     montar_resumo(wb["Resumo"], df, momento, indicadores)
-    for numero, aba in enumerate(("Todos", *ABAS.values()), start=1):
-        estilizar_tabela(wb[aba], f"Tabela{numero}")
+    for numero, aba in enumerate(
+            ("Todos", *ABAS.values()),
+            start=1,
+    ):
+        worksheet = wb[aba]
+
+        estilizar_tabela(
+            worksheet,
+            f"Tabela{numero}",
+        )
+
+        formatar_rastreabilidade(worksheet)
     montar_ranking(wb["Ranking de Regras"], indicadores)
     montar_dicionario(wb["Dicionário"])
     estilizar_tabela(wb["Decisões de ML"], "TabelaDecisoesML")
@@ -560,37 +630,75 @@ def localizar_entrada(argumento: str | None) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("entrada", nargs="?", help="Planilha de inspeções")
-    parser.add_argument("--saida", default="reports/relatorio_conferencia_lotes.xlsx")
+    parser.add_argument(
+        "entrada",
+        nargs="?",
+        help="Planilha de inspeções",
+    )
+    parser.add_argument(
+        "--saida",
+        default="reports/relatorio_conferencia_lotes.xlsx",
+    )
+
     args = parser.parse_args()
-    origem, saida = localizar_entrada(args.entrada), Path(args.saida)
+
+    origem = localizar_entrada(args.entrada)
+    saida = Path(args.saida)
     momento = datetime.now()
-    # Uma única auditoria acompanha todo o processamento.
-    auditoria_ml = AuditoriaDecisoesML()
+
+    auditoria_ml = AuditoriaPipelineHibrido()
 
     registros = ler_e_validar(
         origem,
         auditoria_ml=auditoria_ml,
     )
 
-    indicadores = consolidar_indicadores(
-        registros
-    )
+    indicadores = consolidar_indicadores(registros)
 
     df = gerar_excel(
-        registros=registros,
-        saida=saida,
-        momento=momento,
-        indicadores=indicadores,
-        decisoes_ml=auditoria_ml.decisoes,
+        registros,
+        saida,
+        momento,
+        indicadores,
     )
-    gerar_resumo_executivo(indicadores, saida.with_name("resumo_executivo.md"))
-    salvar_log(df, saida.with_name("log_execucao.txt"), origem, momento)
-    pdf_ok = gerar_pdf_resumo(df, saida.with_name("dashboard_resumo.pdf"))
-    contagens = df["Classificação"].value_counts().reindex(CLASSIFICACOES, fill_value=0)
+
+    gerar_resumo_executivo(
+        indicadores,
+        saida.with_name("resumo_executivo.md"),
+    )
+
+    salvar_log(
+        df,
+        saida.with_name("log_execucao.txt"),
+        origem,
+        momento,
+    )
+
+    pdf_ok = gerar_pdf_resumo(
+        df,
+        saida.with_name("dashboard_resumo.pdf"),
+    )
+
+    contagens = (
+        df["Classificação"]
+        .value_counts()
+        .reindex(CLASSIFICACOES, fill_value=0)
+    )
+
     print(f"Relatório: {saida.resolve()}")
-    print(f"Total: {len(df)} | " + " | ".join(f"{n}: {int(contagens[n])}" for n in CLASSIFICACOES))
-    print("PDF: gerado" if pdf_ok else "PDF: matplotlib não instalado; Excel gerado normalmente")
+    print(
+        f"Total: {len(df)} | "
+        + " | ".join(
+            f"{nome}: {int(contagens[nome])}"
+            for nome in CLASSIFICACOES
+        )
+    )
+
+    print(
+        "PDF: gerado"
+        if pdf_ok
+        else "PDF: matplotlib não instalado; Excel gerado normalmente"
+    )
 
 
 if __name__ == "__main__":
