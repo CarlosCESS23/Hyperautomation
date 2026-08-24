@@ -1,0 +1,97 @@
+observacao,causa,particao
+Não foi possível localizar o código no cadastro durante a conferência.,erro_codigo,teste
+Sistema informa que o código não existe na validação do registro.,erro_codigo,teste
+Etiqueta apresenta um código inválido durante a conferência.,erro_codigo,teste
+Leitura retornou código diferente do esperado na validação do registro.,erro_codigo,teste
+Código digitado não pertence ao produto ao processar a inspeção.,erro_codigo,teste
+Identificador do item está incorreto ao processar a inspeção.,erro_codigo,treino
+Não foi possível localizar o código no cadastro na validação do registro.,erro_codigo,treino
+Identificador do item está incorreto na validação do registro.,erro_codigo,treino
+Código digitado não pertence ao produto na validação do registro.,erro_codigo,treino
+Não foi possível localizar o código no cadastro ao processar a inspeção.,erro_codigo,treino
+Código do produto não foi reconhecido ao processar a inspeção.,erro_codigo,treino
+Código digitado não pertence ao produto durante a conferência.,erro_codigo,treino
+Leitura retornou código diferente do esperado durante a conferência.,erro_codigo,treino
+Código de barras está ilegível durante a conferência.,erro_codigo,treino
+Identificador do item está incorreto durante a conferência.,erro_codigo,treino
+Código do produto não foi reconhecido na validação do registro.,erro_codigo,treino
+Leitura retornou código diferente do esperado ao processar a inspeção.,erro_codigo,treino
+Sistema informa que o código não existe ao processar a inspeção.,erro_codigo,treino
+Etiqueta apresenta um código inválido ao processar a inspeção.,erro_codigo,treino
+Código de barras está ilegível ao processar a inspeção.,erro_codigo,treino
+Código de barras está ilegível na validação do registro.,erro_codigo,treino
+Código do produto não foi reconhecido durante a conferência.,erro_codigo,treino
+Sistema informa que o código não existe durante a conferência.,erro_codigo,treino
+Etiqueta apresenta um código inválido na validação do registro.,erro_codigo,treino
+Item chegou com uma peça ausente durante a conferência.,falta_peca,teste
+Foi identificada ausência de material no produto na validação do registro.,falta_peca,teste
+Material necessário está em falta ao processar a inspeção.,falta_peca,teste
+Componente obrigatório não foi encontrado durante a conferência.,falta_peca,teste
+Foi identificada ausência de material no produto durante a conferência.,falta_peca,teste
+Produto está sem uma das peças necessárias na validação do registro.,falta_peca,treino
+Quantidade de peças está abaixo do esperado ao processar a inspeção.,falta_peca,treino
+Quantidade de peças está abaixo do esperado na validação do registro.,falta_peca,treino
+Embalagem não contém todos os componentes ao processar a inspeção.,falta_peca,treino
+Item chegou com uma peça ausente na validação do registro.,falta_peca,treino
+Quantidade de peças está abaixo do esperado durante a conferência.,falta_peca,treino
+Montagem não pode continuar por falta de componente na validação do registro.,falta_peca,treino
+Produto está sem uma das peças necessárias ao processar a inspeção.,falta_peca,treino
+Embalagem não contém todos os componentes na validação do registro.,falta_peca,treino
+Montagem não pode continuar por falta de componente durante a conferência.,falta_peca,treino
+Material necessário está em falta durante a conferência.,falta_peca,treino
+Componente obrigatório não foi encontrado ao processar a inspeção.,falta_peca,treino
+Foi identificada ausência de material no produto ao processar a inspeção.,falta_peca,treino
+Item chegou com uma peça ausente ao processar a inspeção.,falta_peca,treino
+Montagem não pode continuar por falta de componente ao processar a inspeção.,falta_peca,treino
+Componente obrigatório não foi encontrado na validação do registro.,falta_peca,treino
+Produto está sem uma das peças necessárias durante a conferência.,falta_peca,treino
+Material necessário está em falta na validação do registro.,falta_peca,treino
+Embalagem não contém todos os componentes durante a conferência.,falta_peca,treino
+Registro já havia sido processado anteriormente durante a conferência.,duplicidade,teste
+Produto foi cadastrado novamente por engano durante a conferência.,duplicidade,teste
+Mesmo item aparece duas vezes na relação na validação do registro.,duplicidade,teste
+Lote foi informado mais de uma vez na validação do registro.,duplicidade,teste
+Lote foi informado mais de uma vez ao processar a inspeção.,duplicidade,teste
+Produto foi cadastrado novamente por engano na validação do registro.,duplicidade,treino
+Entrada já existe na base de conferência ao processar a inspeção.,duplicidade,treino
+Foi encontrada outra ocorrência do mesmo registro durante a conferência.,duplicidade,treino
+Inspeção repetida para o mesmo item na validação do registro.,duplicidade,treino
+Inspeção repetida para o mesmo item ao processar a inspeção.,duplicidade,treino
+Entrada já existe na base de conferência durante a conferência.,duplicidade,treino
+Mesmo item aparece duas vezes na relação ao processar a inspeção.,duplicidade,treino
+Foi encontrada outra ocorrência do mesmo registro na validação do registro.,duplicidade,treino
+Mesmo item aparece duas vezes na relação durante a conferência.,duplicidade,treino
+Sistema encontrou um registro duplicado ao processar a inspeção.,duplicidade,treino
+Registro já havia sido processado anteriormente ao processar a inspeção.,duplicidade,treino
+Foi encontrada outra ocorrência do mesmo registro ao processar a inspeção.,duplicidade,treino
+Lote foi informado mais de uma vez durante a conferência.,duplicidade,treino
+Sistema encontrou um registro duplicado na validação do registro.,duplicidade,treino
+Produto foi cadastrado novamente por engano ao processar a inspeção.,duplicidade,treino
+Sistema encontrou um registro duplicado durante a conferência.,duplicidade,treino
+Entrada já existe na base de conferência na validação do registro.,duplicidade,treino
+Registro já havia sido processado anteriormente na validação do registro.,duplicidade,treino
+Inspeção repetida para o mesmo item durante a conferência.,duplicidade,treino
+Dados preenchidos não correspondem ao item durante a conferência.,erro_cadastro,teste
+Turno informado está incorreto na validação do registro.,erro_cadastro,teste
+Dados preenchidos não correspondem ao item ao processar a inspeção.,erro_cadastro,teste
+Turno informado está incorreto durante a conferência.,erro_cadastro,teste
+Operador preencheu o campo errado ao processar a inspeção.,erro_cadastro,teste
+Dados preenchidos não correspondem ao item na validação do registro.,erro_cadastro,treino
+Responsável foi informado incorretamente ao processar a inspeção.,erro_cadastro,treino
+Responsável foi informado incorretamente durante a conferência.,erro_cadastro,treino
+Cadastro possui informações inconsistentes durante a conferência.,erro_cadastro,treino
+Data de inspeção foi cadastrada errada durante a conferência.,erro_cadastro,treino
+Registro contém dados inválidos do responsável ao processar a inspeção.,erro_cadastro,treino
+Turno informado está incorreto ao processar a inspeção.,erro_cadastro,treino
+Data de inspeção foi cadastrada errada ao processar a inspeção.,erro_cadastro,treino
+Registro contém dados inválidos do responsável na validação do registro.,erro_cadastro,treino
+Cadastro possui informações inconsistentes ao processar a inspeção.,erro_cadastro,treino
+Operador preencheu o campo errado durante a conferência.,erro_cadastro,treino
+Nome do produto não corresponde ao registro ao processar a inspeção.,erro_cadastro,treino
+Cadastro possui informações inconsistentes na validação do registro.,erro_cadastro,treino
+Data de inspeção foi cadastrada errada na validação do registro.,erro_cadastro,treino
+Responsável foi informado incorretamente na validação do registro.,erro_cadastro,treino
+Operador preencheu o campo errado na validação do registro.,erro_cadastro,treino
+Nome do produto não corresponde ao registro na validação do registro.,erro_cadastro,treino
+Registro contém dados inválidos do responsável durante a conferência.,erro_cadastro,treino
+Nome do produto não corresponde ao registro durante a conferência.,erro_cadastro,treino
