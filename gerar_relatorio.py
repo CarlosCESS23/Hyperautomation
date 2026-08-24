@@ -130,7 +130,7 @@ def ler_e_validar(caminho: Path,auditoria_ml : AuditoriaDecisoesML | None = None
                     auditoria_ml=auditoria_ml,
                 )
             )
-        return resultados
+    return resultados
 
 def estilizar_tabela(ws, nome_tabela: str) -> None:
     ws.freeze_panes = "A2"
