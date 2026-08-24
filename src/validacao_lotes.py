@@ -108,6 +108,7 @@ def validar_registro(
         if isinstance(data_bruta, (pd.Timestamp, datetime))
         else texto(data_bruta)
     )
+    regra_aplicada = ''
 
     campos_vazios = [
         rotulo
@@ -123,6 +124,7 @@ def validar_registro(
     regras_acionadas: list[str] = []
     if campos_vazios or not data_valida(data_bruta):
         motivos = []
+        regras = []
         if campos_vazios:
             motivos.append("Campo obrigatório vazio: " + ", ".join(campos_vazios))
             if not lote:
@@ -139,8 +141,12 @@ def validar_registro(
         classificacao = "Erro de Entrada"
         motivo = "; ".join(motivos)
         acao = "Corrigir os dados na planilha de origem"
+        regra_aplicada = ', '.join(regras)
     else:
         divergencias = []
+        regras_divergencia = [] # Criação de lista
+
+        #RN05
         if lote not in lotes_referencia:
             divergencias.append("Lote não encontrado na base de referência")
             regras_acionadas.append("RN05")
@@ -157,6 +163,9 @@ def validar_registro(
             classificacao = "Divergência"
             motivo = "; ".join(divergencias)
             acao = "Conciliar com a base de referência ou com o processo"
+            regra_aplicada = ', '.join(regras_divergencia)
+
+        #RN09
         elif status not in {"APROVADO", "REPROVADO", "PENDENTE"}:
             classificacao = "Ambíguo"
             motivo = f"Status não reconhecido: {status_original}"
@@ -166,6 +175,7 @@ def validar_registro(
             classificacao = "Válido"
             motivo = "Registro em conformidade"
             acao = "Nenhuma ação necessária"
+            regra_aplicada = ''
 
     return RegistroValidado(
         data_referencia=data_referencia,
