@@ -41,7 +41,12 @@ services:
       dockerfile: api_ml/Dockerfile
 
     container_name: hyperautomation-api-ml
-
+    environment:
+      ML_ENABLED: "true"
+      ML_MIN_CONFIDENCE: "0.75"
+      ML_TIMEOUT_SECONDS: "3.0"
+      ML_API_URL: "http://api_ml:8000"
+      
     ports:
       - '8000:8000'
     healthcheck:
