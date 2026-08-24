@@ -1,175 +1,267 @@
-"""API de Machine Learning para classificar os lotes"""
+"""API do classificador textual de causas prováveis."""
 
+from __future__ import annotations
+
+import logging
+import math
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any, Literal
 
-import unicodedata
 import joblib
-import pandas as pd
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, field_validator
-from train_model import STATUS_MAP,TURNO_MAP
+from pydantic import BaseModel, Field, field_validator
 
-# Configurando os caminhos
+from src.causas_divergencia import CausaProvavel
+from train_model import MODEL_VERSION
+
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = (
-    BASE_DIR / 'models' / 'classificador_lotes.pkl'
+    BASE_DIR
+    / "models"
+    / "classificador_causas.pkl"
 )
 
-#Variavel que será armazenado pelo modelo
-modelo_ml = MODEL_PATH
+modelo_ml: Any | None = None
 
-modelo_ml = None
 
-def normalizar_status_ml(valor: str) -> str:
-    """Normaliza variações de status para a codificação usada pelo modelo."""
+class ObservacaoInput(BaseModel):
+    """Entrada textual recebida pelo classificador."""
 
-    sem_acento = (
-        unicodedata.normalize("NFKD", valor)
-        .encode("ascii", "ignore")
-        .decode("ascii")
+    observacao: str = Field(
+        ...,
+        max_length=2000,
+        description=(
+            "Observação livre informada pelo operador"
+        ),
+        examples=[
+            "O produto chegou sem uma peça necessária."
+        ],
     )
 
-    return "_".join(sem_acento.strip().upper().split())
-#Modelo Pydantic
-class LoteInput(BaseModel):
-    """Dados que serão recebdios pela API para realizar uma predição"""
-
-    status_raw : str
-    turno : str
-    tem_obs: bool
-
-    @field_validator("status_raw")
+    @field_validator("observacao")
     @classmethod
-    def validar_status(cls, valor: str) -> str:
-        """Validando e normaliza os status que recebe"""
-        status = normalizar_status_ml(valor)
+    def validar_observacao(
+        cls,
+        valor: str,
+    ) -> str:
+        """Remove espaços repetidos e rejeita texto vazio."""
 
-        if status not in STATUS_MAP:
+        observacao_normalizada = " ".join(
+            valor.split()
+        )
+
+        if not observacao_normalizada:
             raise ValueError(
-                "Status inválido. Valores permitidos: "
-                "APROVADO, REPROVADO, PENDENTE e EM_ANALISE."
+                "A observação não pode ser vazia."
             )
 
-        return status
-
-
-    @field_validator('turno')
-    @classmethod
-    def validar_turno(cls,valor: str) -> str:
-        """Valida e normaliza o turno recebido."""
-
-        turno = valor.strip().upper()
-
-        if turno not in TURNO_MAP:
+        if len(observacao_normalizada) < 3:
             raise ValueError(
-                'Turno inválido.\nValores permitido: Manha, Tarde e noite'
+                "A observação deve possuir pelo menos "
+                "três caracteres."
             )
 
-        return turno
+        return observacao_normalizada
+
 
 class PredictionOutput(BaseModel):
-    """Formato de resposta produzido pelo endpoint de predição"""
+    """Resposta produzida pelo classificador textual."""
 
-    classe : str
-    probabilidade: float
-    nivel_confianca: str
+    causa_provavel: CausaProvavel
 
-# Lifespan
+    confianca_ml: float = Field(
+        ...,
+        ge=0,
+        le=1,
+    )
+
+    versao_modelo: str
+
+
+class HealthOutput(BaseModel):
+    """Estado atual do serviço e do modelo."""
+
+    status: Literal[
+        "healthy",
+        "unhealthy",
+    ]
+
+    modelo_carregado: bool
+    versao_modelo: str | None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    '''Carrega o moedlo quando a aplicação é iniciado'''
+    """Carrega o modelo uma única vez durante a inicialização."""
+
+    del app
 
     global modelo_ml
 
     try:
-        modelo_ml = joblib.load(MODEL_PATH)
+        modelo_ml = joblib.load(
+            MODEL_PATH
+        )
 
-        print(f'Modelo carregado com sucesso: {MODEL_PATH}')
-    except Exception as erro:
+        logger.info(
+            "Modelo textual carregado: %s",
+            MODEL_PATH,
+        )
+    except Exception:
         modelo_ml = None
-        print(f'Erro ao carregar o modelo: {erro}')
+
+        logger.exception(
+            "Não foi possível carregar o modelo: %s",
+            MODEL_PATH,
+        )
+
     yield
+
     modelo_ml = None
 
-#FastAPI
 
 app = FastAPI(
-    title='Hyperautomation ML API',
+    title="Hyperautomation ML API",
     description=(
-        'API responsável pela classificação de lotes utilizando o RandomForestClassifier'
+        "API responsável por sugerir a causa provável "
+        "a partir da observação textual do operador. "
+        "O serviço não define status de negócio."
     ),
-    version='1.0.0',
-    lifespan = lifespan
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
-@app.get('/health')
-def health():
-    """Informa se o modelo está disponível"""
 
-    if modelo_ml is None:
-        return{
-            'status': 'unhealthy',
-            'modelo_carregado' : False
-        }
+@app.get(
+    "/health",
+    response_model=HealthOutput,
+)
+def health() -> HealthOutput:
+    """Informa se o classificador está disponível."""
 
-    return{
-        'status' : 'healthy',
-        'modelo_carregado' : True
-    }
+    modelo_carregado = modelo_ml is not None
 
-# Funções auxiliares
-
-def definir_nivel_confianca(probabilidade: float) -> str:
-    """Define o nível de confiança da predição."""
-
-    if probabilidade >= 0.85:
-        return 'acao_automatica'
-
-    if probabilidade >= 0.65:
-        return 'revisar'
-
-    return 'revisar_prioritario'
-
-def preparar_features(lote : LoteInput) -> pd.DataFrame:
-    """Transforma os dados recebidos no formato esperado pelo modelo."""
-
-    return pd.DataFrame(
-        [
-            {
-                'status_raw' : STATUS_MAP[lote.status_raw],
-                'turno': TURNO_MAP[lote.turno],
-                'tem_obs': int(lote.tem_obs)
-            }
-        ]
+    return HealthOutput(
+        status=(
+            "healthy"
+            if modelo_carregado
+            else "unhealthy"
+        ),
+        modelo_carregado=modelo_carregado,
+        versao_modelo=(
+            MODEL_VERSION
+            if modelo_carregado
+            else None
+        ),
     )
 
-#Predicao
 
-@app.post('/predict', response_model=PredictionOutput)
-def predict(lote: LoteInput) -> PredictionOutput:
+def executar_predicao(
+    observacao: str,
+) -> tuple[CausaProvavel, float]:
+    """Executa uma única predição e obtém sua confiança."""
 
     if modelo_ml is None:
         raise HTTPException(
             status_code=503,
-            detail='Modelo de Machine Learning indisponível.'
+            detail=(
+                "Modelo de Machine Learning "
+                "indisponível."
+            ),
         )
 
-    features = preparar_features(lote)
+    try:
+        causas_previstas = modelo_ml.predict(
+            [observacao]
+        )
 
-    classe = modelo_ml.predict(features)[0]
-    probabilidades = modelo_ml.predict_proba(features)[0]
+        probabilidades = modelo_ml.predict_proba(
+            [observacao]
+        )[0]
 
-    maior_probabilidade = float(max(probabilidades))
+        causa_texto = str(
+            causas_previstas[0]
+        )
 
-    nivel_confianca = definir_nivel_confianca(maior_probabilidade)
+        classes_modelo = [
+            str(classe)
+            for classe in modelo_ml.classes_
+        ]
 
-    return PredictionOutput(
-        classe=str(classe),
-        probabilidade = maior_probabilidade,
-        nivel_confianca= nivel_confianca
+        indice_causa = classes_modelo.index(
+            causa_texto
+        )
+
+        confianca = float(
+            probabilidades[indice_causa]
+        )
+    except Exception as erro:
+        logger.exception(
+            "Falha durante a predição textual."
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Não foi possível executar "
+                "a classificação."
+            ),
+        ) from erro
+
+    try:
+        causa = CausaProvavel(
+            causa_texto
+        )
+    except ValueError as erro:
+        logger.error(
+            "Modelo retornou causa desconhecida: %s",
+            causa_texto,
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Modelo retornou uma causa "
+                "não reconhecida."
+            ),
+        ) from erro
+
+    if (
+        not math.isfinite(confianca)
+        or not 0 <= confianca <= 1
+    ):
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Modelo retornou uma confiança "
+                "inválida."
+            ),
+        )
+
+    return causa, confianca
+
+
+@app.post(
+    "/predict",
+    response_model=PredictionOutput,
+)
+def predict(
+    entrada: ObservacaoInput,
+) -> PredictionOutput:
+    """Sugere a causa provável da observação recebida."""
+
+    causa, confianca = executar_predicao(
+        entrada.observacao
     )
 
+    return PredictionOutput(
+        causa_provavel=causa,
+        confianca_ml=confianca,
+        versao_modelo=MODEL_VERSION,
+    )

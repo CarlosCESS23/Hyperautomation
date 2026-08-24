@@ -16,6 +16,7 @@ from train_model import (
     separar_dataset,
     treinar_modelo,
 )
+from src.normalizacao_text import normalizar_observacao
 
 
 pytestmark = pytest.mark.unit
@@ -212,4 +213,8 @@ def test_salva_e_recarrega_pipeline_completo(
     assert np.array_equal(
         previsao_original,
         previsao_recarregada,
+    )
+def test_normalizador_pertence_a_modulo_importavel():
+    assert normalizar_observacao.__module__ == (
+        "src.normalizacao_text"
     )
