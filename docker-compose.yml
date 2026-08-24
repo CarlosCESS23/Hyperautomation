@@ -45,7 +45,7 @@ services:
     ports:
       - '8000:8000'
     healthcheck:
-      test: ['CMD','python','-c','import',"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import json, sys, urllib.request; dados = json.load(urllib.request.urlopen('http://localhost:8000/health')); sys.exit(0 if dados.get('modelo_carregado') is True else 1)"]
       interval: 10s
       timeout: 5s
       retries: 5

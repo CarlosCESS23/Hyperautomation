@@ -430,71 +430,175 @@ tempo de espera da mensagem de sucesso é de cinco segundos.
 - O nome `executar_cadastro_web` é legado: o fluxo implementado automatiza o
   login e coleta sua evidência.
 
-# Machine Learning — Classificação Inteligente
+## Machine Learning e API FastAPI
 
-O projeto utiliza uma camada de Machine Learning para auxiliar no tratamento de registros ambíguos. Essa camada não substitui o motor de regras RN01–RN12: a validação de negócio continua sendo a fonte primária da classificação.
+### Objetivo
 
-## Arquitetura
+A camada de Machine Learning auxilia na decisão sobre registros que o motor de
+regras RN01–RN12 classificou como **Ambíguos**. O modelo não substitui as regras
+de negócio: registros válidos, divergentes ou com erro de entrada continuam
+seguindo diretamente para o relatório, sem consulta à API.
+
+O serviço utiliza um `RandomForestClassifier` e recebe três características:
+
+| Campo | Valores esperados | Finalidade |
+| --- | --- | --- |
+| `status_raw` | `APROVADO`, `REPROVADO`, `PENDENTE` ou `EM_ANALISE` | Representa o status informado na planilha. |
+| `turno` | `MANHA`, `TARDE` ou `NOITE` | Identifica o turno da inspeção. |
+| `tem_obs` | `true` ou `false` | Informa se o registro possui observação. |
+
+A resposta contém a classe prevista, a probabilidade e o nível de confiança.
+As variações `EM ANALISE`, `EM ANÁLISE` e `EM_ANALISE` são normalizadas para
+`EM_ANALISE` antes da predição.
+
+### Fluxo de processamento
 
 ```text
-Planilha
+Planilha com dez abas diárias
   ↓
-Motor RN01–RN12
+Leitura e validação de todos os registros
   ↓
-RegistroValidado
+Motor de regras RN01–RN12
   ↓
 Registro ambíguo?
-  ├── Não → fluxo normal
-  └── Sim → item_processor → MLClient → API FastAPI → modelo RandomForest
+  ├── Não → mantém a decisão das regras
+  └── Sim → item_processor
+              ↓
+          AuditoriaDecisoesML
+              ↓
+          MLClient + circuit breaker
+              ↓
+          API FastAPI
+              ↓
+          modelo Random Forest
 ```
 
-O `MLClient` isola a comunicação HTTP com a API. Em caso de timeout, erro de conexão, erro HTTP ou resposta inválida, ele retorna `None` sem interromper o processamento.
+Cada chamada ao classificador, inclusive quando a API está indisponível, é
+registrada no log estruturado e na aba **Decisões de ML** do relatório. A
+latência é medida sem repetir a predição.
 
-Após cinco falhas consecutivas, o circuit breaker é aberto e as próximas chamadas retornam `None` imediatamente, sem novas tentativas de rede. Quando a predição não está disponível, o item recebe a ação `REVISAO_ML_OFFLINE`.
+Se ocorrer timeout, falha de conexão, erro HTTP ou resposta inválida, o
+`MLClient` retorna `None` e o processamento continua. O registro recebe a ação
+`REVISAO_ML_OFFLINE`, sem inventar classe ou probabilidade. Após cinco falhas
+consecutivas, o circuit breaker é aberto e bloqueia novas tentativas de rede até
+ser reiniciado ou resetado.
 
-## API ML
+### Organização dos arquivos
 
-A API está disponível no diretório `api_ml/` e expõe os endpoints:
+| Caminho | Responsabilidade |
+| --- | --- |
+| `train_model.py` | Gera o dataset controlado, treina o Random Forest e serializa o modelo. |
+| `data/dataset_lotes.csv` | Dataset gerado pelo script de treinamento. |
+| `models/classificador_lotes.pkl` | Modelo treinado carregado pela API. |
+| `api_ml/main.py` | Aplicação FastAPI, validação da entrada, healthcheck e predição. |
+| `api_ml/Dockerfile` | Imagem do serviço de Machine Learning. |
+| `api_ml/requirements.txt` | Dependências exclusivas do container da API. |
+| `src/ml_client.py` | Cliente HTTP resiliente e circuit breaker. |
+| `src/item_processor.py` | Integra as regras RN01–RN12 à decisão de ML. |
+| `src/ml_decisions.py` | Audita decisões online e offline, latência e dados da resposta. |
+| `gerar_relatorio.py` | Processa as dez abas e envia a auditoria para o Excel. |
+| `docker-compose.yml` | Configura o serviço `api_ml`, a porta 8000 e o healthcheck. |
+| `tests/unit/` | Testes isolados da API, cliente, processador e auditoria. |
+| `tests/integration/` | Testes do fluxo Excel, auditoria e sabotagem da API. |
+| `tests/e2e/` | Testes do pipeline completo de geração do relatório. |
 
-```http
-GET /health
-POST /predict
+### Pré-requisitos
+
+Para a execução local:
+
+- Python 3.12 ou superior;
+- `pip` e suporte à criação de ambiente virtual;
+- dependências de `requirements-dev.txt`;
+- arquivo `models/classificador_lotes.pkl`, já versionado ou gerado novamente
+  por `train_model.py`.
+
+Para a execução em contêiner:
+
+- Docker Desktop no Windows, ou Docker Engine no Linux;
+- Docker Compose v2, disponível pelo comando `docker compose`;
+- daemon do Docker iniciado.
+
+As portas `8000` e `8081` devem estar livres quando a API ML e o portal forem
+executados pelo Compose.
+
+### Preparação do ambiente local
+
+Na raiz do repositório, crie o ambiente virtual e instale as dependências.
+
+Linux ou macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dev.txt
 ```
 
-O modelo utiliza as features `status_raw`, `turno` e `tem_obs` para retornar `classe`, `probabilidade` e `nivel_confianca`.
+Windows PowerShell:
 
-As seguintes variações de status são normalizadas para `EM_ANALISE`:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dev.txt
+```
+
+### Treinar ou recriar o modelo
+
+O repositório já contém o modelo serializado. Execute este passo somente para
+recriar o dataset e treinar uma nova cópia:
+
+```bash
+python train_model.py
+```
+
+O comando gera ou atualiza:
 
 ```text
-EM ANALISE
-EM ANÁLISE
-EM_ANALISE
+data/dataset_lotes.csv
+models/classificador_lotes.pkl
 ```
 
-Outros status não previstos pelo modelo continuam sendo rejeitados pela API, pois não possuem codificação válida para a predição.
+Ao final, o terminal exibe o relatório de classificação do conjunto de teste e
+os caminhos dos arquivos gerados.
 
-## Execução e validação
+### Executar a API ML localmente
 
-### Subir a API ML pelo Docker Compose
+Com o ambiente virtual ativo e o modelo disponível, execute:
 
 ```bash
-docker compose up -d --build api_ml
-docker compose ps
+python -m uvicorn api_ml.main:app \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --reload
 ```
 
-### Consultar a saúde da API
+No Windows PowerShell, o mesmo comando pode ser escrito em uma linha:
 
-```bash
-curl http://localhost:8000/health
+```powershell
+python -m uvicorn api_ml.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-O resultado esperado é semelhante a:
+Endereços disponíveis:
+
+| Endereço | Uso |
+| --- | --- |
+| `http://localhost:8000/health` | Confirma se o modelo foi carregado. |
+| `http://localhost:8000/docs` | Interface Swagger para testar a API. |
+| `http://localhost:8000/redoc` | Documentação alternativa da API. |
+
+O healthcheck saudável retorna:
 
 ```json
-{"status":"healthy","modelo_carregado":true}
+{
+  "status": "healthy",
+  "modelo_carregado": true
+}
 ```
 
-### Testar uma predição
+### Testar uma predição local
+
+Linux, macOS ou Git Bash:
 
 ```bash
 curl -X POST http://localhost:8000/predict \
@@ -506,33 +610,120 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
-### Gerar o relatório com a API disponível
+Windows PowerShell:
 
-Quando o relatório é executado diretamente na máquina host, informe a URL local da API:
+```powershell
+$body = @{
+    status_raw = "EM ANÁLISE"
+    turno = "MANHA"
+    tem_obs = $false
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+    -Method Post `
+    -Uri "http://localhost:8000/predict" `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "classe": "revisar",
+  "probabilidade": 0.92,
+  "nivel_confianca": "acao_automatica"
+}
+```
+
+Os valores da predição dependem do conteúdo do modelo serializado.
+
+### Gerar o relatório usando a API local
+
+O `MLClient` precisa apontar para `http://localhost:8000` quando o relatório é
+executado na máquina host.
+
+Linux ou macOS:
 
 ```bash
 ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
-  --saida reports/relatorio_ml_online.xlsx
+  "./inspecao_lotes_10dias.xlsx" \
+  --saida "./reports/relatorio_ml_online.xlsx"
 ```
 
-Dentro do Docker Compose, o hostname interno do serviço é `http://api_ml:8000`.
+Windows PowerShell:
 
-### Validar fallback e circuit breaker
+```powershell
+$env:ML_API_URL = "http://localhost:8000"
+python gerar_relatorio.py `
+    ".\inspecao_lotes_10dias.xlsx" `
+    --saida ".\reports\relatorio_ml_online.xlsx"
+```
 
-Interrompa somente a API ML:
+Substitua o caminho da planilha pelo arquivo usado na sua execução. Dentro da
+rede do Docker Compose, a URL interna da API é `http://api_ml:8000`.
+
+### Executar com Docker Compose
+
+Na raiz do repositório, valide e inicie somente a API ML:
+
+```bash
+docker compose config
+docker compose up -d --build api_ml
+docker compose ps api_ml
+```
+
+O serviço deve aparecer com o estado `healthy`. Para acompanhar a inicialização
+e confirmar o carregamento do modelo:
+
+```bash
+docker compose logs -f api_ml
+```
+
+Em outro terminal, teste o endpoint:
+
+```bash
+curl http://localhost:8000/health
+```
+
+No Windows PowerShell também é possível usar:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
+```
+
+Para iniciar todos os serviços do projeto:
+
+```bash
+docker compose up -d --build
+```
+
+Para parar somente a API ou encerrar todo o ambiente:
 
 ```bash
 docker compose stop api_ml
+docker compose down
 ```
 
-Execute novamente o relatório:
+### Validar o fallback e o circuit breaker
+
+Com o serviço parado, execute novamente o relatório apontando para a API local:
 
 ```bash
+docker compose stop api_ml
 ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
-  --saida reports/relatorio_ml_offline.xlsx
+  "./inspecao_lotes_10dias.xlsx" \
+  --saida "./reports/relatorio_ml_offline.xlsx"
 ```
 
-O processamento deve finalizar normalmente e os itens encaminhados à camada ML devem receber `REVISAO_ML_OFFLINE`. Após cinco falhas consecutivas, o cliente deixa de realizar novas chamadas de rede.
+O resultado esperado é:
+
+- o processamento da planilha termina normalmente;
+- registros ambíguos recebem `REVISAO_ML_OFFLINE`;
+- as primeiras cinco chamadas tentam acessar a API;
+- o circuit breaker abre após a quinta falha consecutiva;
+- chamadas seguintes são auditadas, mas não acessam a rede;
+- a aba **Decisões de ML** diferencia chamadas online e offline.
 
 Para restaurar o serviço:
 
@@ -540,18 +731,51 @@ Para restaurar o serviço:
 docker compose up -d api_ml
 ```
 
-### Testes automatizados
+### Executar os testes
+
+Testes específicos da camada ML:
 
 ```bash
+python -m pytest tests/unit/test_api_ml.py -q
 python -m pytest tests/unit/test_ml_client.py -q
 python -m pytest tests/unit/test_item_processor.py -q
-python -m pytest -m unit -q
+python -m pytest tests/unit/test_ml_decisions_unit.py -q
+python -m pytest tests/integration/test_auditoria_decisoes_ml.py -q
+python -m pytest tests/integration/test_sabotagem_api_ml.py -q
+```
+
+Suíte sem os testes E2E:
+
+```bash
+python -m pytest --ignore=tests/e2e -q
+```
+
+Suíte completa, incluindo integração e E2E:
+
+```bash
 python -m pytest -q
 ```
 
+Na última validação desta versão, a suíte completa apresentou:
 
+```text
+81 passed
+```
 
+Para gerar a evidência de cobertura:
 
+```bash
+python -m pytest --cov --cov-report=term-missing --cov-report=html -rsxX
+```
 
+O projeto exige cobertura global mínima de 80%, conforme `pyproject.toml`.
 
+### Diagnóstico rápido
 
+| Sintoma | Verificação |
+| --- | --- |
+| Docker informa que não encontrou `docker_engine` no Windows | Abra o Docker Desktop e aguarde o daemon iniciar antes de executar o Compose. |
+| `/health` retorna `modelo_carregado: false` | Confirme a existência de `models/classificador_lotes.pkl` e verifique `docker compose logs api_ml`. |
+| A porta 8000 já está em uso | Encerre o processo existente ou altere o mapeamento de porta no Compose. |
+| O relatório gera `REVISAO_ML_OFFLINE` inesperadamente | Confirme `ML_API_URL`, teste `/health` e verifique se o serviço está `healthy`. |
+| O Compose rejeita o healthcheck | Execute `docker compose config` e mantenha o comando Python em uma única entrada válida da lista `test`. |
