@@ -2,6 +2,7 @@
 
 from collections import Counter
 from datetime import datetime
+from typing import Final
 
 from openpyxl import Workbook, load_workbook
 import pytest
@@ -11,18 +12,21 @@ from gerar_relatorio import gerar_excel, ler_e_validar
 
 pytestmark = pytest.mark.integration
 
-ABAS_ENTRADA = tuple(
+ABAS_ENTRADA : Final = tuple(
     f"Insp_{dia:02d}_06_2026" for dia in (15, 16, 17, 18, 19, 22, 23, 24, 25, 26)
 )
-ABAS_RELATORIO = (
+ABAS_RELATORIO : Final = (
     "Resumo",
     "Todos",
     "Válidos",
     "Divergências",
     "Ambíguos",
     "Erros de Entrada",
+    "Ranking de Regras",
+    "Dicionário",
+    "Decisões de ML",
 )
-CABECALHOS_ENTRADA = (
+CABECALHOS_ENTRADA : Final = (
     "lote_id",
     "produto",
     "linha",
@@ -32,7 +36,7 @@ CABECALHOS_ENTRADA = (
     "data",
     "observacao",
 )
-CABECALHOS_RELATORIO = (
+CABECALHOS_RELATORIO : Final= (
     "Data de Referência",
     "Lote",
     "Produto",
@@ -45,9 +49,9 @@ CABECALHOS_RELATORIO = (
     "Classificação",
     "Motivo",
     "Ação Recomendada",
-    'Regra Aplicada'
+    "Regra Aplicada",
 )
-CLASSIFICACOES_ESPERADAS = {
+CLASSIFICACOES_ESPERADAS : Final = {
     "LOTE-VALIDO": "Válido",
     "LOTE-DIVERGENTE": "Divergência",
     "LOTE-AMBIGUO": "Ambíguo",
@@ -158,6 +162,9 @@ def test_fluxo_da_planilha_ao_relatorio_preserva_e_classifica_registros(tmp_path
     assert {
         lote: registro["Classificação"] for lote, registro in todos.items()
     } == CLASSIFICACOES_ESPERADAS
+    assert todos["LOTE-DIVERGENTE"]["Regra Aplicada"] == "RN05"
+    assert todos["LOTE-AMBIGUO"]["Regra Aplicada"] == "RN09"
+    assert todos["LOTE-ERRO"]["Regra Aplicada"] == "RN02"
 
     contagens = Counter(registro["Classificação"] for registro in todos.values())
     resumo = relatorio["Resumo"]
@@ -181,3 +188,54 @@ def test_fluxo_da_planilha_ao_relatorio_preserva_e_classifica_registros(tmp_path
         )
 
     relatorio.close()
+
+def test_lotes_duplicados_nao_sao_descartados(tmp_path):
+    """
+    Garante que registros duplicados continuam
+    sendo processados, a segunda ocorrência também deve permitir que a RN11 seja
+    identificada pelo motor de regras
+    """
+
+    entrada = tmp_path / 'inspecoes_com_duplicados.xlsx'
+
+    criar_planilha_controlada(entrada)
+
+    workbook = load_workbook(entrada)
+
+    base_referencia = workbook['Base_Referencia']
+    base_referencia.append(['LOTE-DUPLICADO'])
+
+    primeira_aba = workbook[ABAS_ENTRADA[0]]
+
+    registro_duplicado = (
+        'LOTE-DUPLICADO',
+        'Produto Duplicado',
+         'Linha 1',
+         'Manhã',
+        'APROVADO',
+        'Carlos',
+        '15/06/2026',
+        'Registro usado no teste de duplicidade'
+    )
+
+    # Adicionar duas ocorências do mesmo lote.
+
+    primeira_aba.append(registro_duplicado)
+    primeira_aba.append(registro_duplicado)
+
+    workbook.save(entrada)
+    workbook.close()
+
+    resultados = ler_e_validar(entrada)
+
+    resultado_duplicados = [
+        resultado
+        for resultado in resultados
+        if resultado.lote == 'LOTE-DUPLICADO'
+    ]
+
+    # As duas entradas precisam aparecer no processamento
+    assert len(resultado_duplicados) == 2
+
+    assert any(resultado.regra_aplicada == 'RN11'
+               for resultado in resultado_duplicados)

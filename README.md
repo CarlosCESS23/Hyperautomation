@@ -14,15 +14,16 @@ confirmar o login e registrar uma evidência da mensagem de sucesso.
 O script `gerar_relatorio.py` processa as dez abas diárias de
 `inspecao_lotes_10dias.xlsx` e gera o relatório executivo de conferência. A
 lógica RN01–RN12 está centralizada em `src/validacao_lotes.py` e é apenas
-consumida pelo gerador. O dashboard principal fica dentro do Excel, na aba
-**Resumo**. O PDF é somente uma cópia estática para impressão ou entrega.
+consumida pelo gerador. A consolidação dos dez indicadores é feita uma única
+vez e o mesmo resultado alimenta o Excel e `resumo_executivo.md`. O dashboard
+principal fica dentro do Excel, na aba **Resumo**.
 
 ### Instalação
 
 No PowerShell, acesse a pasta do projeto e instale as dependências:
 
 ```powershell
-cd "C:\Users\matutino\Documents\hyperautomation 2\Hyperautomation"
+cd "C:\caminho\para\Hyperautomation"
 python -m pip install -r requirements.txt
 ```
 
@@ -31,7 +32,7 @@ python -m pip install -r requirements.txt
 Informe o caminho da planilha de entrada:
 
 ```powershell
-python gerar_relatorio.py "C:\Users\matutino\Downloads\inspecao_lotes_10dias.xlsx"
+python gerar_relatorio.py "C:\caminho\para\inspecao_lotes_10dias.xlsx"
 ```
 
 Se o arquivo estiver em `Downloads` com o nome
@@ -44,7 +45,7 @@ python gerar_relatorio.py
 Saída esperada no terminal:
 
 ```text
-Relatório: C:\Users\matutino\Documents\hyperautomation 2\Hyperautomation\reports\relatorio_conferencia_lotes.xlsx
+Relatório: C:\caminho\para\Hyperautomation\reports\relatorio_conferencia_lotes.xlsx
 Total: 250 | Válido: 150 | Divergência: 50 | Ambíguo: 20 | Erro de Entrada: 30
 PDF: gerado
 ```
@@ -54,14 +55,23 @@ PDF: gerado
 | Arquivo | Finalidade |
 | --- | --- |
 | `reports/relatorio_conferencia_lotes.xlsx` | Relatório completo e dashboard na aba **Resumo**. |
+| `reports/resumo_executivo.md` | Síntese em linguagem de negócio, consistente com o Excel. |
 | `reports/dashboard_resumo.pdf` | Cópia estática do dashboard para impressão. |
 | `reports/log_execucao.txt` | Evidência da execução e totais processados. |
 | `documentacao/roteiro_apresentacao_exercicio22.md` | Roteiro da apresentação de cinco minutos. |
 
-O Excel possui exatamente seis abas: **Resumo**, **Todos**, **Válidos**,
-**Divergências**, **Ambíguos** e **Erros de Entrada**. Os gráficos de rosca e
-evolução são objetos nativos do Excel. A duplicidade é verificada por dia e
-somente a segunda ocorrência em diante é classificada como divergência.
+O Excel possui exatamente nove abas: **Resumo**, **Todos**, **Válidos**,
+**Divergências**, **Ambíguos**, **Erros de Entrada**, **Ranking de Regras** e
+**Dicionário** e **Decisões de ML**. A última preserva a classe, a
+probabilidade, o nível de confiança e a latência retornados em cada chamada ao
+classificador, sem recalcular a predição. Os gráficos de rosca e evolução são
+objetos nativos do Excel. A duplicidade é verificada por dia e somente a segunda
+ocorrência em diante é classificada como divergência pelas regras RN01–RN12.
+
+A aba **Resumo** apresenta os dez indicadores operacionais. O ranking usa as
+contagens já consolidadas, e o dicionário explica os termos para o público de
+negócio. O ganho de tempo é uma estimativa didática de cinco minutos por
+registro válido, premissa declarada também no resumo Markdown.
 
 O gabarito operacional é **150 válidos, 50 divergências, 20 ambíguos e 30
 erros de entrada**. Assim, há 100 registros problemáticos no total; “100” não
@@ -96,7 +106,7 @@ Start-Process ".\reports\dashboard_resumo.pdf"
 ### Definir outro local de saída
 
 ```powershell
-python gerar_relatorio.py "C:\Users\matutino\Downloads\inspecao_lotes_10dias.xlsx" --saida "C:\Users\matutino\Downloads\relatorio_conferencia_lotes.xlsx"
+python gerar_relatorio.py "C:\entrada\inspecao_lotes_10dias.xlsx" --saida "C:\saida\relatorio_conferencia_lotes.xlsx"
 ```
 
 Nesse caso, o PDF e o log são gravados na mesma pasta escolhida para o Excel.
@@ -419,3 +429,353 @@ tempo de espera da mensagem de sucesso é de cinco segundos.
   no código presente neste repositório.
 - O nome `executar_cadastro_web` é legado: o fluxo implementado automatiza o
   login e coleta sua evidência.
+
+## Machine Learning e API FastAPI
+
+### Objetivo
+
+A camada de Machine Learning auxilia na decisão sobre registros que o motor de
+regras RN01–RN12 classificou como **Ambíguos**. O modelo não substitui as regras
+de negócio: registros válidos, divergentes ou com erro de entrada continuam
+seguindo diretamente para o relatório, sem consulta à API.
+
+O serviço utiliza um `RandomForestClassifier` e recebe três características:
+
+| Campo | Valores esperados | Finalidade |
+| --- | --- | --- |
+| `status_raw` | `APROVADO`, `REPROVADO`, `PENDENTE` ou `EM_ANALISE` | Representa o status informado na planilha. |
+| `turno` | `MANHA`, `TARDE` ou `NOITE` | Identifica o turno da inspeção. |
+| `tem_obs` | `true` ou `false` | Informa se o registro possui observação. |
+
+A resposta contém a classe prevista, a probabilidade e o nível de confiança.
+As variações `EM ANALISE`, `EM ANÁLISE` e `EM_ANALISE` são normalizadas para
+`EM_ANALISE` antes da predição.
+
+### Fluxo de processamento
+
+```text
+Planilha com dez abas diárias
+  ↓
+Leitura e validação de todos os registros
+  ↓
+Motor de regras RN01–RN12
+  ↓
+Registro ambíguo?
+  ├── Não → mantém a decisão das regras
+  └── Sim → item_processor
+              ↓
+          AuditoriaDecisoesML
+              ↓
+          MLClient + circuit breaker
+              ↓
+          API FastAPI
+              ↓
+          modelo Random Forest
+```
+
+Cada chamada ao classificador, inclusive quando a API está indisponível, é
+registrada no log estruturado e na aba **Decisões de ML** do relatório. A
+latência é medida sem repetir a predição.
+
+Se ocorrer timeout, falha de conexão, erro HTTP ou resposta inválida, o
+`MLClient` retorna `None` e o processamento continua. O registro recebe a ação
+`REVISAO_ML_OFFLINE`, sem inventar classe ou probabilidade. Após cinco falhas
+consecutivas, o circuit breaker é aberto e bloqueia novas tentativas de rede até
+ser reiniciado ou resetado.
+
+### Organização dos arquivos
+
+| Caminho | Responsabilidade |
+| --- | --- |
+| `train_model.py` | Gera o dataset controlado, treina o Random Forest e serializa o modelo. |
+| `data/dataset_lotes.csv` | Dataset gerado pelo script de treinamento. |
+| `models/classificador_lotes.pkl` | Modelo treinado carregado pela API. |
+| `api_ml/main.py` | Aplicação FastAPI, validação da entrada, healthcheck e predição. |
+| `api_ml/Dockerfile` | Imagem do serviço de Machine Learning. |
+| `api_ml/requirements.txt` | Dependências exclusivas do container da API. |
+| `src/ml_client.py` | Cliente HTTP resiliente e circuit breaker. |
+| `src/item_processor.py` | Integra as regras RN01–RN12 à decisão de ML. |
+| `src/ml_decisions.py` | Audita decisões online e offline, latência e dados da resposta. |
+| `gerar_relatorio.py` | Processa as dez abas e envia a auditoria para o Excel. |
+| `docker-compose.yml` | Configura o serviço `api_ml`, a porta 8000 e o healthcheck. |
+| `tests/unit/` | Testes isolados da API, cliente, processador e auditoria. |
+| `tests/integration/` | Testes do fluxo Excel, auditoria e sabotagem da API. |
+| `tests/e2e/` | Testes do pipeline completo de geração do relatório. |
+
+### Pré-requisitos
+
+Para a execução local:
+
+- Python 3.12 ou superior;
+- `pip` e suporte à criação de ambiente virtual;
+- dependências de `requirements-dev.txt`;
+- arquivo `models/classificador_lotes.pkl`, já versionado ou gerado novamente
+  por `train_model.py`.
+
+Para a execução em contêiner:
+
+- Docker Desktop no Windows, ou Docker Engine no Linux;
+- Docker Compose v2, disponível pelo comando `docker compose`;
+- daemon do Docker iniciado.
+
+As portas `8000` e `8081` devem estar livres quando a API ML e o portal forem
+executados pelo Compose.
+
+### Preparação do ambiente local
+
+Na raiz do repositório, crie o ambiente virtual e instale as dependências.
+
+Linux ou macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dev.txt
+```
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dev.txt
+```
+
+### Treinar ou recriar o modelo
+
+O repositório já contém o modelo serializado. Execute este passo somente para
+recriar o dataset e treinar uma nova cópia:
+
+```bash
+python train_model.py
+```
+
+O comando gera ou atualiza:
+
+```text
+data/dataset_lotes.csv
+models/classificador_lotes.pkl
+```
+
+Ao final, o terminal exibe o relatório de classificação do conjunto de teste e
+os caminhos dos arquivos gerados.
+
+### Executar a API ML localmente
+
+Com o ambiente virtual ativo e o modelo disponível, execute:
+
+```bash
+python -m uvicorn api_ml.main:app \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --reload
+```
+
+No Windows PowerShell, o mesmo comando pode ser escrito em uma linha:
+
+```powershell
+python -m uvicorn api_ml.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Endereços disponíveis:
+
+| Endereço | Uso |
+| --- | --- |
+| `http://localhost:8000/health` | Confirma se o modelo foi carregado. |
+| `http://localhost:8000/docs` | Interface Swagger para testar a API. |
+| `http://localhost:8000/redoc` | Documentação alternativa da API. |
+
+O healthcheck saudável retorna:
+
+```json
+{
+  "status": "healthy",
+  "modelo_carregado": true
+}
+```
+
+### Testar uma predição local
+
+Linux, macOS ou Git Bash:
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status_raw": "EM ANÁLISE",
+    "turno": "MANHA",
+    "tem_obs": false
+  }'
+```
+
+Windows PowerShell:
+
+```powershell
+$body = @{
+    status_raw = "EM ANÁLISE"
+    turno = "MANHA"
+    tem_obs = $false
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+    -Method Post `
+    -Uri "http://localhost:8000/predict" `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "classe": "revisar",
+  "probabilidade": 0.92,
+  "nivel_confianca": "acao_automatica"
+}
+```
+
+Os valores da predição dependem do conteúdo do modelo serializado.
+
+### Gerar o relatório usando a API local
+
+O `MLClient` precisa apontar para `http://localhost:8000` quando o relatório é
+executado na máquina host.
+
+Linux ou macOS:
+
+```bash
+ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
+  "./inspecao_lotes_10dias.xlsx" \
+  --saida "./reports/relatorio_ml_online.xlsx"
+```
+
+Windows PowerShell:
+
+```powershell
+$env:ML_API_URL = "http://localhost:8000"
+python gerar_relatorio.py `
+    ".\inspecao_lotes_10dias.xlsx" `
+    --saida ".\reports\relatorio_ml_online.xlsx"
+```
+
+Substitua o caminho da planilha pelo arquivo usado na sua execução. Dentro da
+rede do Docker Compose, a URL interna da API é `http://api_ml:8000`.
+
+### Executar com Docker Compose
+
+Na raiz do repositório, valide e inicie somente a API ML:
+
+```bash
+docker compose config
+docker compose up -d --build api_ml
+docker compose ps api_ml
+```
+
+O serviço deve aparecer com o estado `healthy`. Para acompanhar a inicialização
+e confirmar o carregamento do modelo:
+
+```bash
+docker compose logs -f api_ml
+```
+
+Em outro terminal, teste o endpoint:
+
+```bash
+curl http://localhost:8000/health
+```
+
+No Windows PowerShell também é possível usar:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
+```
+
+Para iniciar todos os serviços do projeto:
+
+```bash
+docker compose up -d --build
+```
+
+Para parar somente a API ou encerrar todo o ambiente:
+
+```bash
+docker compose stop api_ml
+docker compose down
+```
+
+### Validar o fallback e o circuit breaker
+
+Com o serviço parado, execute novamente o relatório apontando para a API local:
+
+```bash
+docker compose stop api_ml
+ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
+  "./inspecao_lotes_10dias.xlsx" \
+  --saida "./reports/relatorio_ml_offline.xlsx"
+```
+
+O resultado esperado é:
+
+- o processamento da planilha termina normalmente;
+- registros ambíguos recebem `REVISAO_ML_OFFLINE`;
+- as primeiras cinco chamadas tentam acessar a API;
+- o circuit breaker abre após a quinta falha consecutiva;
+- chamadas seguintes são auditadas, mas não acessam a rede;
+- a aba **Decisões de ML** diferencia chamadas online e offline.
+
+Para restaurar o serviço:
+
+```bash
+docker compose up -d api_ml
+```
+
+### Executar os testes
+
+Testes específicos da camada ML:
+
+```bash
+python -m pytest tests/unit/test_api_ml.py -q
+python -m pytest tests/unit/test_ml_client.py -q
+python -m pytest tests/unit/test_item_processor.py -q
+python -m pytest tests/unit/test_ml_decisions_unit.py -q
+python -m pytest tests/integration/test_auditoria_decisoes_ml.py -q
+python -m pytest tests/integration/test_sabotagem_api_ml.py -q
+```
+
+Suíte sem os testes E2E:
+
+```bash
+python -m pytest --ignore=tests/e2e -q
+```
+
+Suíte completa, incluindo integração e E2E:
+
+```bash
+python -m pytest -q
+```
+
+Na última validação desta versão, a suíte completa apresentou:
+
+```text
+81 passed
+```
+
+Para gerar a evidência de cobertura:
+
+```bash
+python -m pytest --cov --cov-report=term-missing --cov-report=html -rsxX
+```
+
+O projeto exige cobertura global mínima de 80%, conforme `pyproject.toml`.
+
+### Diagnóstico rápido
+
+| Sintoma | Verificação |
+| --- | --- |
+| Docker informa que não encontrou `docker_engine` no Windows | Abra o Docker Desktop e aguarde o daemon iniciar antes de executar o Compose. |
+| `/health` retorna `modelo_carregado: false` | Confirme a existência de `models/classificador_lotes.pkl` e verifique `docker compose logs api_ml`. |
+| A porta 8000 já está em uso | Encerre o processo existente ou altere o mapeamento de porta no Compose. |
+| O relatório gera `REVISAO_ML_OFFLINE` inesperadamente | Confirme `ML_API_URL`, teste `/health` e verifique se o serviço está `healthy`. |
+| O Compose rejeita o healthcheck | Execute `docker compose config` e mantenha o comando Python em uma única entrada válida da lista `test`. |

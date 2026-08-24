@@ -6,6 +6,13 @@ playwright>=1.40.0
 pandas
 numpy
 openpyxl
+scikit-learn
+joblib
+fastapi
+pydantic
+uvicorn[standard]
+
+
 
 # --- Variáveis de Ambiente e Logs Estruturados ---
 python-dotenv>=1.0.0
@@ -18,4 +25,5 @@ reportlab>=4.0.0
 pytest>=8,<9
 pytest-playwright==0.5.0
 
+httpx2
 matplotlib>=3.10

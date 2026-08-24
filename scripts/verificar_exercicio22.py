@@ -16,7 +16,11 @@ RAIZ = Path(__file__).resolve().parents[1]
 RELATORIO = RAIZ / "reports" / "relatorio_conferencia_lotes.xlsx"
 LOG = RAIZ / "reports" / "log_execucao.txt"
 PDF = RAIZ / "reports" / "dashboard_resumo.pdf"
-ABAS = ["Resumo", "Todos", "Válidos", "Divergências", "Ambíguos", "Erros de Entrada"]
+ABAS = [
+    "Resumo", "Todos", "Válidos", "Divergências", "Ambíguos",
+    "Erros de Entrada", "Ranking de Regras", "Dicionário",
+    "Decisões de ML",
+]
 LINHAS = {"Todos": 251, "Válidos": 151, "Divergências": 51, "Ambíguos": 21, "Erros de Entrada": 31}
 
 NS = {
@@ -40,7 +44,7 @@ def verificar_excel() -> None:
             (item.attrib["name"], item.attrib[f"{{{NS['r']}}}id"])
             for item in workbook.find("m:sheets", NS)
         ]
-        exigir([nome for nome, _ in folhas] == ABAS, "as seis abas têm os nomes e a ordem esperados")
+        exigir([nome for nome, _ in folhas] == ABAS, "as nove abas têm os nomes e a ordem esperados")
 
         relacionamentos = ET.fromstring(arquivo.read("xl/_rels/workbook.xml.rels"))
         destinos = {item.attrib["Id"]: item.attrib["Target"].lstrip("/") for item in relacionamentos}

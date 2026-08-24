@@ -1,9 +1,11 @@
+"""Fonte única dos indicadores operacionais do relatório executivo."""
+
+from __future__ import annotations
+
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from src.validacao_lotes import RegistroValidado
-
-#Implementando nome_regras
 
 NOMES_REGRAS = {
     "RN01": "Lote obrigatório não informado",
@@ -19,73 +21,133 @@ NOMES_REGRAS = {
     "RN11": "Lote duplicado dentro da mesma planilha ou dia",
     "RN12": "Data de inspeção ausente ou fora do formato DD/MM/AAAA",
 }
+DESCRICOES_REGRAS = NOMES_REGRAS
+
+
+@dataclass(frozen=True)
+class RegraRanking:
+    codigo: str
+    descricao: str
+    quantidade: int
+    percentual: float
+
 
 @dataclass(frozen=True)
 class OperationalIndicators:
     total_registros: int
-
     validos: int
-    percentual_validos: float
-
     divergencias: int
-    percentual_divergencias: float
-
     ambiguos: int
-    percentual_ambiguos: float
-
     erros_entrada: int
-    percentual_erros_entrada: float
-
     regra_mais_acionada: str
-    quantidade_regra_mais_acionada: int
-    nome_regra_mais_acionada : str
-
-    taxa_qualidade_entrada: float
-    taxa_revisao_humana: float
     taxa_retrabalho: float
+    taxa_revisao_humana: float
+    taxa_qualidade_entrada: float
+    ganho_estimado_horas: float
+    ranking_regras: tuple[RegraRanking, ...]
+    minutos_poupados_por_registro_valido: float = 5
+    tempo_manual_por_registro: float = 6.0
+    tempo_automatizado_por_registro: float = 1.0
 
-    ganho_estimado_tempo: float
+    @property
+    def percentual_validos(self) -> float:
+        return _percentual(self.validos, self.total_registros)
 
-    tempo_manual_por_registro: float
-    tempo_automatizado_por_registro: float
+    @property
+    def percentual_divergencias(self) -> float:
+        return _percentual(self.divergencias, self.total_registros)
 
-    contagem_regras: dict[str, int]
+    @property
+    def percentual_ambiguos(self) -> float:
+        return _percentual(self.ambiguos, self.total_registros)
+
+    @property
+    def percentual_erros_entrada(self) -> float:
+        return _percentual(self.erros_entrada, self.total_registros)
+
+    @property
+    def quantidade_regra_mais_acionada(self) -> int:
+        return self.ranking_regras[0].quantidade if self.ranking_regras else 0
+
+    @property
+    def nome_regra_mais_acionada(self) -> str:
+        return _nome_regra(self.regra_mais_acionada)
+
+    @property
+    def contagem_regras(self) -> dict[str, int]:
+        return {regra.codigo: regra.quantidade for regra in self.ranking_regras}
+
+    @property
+    def ganho_estimado_tempo(self) -> float:
+        return self.total_registros * (
+            self.tempo_manual_por_registro - self.tempo_automatizado_por_registro
+        )
+
+    @property
+    def descricao_regra_mais_acionada(self) -> str:
+        return DESCRICOES_REGRAS.get(
+            self.regra_mais_acionada, "Nenhuma regra acionada"
+        )
 
 
-def _percentual(
-    parte: int | float,
-    total: int | float,) -> float:
-    """Faz o calculo para porcentagem"""
-    if total == 0:
-        return 0.0
-
-    return (parte / total) * 100
+def _percentual(parte: int | float, total: int | float) -> float:
+    """Retorna ``parte`` como percentual de ``total`` (escala de 0 a 100)."""
+    return (parte / total) * 100 if total else 0.0
 
 
+def _nome_regra(codigo: str) -> str:
+    """Retorna a descrição pública de uma regra de negócio."""
+    return NOMES_REGRAS.get(codigo, "")
 
-def _nome_regra(codigo : str) -> str:
-    """Retorna o nome da regra"""
-    return NOMES_REGRAS.get(codigo , '')
 
-def _contar_regras(
+def _contar_regras(registros: list[RegistroValidado]) -> Counter[str]:
+    """Conta todos os acionamentos, inclusive mais de uma regra por registro."""
+    return Counter(
+        regra
+        for registro in registros
+        for regra in registro.regras_acionadas
+        if regra
+    )
+
+
+def consolidar_indicadores(
     registros: list[RegistroValidado],
-) -> Counter:
-    """Conta quantas divergencias e regras são aplicadas"""
-    regras = []
-
-    for registro in registros:
-        if not registro.regra_aplicada:
-            continue
-
-        regras_registro = registro.regra_aplicada.split(",")
-
-        for regra in regras_registro:
-            regra = regra.strip()
-
-            if regra:
-                regras.append(regra)
-
-    return Counter(regras)
+    minutos_poupados_por_registro_valido: float = 5,
+) -> OperationalIndicators:
+    """Consolida indicadores e ranking para o relatório executivo."""
+    classificacoes = Counter(registro.classificacao for registro in registros)
+    regras = _contar_regras(registros)
+    total = len(registros)
+    total_acionamentos = sum(regras.values())
+    ranking = tuple(
+        RegraRanking(
+            codigo=codigo,
+            descricao=DESCRICOES_REGRAS.get(codigo, "Regra de negócio"),
+            quantidade=quantidade,
+            percentual=quantidade / total_acionamentos if total_acionamentos else 0.0,
+        )
+        for codigo, quantidade in sorted(
+            regras.items(), key=lambda item: (-item[1], item[0])
+        )
+    )
+    validos = classificacoes["Válido"]
+    divergencias = classificacoes["Divergência"]
+    ambiguos = classificacoes["Ambíguo"]
+    erros = classificacoes["Erro de Entrada"]
+    return OperationalIndicators(
+        total_registros=total,
+        validos=validos,
+        divergencias=divergencias,
+        ambiguos=ambiguos,
+        erros_entrada=erros,
+        regra_mais_acionada=ranking[0].codigo if ranking else "Nenhuma",
+        taxa_retrabalho=(divergencias + erros) / total if total else 0.0,
+        taxa_revisao_humana=ambiguos / total if total else 0.0,
+        taxa_qualidade_entrada=(total - erros) / total if total else 0.0,
+        ganho_estimado_horas=(validos * minutos_poupados_por_registro_valido) / 60,
+        ranking_regras=ranking,
+        minutos_poupados_por_registro_valido=minutos_poupados_por_registro_valido,
+    )
 
 
 def calcular_indicadores(
@@ -93,116 +155,24 @@ def calcular_indicadores(
     tempo_manual_por_registro: float = 5.0,
     tempo_automatizado_por_registro: float = 1.0,
 ) -> OperationalIndicators:
-    """Faz as buscas e traz os resultados (Como porcentagens)"""
-
-    total = len(registros)
-
-    validos = sum(
-        1
-        for registro in registros
-        if registro.classificacao == "Válido"
+    """Expõe a API histórica, cujas taxas são percentuais de 0 a 100."""
+    minutos_poupados = tempo_manual_por_registro - tempo_automatizado_por_registro
+    indicadores = consolidar_indicadores(
+        registros, minutos_poupados_por_registro_valido=minutos_poupados
     )
-
-    divergencias = sum(
-        1
-        for registro in registros
-        if registro.classificacao == "Divergência"
-    )
-
-    ambiguos = sum(
-        1
-        for registro in registros
-        if registro.classificacao == "Ambíguo"
-    )
-
-    erros_entrada = sum(
-        1
-        for registro in registros
-        if registro.classificacao == "Erro de Entrada"
-    )
-
-    contagem_regras = _contar_regras(registros)
-
-    if contagem_regras:
-        regra_mais_acionada, quantidade_regra_mais_acionada = (
-            contagem_regras.most_common(1)[0]
-        )
-        nome_regra_mais_acionada = _nome_regra(regra_mais_acionada)
-    else:
-        regra_mais_acionada = ''
-        nome_regra_mais_acionada = ''
-        quantidade_regra_mais_acionada = 0
-
-    percentual_validos = _percentual(validos, total)
-    percentual_divergencias = _percentual(
-        divergencias,
-        total,
-    )
-    percentual_ambiguos = _percentual(
-        ambiguos,
-        total,
-    )
-    percentual_erros_entrada = _percentual(
-        erros_entrada,
-        total,
-    )
-
-    taxa_qualidade_entrada = _percentual(
-        total - erros_entrada,
-        total,
-    )
-
-    taxa_revisao_humana = _percentual(
-        ambiguos,
-        total,
-    )
-
-    taxa_retrabalho = _percentual(
-        divergencias,
-        total,
-    )
-
-    ganho_estimado_tempo = (
-        total
-        * (
-            tempo_manual_por_registro
-            - tempo_automatizado_por_registro
-        )
-    )
-
-    return OperationalIndicators(
-        total_registros=total,
-
-        validos=validos,
-        percentual_validos=percentual_validos,
-
-        divergencias=divergencias,
-        percentual_divergencias=percentual_divergencias,
-
-        ambiguos=ambiguos,
-        percentual_ambiguos=percentual_ambiguos,
-
-        erros_entrada=erros_entrada,
-        percentual_erros_entrada=percentual_erros_entrada,
-
-        regra_mais_acionada=regra_mais_acionada,
-        nome_regra_mais_acionada = nome_regra_mais_acionada,
-        quantidade_regra_mais_acionada=(
-            quantidade_regra_mais_acionada
+    return replace(
+        indicadores,
+        regra_mais_acionada=(
+            indicadores.ranking_regras[0].codigo
+            if indicadores.ranking_regras
+            else ""
         ),
-
-        taxa_qualidade_entrada=taxa_qualidade_entrada,
-        taxa_revisao_humana=taxa_revisao_humana,
-        taxa_retrabalho=taxa_retrabalho,
-
-        ganho_estimado_tempo=ganho_estimado_tempo,
-
-        tempo_manual_por_registro=(
-            tempo_manual_por_registro
+        taxa_retrabalho=_percentual(indicadores.divergencias, indicadores.total_registros),
+        taxa_revisao_humana=_percentual(indicadores.ambiguos, indicadores.total_registros),
+        taxa_qualidade_entrada=_percentual(
+            indicadores.total_registros - indicadores.erros_entrada,
+            indicadores.total_registros,
         ),
-        tempo_automatizado_por_registro=(
-            tempo_automatizado_por_registro
-        ),
-
-        contagem_regras=dict(contagem_regras),
+        tempo_manual_por_registro=tempo_manual_por_registro,
+        tempo_automatizado_por_registro=tempo_automatizado_por_registro,
     )

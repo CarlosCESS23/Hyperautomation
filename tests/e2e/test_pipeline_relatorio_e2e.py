@@ -168,6 +168,9 @@ def test_pipeline_completo_dez_dias_gera_relatorio_e_dashboard(
         "Divergências",
         "Ambíguos",
         "Erros de Entrada",
+        "Ranking de Regras",
+        "Dicionário",
+        "Decisões de ML",
     ]
 
     assert workbook_saida.sheetnames == abas_esperadas
