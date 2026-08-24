@@ -34,7 +34,10 @@ from src.operational_indicators import (
     OperationalIndicators,
     consolidar_indicadores,
 )
-from src.ml_decisions import DecisaoML
+from src.ml_decisions import (
+    AuditoriaDecisoesML,
+    DecisaoML,
+)
 
 
 CORES = {
@@ -60,7 +63,7 @@ TOTAIS_GABARITO = {
 }
 
 
-def ler_e_validar(caminho: Path) -> list[RegistroValidado]:
+def ler_e_validar(caminho: Path,auditoria_ml : AuditoriaDecisoesML | None = None) -> list[RegistroValidado]:
     planilha = pd.ExcelFile(caminho)
     abas_diarias = sorted(
         (aba for aba in planilha.sheet_names if aba.startswith("Insp_")),
@@ -117,14 +120,16 @@ def ler_e_validar(caminho: Path) -> list[RegistroValidado]:
                 ocorrencia = vistas[lote]
             else:
                 ocorrencia = 1
-            resultado= processar_item(
-                registro=registro,
-                data_referencia=data_referencia,
-                lotes_referencia=lotes_referencia,
-                ocorrencia_no_dia=ocorrencia,
-                ml_client=ml_client,
+            resultados.append(
+                processar_item(
+                    registro=registro,
+                    data_referencia=data_referencia,
+                    lotes_referencia=lotes_referencia,
+                    ocorrencia_no_dia=ocorrencia,
+                    ml_client=ml_client,
+                    auditoria_ml=auditoria_ml,
                 )
-            resultados.append(resultado)
+            )
         return resultados
 
 def estilizar_tabela(ws, nome_tabela: str) -> None:
@@ -553,8 +558,25 @@ def main() -> None:
     args = parser.parse_args()
     origem, saida = localizar_entrada(args.entrada), Path(args.saida)
     momento = datetime.now()
-    registros = ler_e_validar(origem)
-    indicadores = consolidar_indicadores(registros)
+    # Uma única auditoria acompanha todo o processamento.
+    auditoria_ml = AuditoriaDecisoesML()
+
+    registros = ler_e_validar(
+        origem,
+        auditoria_ml=auditoria_ml,
+    )
+
+    indicadores = consolidar_indicadores(
+        registros
+    )
+
+    df = gerar_excel(
+        registros=registros,
+        saida=saida,
+        momento=momento,
+        indicadores=indicadores,
+        decisoes_ml=auditoria_ml.decisoes,
+    )
     df = gerar_excel(registros, saida, momento, indicadores)
     gerar_resumo_executivo(indicadores, saida.with_name("resumo_executivo.md"))
     salvar_log(df, saida.with_name("log_execucao.txt"), origem, momento)
