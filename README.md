@@ -430,152 +430,189 @@ tempo de espera da mensagem de sucesso é de cinco segundos.
 - O nome `executar_cadastro_web` é legado: o fluxo implementado automatiza o
   login e coleta sua evidência.
 
-## Machine Learning e API FastAPI
 
-### Objetivo
 
-A camada de Machine Learning auxilia na decisão sobre registros que o motor de
-regras RN01–RN12 classificou como **Ambíguos**. O modelo não substitui as regras
-de negócio: registros válidos, divergentes ou com erro de entrada continuam
-seguindo diretamente para o relatório, sem consulta à API.
+## Machine Learning e pipeline híbrido S10-B
 
-O serviço utiliza um `RandomForestClassifier` e recebe três características:
+O projeto exige cobertura global mínima de 80%, conforme `pyproject.toml`.
 
-| Campo | Valores esperados | Finalidade |
-| --- | --- | --- |
-| `status_raw` | `APROVADO`, `REPROVADO`, `PENDENTE` ou `EM_ANALISE` | Representa o status informado na planilha. |
-| `turno` | `MANHA`, `TARDE` ou `NOITE` | Identifica o turno da inspeção. |
-| `tem_obs` | `true` ou `false` | Informa se o registro possui observação. |
 
-A resposta contém a classe prevista, a probabilidade e o nível de confiança.
-As variações `EM ANALISE`, `EM ANÁLISE` e `EM_ANALISE` são normalizadas para
-`EM_ANALISE` antes da predição.
+### Objetivo da camada de ML
 
-### Fluxo de processamento
+O pipeline híbrido utiliza Machine Learning somente para sugerir a
+`causa_provavel` de uma divergência a partir da observação textual do operador.
+O modelo não define nem modifica o status de negócio. As regras RN01–RN12
+continuam sendo a única fonte responsável por classificar os registros como
+válidos, divergentes, ambíguos ou com erro de entrada.
+
+Exemplo de entrada do classificador textual:
 
 ```text
-Planilha com dez abas diárias
-  ↓
-Leitura e validação de todos os registros
-  ↓
-Motor de regras RN01–RN12
-  ↓
-Registro ambíguo?
-  ├── Não → mantém a decisão das regras
-  └── Sim → item_processor
-              ↓
-          AuditoriaDecisoesML
-              ↓
-          MLClient + circuit breaker
-              ↓
-          API FastAPI
-              ↓
-          modelo Random Forest
+O produto chegou sem uma das peças necessárias para montagem.
 ```
 
-Cada chamada ao classificador, inclusive quando a API está indisponível, é
-registrada no log estruturado e na aba **Decisões de ML** do relatório. A
-latência é medida sem repetir a predição.
+Exemplo de resultado esperado:
 
-Se ocorrer timeout, falha de conexão, erro HTTP ou resposta inválida, o
-`MLClient` retorna `None` e o processamento continua. O registro recebe a ação
-`REVISAO_ML_OFFLINE`, sem inventar classe ou probabilidade. Após cinco falhas
-consecutivas, o circuit breaker é aberto e bloqueia novas tentativas de rede até
-ser reiniciado ou resetado.
+```json
+{
+  "causa_provavel": "falta_peca",
+  "confianca_ml": 0.91,
+  "origem_decisao": "ml"
+}
+```
 
-### Organização dos arquivos
+### Estado de transição
 
-| Caminho | Responsabilidade |
+Durante a implementação incremental, os dois modelos permanecem no
+repositório:
+
+| Modelo | Entrada | Finalidade | Situação |
+| --- | --- | --- | --- |
+| Random Forest legado | `status_raw`, `turno` e `tem_obs` | Classificação usada pela API anterior | Mantido temporariamente até a Issue 05 |
+| TF-IDF + Logistic Regression | Texto de `observacao` | Sugestão de causa provável | Treinado nesta versão e integrado à API na Issue 05 |
+
+O arquivo `models/classificador_lotes.pkl` não deve ser removido nesta etapa,
+pois a versão atual da API ainda depende dele. O novo artefato textual é salvo
+separadamente em `models/classificador_causas.pkl`.
+
+### Por que o algoritmo foi alterado?
+
+O Random Forest anterior recebia somente três características estruturadas e
+de baixa dimensionalidade. Esse cenário é diferente da classificação textual,
+na qual o TF-IDF pode gerar centenas ou milhares de características, uma para
+cada palavra ou combinação relevante de palavras.
+
+A Logistic Regression foi adotada como baseline textual porque trabalha bem
+com matrizes esparsas de alta dimensionalidade, possui treinamento rápido para
+datasets pequenos e disponibiliza `predict_proba()`, necessário para aplicar o
+limiar mínimo de confiança do pipeline híbrido.
+
+| Característica | Random Forest | Logistic Regression |
+| --- | --- | --- |
+| Dados estruturados com poucas colunas | Muito adequado | Adequado |
+| Texto vetorizado com TF-IDF | Pode funcionar, mas tende a exigir mais árvores e memória | Adequado para matrizes esparsas |
+| Dataset pequeno | Pode memorizar combinações específicas | Funciona como baseline linear mais controlada |
+| `predict_proba()` | Disponível | Disponível |
+| Velocidade de treinamento e inferência | Moderada | Alta |
+| Facilidade para relacionar palavras e classes | Menor | Maior |
+
+A alteração não significa que Random Forest seja um algoritmo ruim. Ela
+representa uma escolha adequada ao novo tipo de entrada. Comparações futuras
+podem avaliar Logistic Regression, Random Forest e Multinomial Naive Bayes com
+o mesmo conjunto de teste, sem modificar o contrato da aplicação.
+
+### Dataset textual
+
+O dataset versionado em `data/ml/dataset_observacoes.csv` possui as colunas:
+
+| Coluna | Descrição |
 | --- | --- |
-| `train_model.py` | Gera o dataset controlado, treina o Random Forest e serializa o modelo. |
-| `data/dataset_lotes.csv` | Dataset gerado pelo script de treinamento. |
-| `models/classificador_lotes.pkl` | Modelo treinado carregado pela API. |
-| `api_ml/main.py` | Aplicação FastAPI, validação da entrada, healthcheck e predição. |
-| `api_ml/Dockerfile` | Imagem do serviço de Machine Learning. |
-| `api_ml/requirements.txt` | Dependências exclusivas do container da API. |
-| `src/ml_client.py` | Cliente HTTP resiliente e circuit breaker. |
-| `src/item_processor.py` | Integra as regras RN01–RN12 à decisão de ML. |
-| `src/ml_decisions.py` | Audita decisões online e offline, latência e dados da resposta. |
-| `gerar_relatorio.py` | Processa as dez abas e envia a auditoria para o Excel. |
-| `docker-compose.yml` | Configura o serviço `api_ml`, a porta 8000 e o healthcheck. |
-| `tests/unit/` | Testes isolados da API, cliente, processador e auditoria. |
-| `tests/integration/` | Testes do fluxo Excel, auditoria e sabotagem da API. |
-| `tests/e2e/` | Testes do pipeline completo de geração do relatório. |
+| `observacao` | Texto livre semelhante ao informado por um operador |
+| `causa` | Causa provável esperada |
+| `particao` | Indica se o registro pertence ao treino ou ao teste |
 
-### Pré-requisitos
+As causas permitidas são:
 
-Para a execução local:
+- `erro_codigo`;
+- `falta_peca`;
+- `duplicidade`;
+- `erro_cadastro`.
 
-- Python 3.12 ou superior;
-- `pip` e suporte à criação de ambiente virtual;
-- dependências de `requirements-dev.txt`;
-- arquivo `models/classificador_lotes.pkl`, já versionado ou gerado novamente
-  por `train_model.py`.
+O dataset possui 96 registros sintéticos e balanceados: 24 por causa, sendo 19
+para treino e 5 para teste. A geração usa a semente fixa `42`, rejeita textos
+vazios ou duplicados e permite verificar identificadores proibidos para evitar
+o vazamento do lote oculto da apresentação.
 
-Para a execução em contêiner:
-
-- Docker Desktop no Windows, ou Docker Engine no Linux;
-- Docker Compose v2, disponível pelo comando `docker compose`;
-- daemon do Docker iniciado.
-
-As portas `8000` e `8081` devem estar livres quando a API ML e o portal forem
-executados pelo Compose.
-
-### Preparação do ambiente local
-
-Na raiz do repositório, crie o ambiente virtual e instale as dependências.
-
-Linux ou macOS:
+Para recriar o CSV:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt
+python -m src.dataset_observacoes
 ```
 
-Windows PowerShell:
+### Treinamento do classificador textual
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt
-```
+O `train_model.py` executa as seguintes etapas:
 
-### Treinar ou recriar o modelo
+1. carrega e valida `data/ml/dataset_observacoes.csv`;
+2. normaliza caixa, acentos, pontuação e espaços;
+3. transforma o texto com `TfidfVectorizer` usando unigramas e bigramas;
+4. treina uma `LogisticRegression` com semente fixa;
+5. avalia somente a partição de teste;
+6. serializa o pipeline completo de pré-processamento e modelo;
+7. registra acurácia, relatório por classe e matriz de confusão.
 
-O repositório já contém o modelo serializado. Execute este passo somente para
-recriar o dataset e treinar uma nova cópia:
+Execute:
 
 ```bash
 python train_model.py
 ```
 
-O comando gera ou atualiza:
+Arquivos produzidos:
 
-```text
-data/dataset_lotes.csv
-models/classificador_lotes.pkl
+| Arquivo | Finalidade |
+| --- | --- |
+| `models/classificador_causas.pkl` | Pipeline completo com TF-IDF e classificador |
+| `models/metricas_classificador_causas.json` | Métricas reproduzíveis da partição de teste |
+
+O artefato serializado oferece `predict()` e `predict_proba()`:
+
+```python
+import joblib
+
+modelo = joblib.load("models/classificador_causas.pkl")
+
+observacoes = [
+    "O registro já havia sido processado anteriormente."
+]
+
+causa = modelo.predict(observacoes)[0]
+probabilidades = modelo.predict_proba(observacoes)[0]
+
+print(causa)
+print(probabilidades)
 ```
 
-Ao final, o terminal exibe o relatório de classificação do conjunto de teste e
-os caminhos dos arquivos gerados.
+### Organização dos arquivos de ML
 
-### Executar a API ML localmente
+| Caminho | Responsabilidade |
+| --- | --- |
+| `src/causas_divergencia.py` | Centraliza as causas prováveis permitidas |
+| `src/dataset_observacoes.py` | Gera e valida o dataset textual |
+| `data/ml/dataset_observacoes.csv` | Dataset reproduzível de treino e teste |
+| `data/ml/README.md` | Documenta origem, estrutura e distribuição dos dados |
+| `train_model.py` | Normaliza textos, treina, avalia e salva o pipeline |
+| `models/classificador_causas.pkl` | Novo modelo textual serializado |
+| `models/metricas_classificador_causas.json` | Resultado da avaliação do modelo textual |
+| `models/classificador_lotes.pkl` | Modelo legado mantido durante a transição |
+| `api_ml/main.py` | API ainda legada; será adaptada para observações na Issue 05 |
 
-Com o ambiente virtual ativo e o modelo disponível, execute:
+### Testes do dataset e modelo
+
+Execute os testes específicos:
 
 ```bash
-python -m uvicorn api_ml.main:app \
-  --host 0.0.0.0 \
-  --port 8000 \
-  --reload
+python -m pytest tests/unit/test_dataset_observacoes.py -q
+python -m pytest tests/unit/test_modelo_causa.py -q
 ```
 
-No Windows PowerShell, o mesmo comando pode ser escrito em uma linha:
+Antes do commit, execute a regressão sem E2E:
 
-```powershell
+```bash
+python -m pytest --ignore=tests/e2e -q
+```
+
+Para executar a suíte completa:
+
+```bash
+python -m pytest -q
+```
+
+### API FastAPI legada durante a transição
+
+Até a conclusão da Issue 05, a API continua carregando
+`models/classificador_lotes.pkl`. Para executá-la localmente:
+
+```bash
 python -m uvicorn api_ml.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -583,199 +620,28 @@ Endereços disponíveis:
 
 | Endereço | Uso |
 | --- | --- |
-| `http://localhost:8000/health` | Confirma se o modelo foi carregado. |
-| `http://localhost:8000/docs` | Interface Swagger para testar a API. |
-| `http://localhost:8000/redoc` | Documentação alternativa da API. |
+| `http://localhost:8000/health` | Confirma se o modelo legado foi carregado |
+| `http://localhost:8000/docs` | Interface Swagger da API |
+| `http://localhost:8000/redoc` | Documentação alternativa |
 
-O healthcheck saudável retorna:
-
-```json
-{
-  "status": "healthy",
-  "modelo_carregado": true
-}
-```
-
-### Testar uma predição local
-
-Linux, macOS ou Git Bash:
-
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status_raw": "EM ANÁLISE",
-    "turno": "MANHA",
-    "tem_obs": false
-  }'
-```
-
-Windows PowerShell:
-
-```powershell
-$body = @{
-    status_raw = "EM ANÁLISE"
-    turno = "MANHA"
-    tem_obs = $false
-} | ConvertTo-Json
-
-Invoke-RestMethod `
-    -Method Post `
-    -Uri "http://localhost:8000/predict" `
-    -ContentType "application/json" `
-    -Body $body
-```
-
-Exemplo de resposta:
-
-```json
-{
-  "classe": "revisar",
-  "probabilidade": 0.92,
-  "nivel_confianca": "acao_automatica"
-}
-```
-
-Os valores da predição dependem do conteúdo do modelo serializado.
-
-### Gerar o relatório usando a API local
-
-O `MLClient` precisa apontar para `http://localhost:8000` quando o relatório é
-executado na máquina host.
-
-Linux ou macOS:
-
-```bash
-ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
-  "./inspecao_lotes_10dias.xlsx" \
-  --saida "./reports/relatorio_ml_online.xlsx"
-```
-
-Windows PowerShell:
-
-```powershell
-$env:ML_API_URL = "http://localhost:8000"
-python gerar_relatorio.py `
-    ".\inspecao_lotes_10dias.xlsx" `
-    --saida ".\reports\relatorio_ml_online.xlsx"
-```
-
-Substitua o caminho da planilha pelo arquivo usado na sua execução. Dentro da
-rede do Docker Compose, a URL interna da API é `http://api_ml:8000`.
-
-### Executar com Docker Compose
-
-Na raiz do repositório, valide e inicie somente a API ML:
+Para executar com Docker Compose:
 
 ```bash
 docker compose config
 docker compose up -d --build api_ml
 docker compose ps api_ml
-```
-
-O serviço deve aparecer com o estado `healthy`. Para acompanhar a inicialização
-e confirmar o carregamento do modelo:
-
-```bash
 docker compose logs -f api_ml
 ```
 
-Em outro terminal, teste o endpoint:
+Dentro da rede do Compose, a URL interna permanece
+`http://api_ml:8000`. A alteração do contrato HTTP para receber somente
+`observacao` faz parte da Issue 05.
 
-```bash
-curl http://localhost:8000/health
-```
+### Limitações desta etapa
 
-No Windows PowerShell também é possível usar:
+- O novo classificador textual ainda não é chamado pela API.
+- O bot ainda não utiliza `causa_provavel` no processamento.
+- O limiar de confiança e os fallbacks serão conectados em Issues posteriores.
+- As métricas são baseadas em um dataset sintético pequeno e não devem ser
+  interpretadas como evidência de desempenho em produção.
 
-```powershell
-Invoke-RestMethod http://localhost:8000/health
-```
-
-Para iniciar todos os serviços do projeto:
-
-```bash
-docker compose up -d --build
-```
-
-Para parar somente a API ou encerrar todo o ambiente:
-
-```bash
-docker compose stop api_ml
-docker compose down
-```
-
-### Validar o fallback e o circuit breaker
-
-Com o serviço parado, execute novamente o relatório apontando para a API local:
-
-```bash
-docker compose stop api_ml
-ML_API_URL=http://localhost:8000 python gerar_relatorio.py \
-  "./inspecao_lotes_10dias.xlsx" \
-  --saida "./reports/relatorio_ml_offline.xlsx"
-```
-
-O resultado esperado é:
-
-- o processamento da planilha termina normalmente;
-- registros ambíguos recebem `REVISAO_ML_OFFLINE`;
-- as primeiras cinco chamadas tentam acessar a API;
-- o circuit breaker abre após a quinta falha consecutiva;
-- chamadas seguintes são auditadas, mas não acessam a rede;
-- a aba **Decisões de ML** diferencia chamadas online e offline.
-
-Para restaurar o serviço:
-
-```bash
-docker compose up -d api_ml
-```
-
-### Executar os testes
-
-Testes específicos da camada ML:
-
-```bash
-python -m pytest tests/unit/test_api_ml.py -q
-python -m pytest tests/unit/test_ml_client.py -q
-python -m pytest tests/unit/test_item_processor.py -q
-python -m pytest tests/unit/test_ml_decisions_unit.py -q
-python -m pytest tests/integration/test_auditoria_decisoes_ml.py -q
-python -m pytest tests/integration/test_sabotagem_api_ml.py -q
-```
-
-Suíte sem os testes E2E:
-
-```bash
-python -m pytest --ignore=tests/e2e -q
-```
-
-Suíte completa, incluindo integração e E2E:
-
-```bash
-python -m pytest -q
-```
-
-Na última validação desta versão, a suíte completa apresentou:
-
-```text
-81 passed
-```
-
-Para gerar a evidência de cobertura:
-
-```bash
-python -m pytest --cov --cov-report=term-missing --cov-report=html -rsxX
-```
-
-O projeto exige cobertura global mínima de 80%, conforme `pyproject.toml`.
-
-### Diagnóstico rápido
-
-| Sintoma | Verificação |
-| --- | --- |
-| Docker informa que não encontrou `docker_engine` no Windows | Abra o Docker Desktop e aguarde o daemon iniciar antes de executar o Compose. |
-| `/health` retorna `modelo_carregado: false` | Confirme a existência de `models/classificador_lotes.pkl` e verifique `docker compose logs api_ml`. |
-| A porta 8000 já está em uso | Encerre o processo existente ou altere o mapeamento de porta no Compose. |
-| O relatório gera `REVISAO_ML_OFFLINE` inesperadamente | Confirme `ML_API_URL`, teste `/health` e verifique se o serviço está `healthy`. |
-| O Compose rejeita o healthcheck | Execute `docker compose config` e mantenha o comando Python em uma única entrada válida da lista `test`. |
