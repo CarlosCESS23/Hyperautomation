@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -57,6 +57,13 @@ class RegistroValidado:
     acao_recomendada: str
     regra_aplicada: str = ""
 
+    # Enriquecimento híbrido.
+    causa_provavel: str = ""
+    confianca_ml: float | None = None
+    origem_decisao: str = ""
+    motivo_fallback: str = ""
+    versao_modelo: str = ""
+
     def __post_init__(self) -> None:
         if isinstance(self.regra_aplicada, tuple):
             object.__setattr__(self, "regra_aplicada", ", ".join(self.regra_aplicada))
@@ -70,6 +77,8 @@ class RegistroValidado:
         )
 
     def to_dict(self) -> dict[str, str]:
+        """Converte somente os campos atuais do relatório Excel."""
+
         nomes = {
             "data_referencia": "Data de Referência",
             "lote": "Lote",
@@ -85,7 +94,11 @@ class RegistroValidado:
             "acao_recomendada": "Ação Recomendada",
             "regra_aplicada": "Regra Aplicada",
         }
-        return {nomes[chave]: valor for chave, valor in asdict(self).items()}
+
+        return {
+            nome_excel: getattr(self, campo)
+            for campo, nome_excel in nomes.items()
+        }
 
 
 def validar_registro(

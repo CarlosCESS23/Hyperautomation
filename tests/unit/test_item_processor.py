@@ -1,169 +1,167 @@
+from dataclasses import asdict
+
 import pandas as pd
 import pytest
-from unittest.mock import Mock
 
-from src.item_processor import ACAO_ML_OFFLINE, processar_item
-from src.ml_decisions import (
-    AuditoriaDecisoesML,
-    STATUS_OFFLINE,
+from src.decisao_hibrida import (
+    MotivoFallback,
+    ResultadoDecisaoHibrida,
 )
+from src.item_processor import processar_item
 
 
-
-class MLIndisponivel:
-    def classificar(self, **kwargs):
-        return None
+pytestmark = pytest.mark.unit
 
 
-@pytest.mark.unit
-def test_item_ambiguo_usa_fallback_quando_ml_esta_indisponivel():
-    registro = pd.Series(
+CAMPOS_ENRIQUECIMENTO = {
+    "causa_provavel",
+    "confianca_ml",
+    "origem_decisao",
+    "motivo_fallback",
+    "versao_modelo",
+}
+
+
+class ClassificadorFake:
+    def __init__(self, decisao):
+        self.decisao = decisao
+        self.chamadas = []
+
+    def classificar(self, observacao):
+        self.chamadas.append(
+            observacao
+        )
+
+        return self.decisao
+
+
+def registro_divergente():
+    return pd.Series(
         {
-            "lote_id": "LOTE-001",
+            "lote_id": "LOTE-FORA-DA-BASE",
             "produto": "Produto A",
-            "linha": "L1",
-            "turno": "MANHA",
-            "status": "EM ANALISE",
+            "linha": "Linha 1",
+            "turno": "MANHÃ",
+            "status": "APROVADO",
             "responsavel": "Carlos",
             "data": "18/08/2026",
-            "observacao": "",
+            "observacao": (
+                "Código do produto não localizado."
+            ),
         }
     )
+
+
+def dados_negocio(resultado):
+    return {
+        campo: valor
+        for campo, valor in asdict(
+            resultado
+        ).items()
+        if campo not in CAMPOS_ENRIQUECIMENTO
+    }
+
+
+def test_divergencia_recebe_enriquecimento_ml():
+    classificador = ClassificadorFake(
+        ResultadoDecisaoHibrida.de_ml(
+            causa_provavel="erro_codigo",
+            confianca_ml=0.91,
+            versao_modelo="2.0.0-texto",
+        )
+    )
+
+    resultado = processar_item(
+        registro=registro_divergente(),
+        data_referencia="18/08/2026",
+        lotes_referencia={"OUTRO-LOTE"},
+        ocorrencia_no_dia=1,
+        classificador=classificador,
+    )
+
+    assert resultado.classificacao == "Divergência"
+    assert resultado.regra_aplicada == "RN05"
+
+    assert resultado.causa_provavel == "erro_codigo"
+    assert resultado.confianca_ml == 0.91
+    assert resultado.origem_decisao == "ml"
+    assert resultado.motivo_fallback == ""
+    assert resultado.versao_modelo == "2.0.0-texto"
+
+    assert classificador.chamadas == [
+        "Código do produto não localizado."
+    ]
+
+
+def test_fallback_nao_modifica_decisao_de_negocio():
+    resultado_regras = processar_item(
+        registro=registro_divergente(),
+        data_referencia="18/08/2026",
+        lotes_referencia={"OUTRO-LOTE"},
+        ocorrencia_no_dia=1,
+        classificador=ClassificadorFake(
+            ResultadoDecisaoHibrida.de_ml(
+                causa_provavel="erro_codigo",
+                confianca_ml=0.91,
+                versao_modelo="2.0.0-texto",
+            )
+        ),
+    )
+
+    resultado_fallback = processar_item(
+        registro=registro_divergente(),
+        data_referencia="18/08/2026",
+        lotes_referencia={"OUTRO-LOTE"},
+        ocorrencia_no_dia=1,
+        classificador=ClassificadorFake(
+            ResultadoDecisaoHibrida.de_fallback(
+                motivo=(
+                    MotivoFallback
+                    .SERVICO_INDISPONIVEL
+                ),
+            )
+        ),
+    )
+
+    assert (
+        dados_negocio(resultado_regras)
+        == dados_negocio(resultado_fallback)
+    )
+
+    assert resultado_fallback.causa_provavel == (
+        "nao_classificado"
+    )
+
+    assert resultado_fallback.confianca_ml is None
+    assert resultado_fallback.origem_decisao == "fallback"
+
+    assert resultado_fallback.motivo_fallback == (
+        "servico_indisponivel"
+    )
+
+
+def test_registro_valido_nao_chama_classificador():
+    classificador = ClassificadorFake(
+        ResultadoDecisaoHibrida.de_ml(
+            causa_provavel="erro_codigo",
+            confianca_ml=0.91,
+        )
+    )
+
+    registro = registro_divergente()
+    registro["lote_id"] = "LOTE-VALIDO"
 
     resultado = processar_item(
         registro=registro,
         data_referencia="18/08/2026",
-        lotes_referencia={"LOTE-001"},
+        lotes_referencia={"LOTE-VALIDO"},
         ocorrencia_no_dia=1,
-        ml_client=MLIndisponivel(),
+        classificador=classificador,
     )
 
-    assert resultado.classificacao == "Ambíguo"
-    assert resultado.acao_recomendada == ACAO_ML_OFFLINE
-    assert "API ML indisponível" in resultado.motivo
+    assert resultado.classificacao == "Válido"
+    assert classificador.chamadas == []
 
-@pytest.mark.unit
-def test_item_ambiguo_registra_auditoria_quando_ml_esta_offline():
-    """
-    Verifica se uma chamada offline é registrada pela auditoria
-    sem impedir o fallback REVISAO_ML_OFFLINE.
-    """
-
-    registro = pd.Series(
-        {
-            "lote_id": "LOTE-OFFLINE-001",
-            "produto": "Produto A",
-            "linha": "L1",
-            "turno": "MANHA",
-            "status": "EM ANALISE",
-            "responsavel": "Carlos",
-            "data": "18/08/2026",
-            "observacao": "",
-        }
-    )
-
-    logger = Mock()
-
-    auditoria = AuditoriaDecisoesML(
-        logger=logger,
-    )
-
-    resultado = processar_item(
-        registro=registro,
-        data_referencia="18/08/2026",
-        lotes_referencia={
-            "LOTE-OFFLINE-001"
-        },
-        ocorrencia_no_dia=1,
-        ml_client=MLIndisponivel(),
-        auditoria_ml=auditoria,
-    )
-
-    # O processamento continua usando o fallback.
-    assert resultado.classificacao == "Ambíguo"
-    assert resultado.acao_recomendada == ACAO_ML_OFFLINE
-    assert "API ML indisponível" in resultado.motivo
-
-    # A chamada offline precisa aparecer na auditoria.
-    assert len(auditoria.decisoes) == 1
-
-    decisao = auditoria.decisoes[0]
-
-    assert decisao.lote_id == "LOTE-OFFLINE-001"
-    assert decisao.status_chamada == STATUS_OFFLINE
-    assert decisao.classe_prevista is None
-    assert decisao.probabilidade is None
-    assert decisao.nivel_confianca is None
-    assert decisao.detalhe_erro == "API ML indisponível"
-    assert decisao.latencia_ms >= 0
-
-    # Confirma que o evento foi enviado ao logger.
-    logger.info.assert_called_once()
-
-    evento = logger.info.call_args.kwargs["extra"]
-
-    assert evento["evento"] == "decisao_ml"
-    assert evento["lote_id"] == "LOTE-OFFLINE-001"
-    assert evento["status_chamada"] == STATUS_OFFLINE@pytest.mark.unit
-def test_item_ambiguo_registra_auditoria_quando_ml_esta_offline():
-    """
-    Verifica se uma chamada offline é registrada pela auditoria
-    sem impedir o fallback REVISAO_ML_OFFLINE.
-    """
-
-    registro = pd.Series(
-        {
-            "lote_id": "LOTE-OFFLINE-001",
-            "produto": "Produto A",
-            "linha": "L1",
-            "turno": "MANHA",
-            "status": "EM ANALISE",
-            "responsavel": "Carlos",
-            "data": "18/08/2026",
-            "observacao": "",
-        }
-    )
-
-    logger = Mock()
-
-    auditoria = AuditoriaDecisoesML(
-        logger=logger,
-    )
-
-    resultado = processar_item(
-        registro=registro,
-        data_referencia="18/08/2026",
-        lotes_referencia={
-            "LOTE-OFFLINE-001"
-        },
-        ocorrencia_no_dia=1,
-        ml_client=MLIndisponivel(),
-        auditoria_ml=auditoria,
-    )
-
-    # O processamento continua usando o fallback.
-    assert resultado.classificacao == "Ambíguo"
-    assert resultado.acao_recomendada == ACAO_ML_OFFLINE
-    assert "API ML indisponível" in resultado.motivo
-
-    # A chamada offline precisa aparecer na auditoria.
-    assert len(auditoria.decisoes) == 1
-
-    decisao = auditoria.decisoes[0]
-
-    assert decisao.lote_id == "LOTE-OFFLINE-001"
-    assert decisao.status_chamada == STATUS_OFFLINE
-    assert decisao.classe_prevista is None
-    assert decisao.probabilidade is None
-    assert decisao.nivel_confianca is None
-    assert decisao.detalhe_erro == "API ML indisponível"
-    assert decisao.latencia_ms >= 0
-
-    # Confirma que o evento foi enviado ao logger.
-    logger.info.assert_called_once()
-
-    evento = logger.info.call_args.kwargs["extra"]
-
-    assert evento["evento"] == "decisao_ml"
-    assert evento["lote_id"] == "LOTE-OFFLINE-001"
-    assert evento["status_chamada"] == STATUS_OFFLINE
+    assert resultado.causa_provavel == ""
+    assert resultado.confianca_ml is None
+    assert resultado.origem_decisao == ""
