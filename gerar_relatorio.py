@@ -40,7 +40,7 @@ from src.ml_decisions import (
     AuditoriaDecisoesML,
     DecisaoML,
 )
-
+from src.auditoria_hibrida import AuditoriaPipelineHibrido
 
 CORES = {
     "Válido": "22C55E",
@@ -65,7 +65,7 @@ TOTAIS_GABARITO = {
 }
 
 
-def ler_e_validar(caminho: Path,auditoria_ml: AuditoriaDecisoesML | None = None,classificador: ClassificadorDivergencia | None = None,) -> list[RegistroValidado]:
+def ler_e_validar(caminho,auditoria_ml: AuditoriaPipelineHibrido | None = None,classificador: ClassificadorDivergencia | None = None):
     if classificador is None:
         classificador = (
             ClassificadorDivergencia
@@ -134,6 +134,7 @@ def ler_e_validar(caminho: Path,auditoria_ml: AuditoriaDecisoesML | None = None,
                     lotes_referencia=lotes_referencia,
                     ocorrencia_no_dia=ocorrencia,
                     classificador=classificador,
+                    auditoria_ml=auditoria_ml,
                 )
             )
     return resultados
