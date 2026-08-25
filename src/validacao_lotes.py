@@ -76,8 +76,8 @@ class RegistroValidado:
             if regra.strip()
         )
 
-    def to_dict(self) -> dict[str, str]:
-        """Converte somente os campos atuais do relatório Excel."""
+    def to_dict(self) -> dict[str, Any]:
+        """Converte o registro para as colunas do relatório final."""
 
         nomes = {
             "data_referencia": "Data de Referência",
@@ -93,6 +93,13 @@ class RegistroValidado:
             "motivo": "Motivo",
             "acao_recomendada": "Ação Recomendada",
             "regra_aplicada": "Regra Aplicada",
+
+            # Campos de rastreabilidade do pipeline híbrido.
+            "causa_provavel": "Causa Provável",
+            "origem_decisao": "Origem da Decisão",
+            "confianca_ml": "Confiança ML",
+            "motivo_fallback": "Motivo do Fallback",
+            "versao_modelo": "Versão do Modelo",
         }
 
         return {
