@@ -29,7 +29,9 @@ from src.validacao_lotes import (
     texto
 )
 from src.item_processor import processar_item
-from src.ml_client import MLClient
+from src.classificador_divergencia import (
+    ClassificadorDivergencia,
+)
 from src.operational_indicators import (
     OperationalIndicators,
     consolidar_indicadores,
@@ -63,7 +65,13 @@ TOTAIS_GABARITO = {
 }
 
 
-def ler_e_validar(caminho: Path,auditoria_ml : AuditoriaDecisoesML | None = None) -> list[RegistroValidado]:
+def ler_e_validar(caminho: Path,auditoria_ml: AuditoriaDecisoesML | None = None,classificador: ClassificadorDivergencia | None = None,) -> list[RegistroValidado]:
+    if classificador is None:
+        classificador = (
+            ClassificadorDivergencia
+            .de_configuracao()
+        )
+
     planilha = pd.ExcelFile(caminho)
     abas_diarias = sorted(
         (aba for aba in planilha.sheet_names if aba.startswith("Insp_")),
@@ -83,8 +91,7 @@ def ler_e_validar(caminho: Path,auditoria_ml : AuditoriaDecisoesML | None = None
     referencia = pd.read_excel(caminho, sheet_name="Base_Referencia", header=1)
     lotes_referencia = {texto(valor) for valor in referencia["lote_id"] if texto(valor)}
     resultados: list[RegistroValidado] = []
-    #Um único cliente é utilizado durante o todo processamento, permitidno que o contador do circuit breaker esteja presente
-    ml_client = MLClient()
+
 
 
     for aba in abas_diarias:
@@ -126,8 +133,7 @@ def ler_e_validar(caminho: Path,auditoria_ml : AuditoriaDecisoesML | None = None
                     data_referencia=data_referencia,
                     lotes_referencia=lotes_referencia,
                     ocorrencia_no_dia=ocorrencia,
-                    ml_client=ml_client,
-                    auditoria_ml=auditoria_ml,
+                    classificador=classificador,
                 )
             )
     return resultados

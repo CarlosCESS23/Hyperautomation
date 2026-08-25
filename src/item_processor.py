@@ -1,4 +1,4 @@
-"""Camada que integra a validação existente à decisão de ML."""
+"""Integra as regras RN01–RN12 ao enriquecimento híbrido."""
 
 from __future__ import annotations
 
@@ -6,16 +6,38 @@ from dataclasses import replace
 
 import pandas as pd
 
-from src.ml_client import MLClient
-from src.validacao_lotes import RegistroValidado, validar_registro
-from src.ml_decisions import AuditoriaDecisoesML
+from src.classificador_divergencia import (
+    ClassificadorDivergencia,
+)
+from src.decisao_hibrida import (
+    ResultadoDecisaoHibrida,
+)
+from src.validacao_lotes import (
+    RegistroValidado,
+    validar_registro,
+)
 
-ACAO_ML_OFFLINE = "REVISAO_ML_OFFLINE"
-payload_ml = {
-    "status_raw": "APROVADO",
-    "turno": "MANHA",
-    "tem_obs": True,
-}
+
+def _enriquecer_resultado(
+    resultado: RegistroValidado,
+    decisao: ResultadoDecisaoHibrida,
+) -> RegistroValidado:
+    """Adiciona somente informações produzidas pela camada híbrida."""
+
+    motivo_fallback = (
+        decisao.motivo_fallback.value
+        if decisao.motivo_fallback is not None
+        else ""
+    )
+
+    return replace(
+        resultado,
+        causa_provavel=decisao.causa_provavel,
+        confianca_ml=decisao.confianca_ml,
+        origem_decisao=decisao.origem_decisao.value,
+        motivo_fallback=motivo_fallback,
+        versao_modelo=decisao.versao_modelo,
+    )
 
 
 def processar_item(
@@ -23,69 +45,30 @@ def processar_item(
     data_referencia: str,
     lotes_referencia: set[str],
     ocorrencia_no_dia: int,
-    ml_client: MLClient,
-    auditoria_ml: AuditoriaDecisoesML | None = None,
+    classificador: ClassificadorDivergencia,
 ) -> RegistroValidado:
-    """Valida o registro e consulta ML somente para itens ambíguos."""
+    """Aplica as regras e enriquece somente divergências.
 
-    resultado = validar_registro(
+    Os campos de negócio retornados pelas RN01–RN12 não são
+    modificados pela decisão de Machine Learning.
+    """
+
+    resultado_regras = validar_registro(
         registro=registro,
         data_referencia=data_referencia,
         lotes_referencia=lotes_referencia,
         ocorrencia_no_dia=ocorrencia_no_dia,
     )
 
-    # As RN01–RN12 continuam sendo a fonte da classificação inicial.
-    if resultado.classificacao != "Ambíguo":
-        return resultado
+    # O novo ML sugere somente causas de divergências.
+    if resultado_regras.classificacao != "Divergência":
+        return resultado_regras
 
-    payload_ml = {
-        "status_raw": str(
-            registro.get("status", "")
-        ).strip().upper(),
-        "turno": str(
-            registro.get("turno", "")
-        ).strip().upper(),
-        "tem_obs": bool(
-            str(
-                registro.get("observacao", "")
-            ).strip()
-        ),
-    }
+    decisao_hibrida = classificador.classificar(
+        resultado_regras.observacao
+    )
 
-    # Quando uma auditoria foi fornecida, ela executa e registra
-    # a chamada realizada pelo MLClient.
-    if auditoria_ml is not None:
-        predicao = auditoria_ml.classificar(
-            lote_id=str(
-                registro.get("lote_id", "")
-            ),
-            classificador=ml_client.classificar,
-            **payload_ml,
-        )
-
-    # Mantém compatibilidade com testes e usos que ainda não
-    # fornecem uma instância de auditoria.
-    else:
-        predicao = ml_client.classificar(
-            **payload_ml,
-        )
-
-    # Quando uma auditoria foi fornecida, ela executa e vai registrar
-
-    if predicao is None:
-        return replace(
-            resultado,
-            motivo=f"{resultado.motivo}; API ML indisponível",
-            acao_recomendada=ACAO_ML_OFFLINE,
-        )
-
-    return replace(
-        resultado,
-        motivo=(
-            f"{resultado.motivo}; "
-            f"ML: {predicao['classe']} "
-            f"({predicao['probabilidade']:.2%})"
-        ),
-        acao_recomendada=str(predicao["nivel_confianca"]),
+    return _enriquecer_resultado(
+        resultado_regras,
+        decisao_hibrida,
     )
