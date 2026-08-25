@@ -12,6 +12,8 @@ import argparse
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+from time import sleep
+from typing import Callable, Collection
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -41,6 +43,10 @@ from src.ml_decisions import (
     DecisaoML,
 )
 from src.auditoria_hibrida import AuditoriaPipelineHibrido
+from src.base_referencia import (
+    ConfiguracaoRetryBase,
+    consultar_base_com_retry,
+)
 
 CORES = {
     "Válido": "22C55E",
@@ -69,6 +75,9 @@ def ler_e_validar(
     caminho: Path,
     auditoria_ml: AuditoriaPipelineHibrido | None = None,
     classificador: ClassificadorDivergencia | None = None,
+    consulta_base_referencia: Callable[[], Collection[str]] | None = None,
+    configuracao_retry_base: ConfiguracaoRetryBase | None = None,
+    sleeper_base: Callable[[float], None] = sleep,
 ) -> list[RegistroValidado]:
     if classificador is None:
         classificador = ClassificadorDivergencia.de_configuracao()
@@ -92,8 +101,25 @@ def ler_e_validar(
     if "Base_Referencia" not in planilha.sheet_names:
         raise ValueError("A aba obrigatória Base_Referencia não foi encontrada.")
 
-    referencia = pd.read_excel(caminho, sheet_name="Base_Referencia", header=1)
-    lotes_referencia = {texto(valor) for valor in referencia["lote_id"] if texto(valor)}
+    if consulta_base_referencia is None:
+        def consulta_base_referencia() -> set[str]:
+            referencia = pd.read_excel(
+                caminho,
+                sheet_name="Base_Referencia",
+                header=1,
+            )
+            return {
+                texto(valor)
+                for valor in referencia["lote_id"]
+                if texto(valor)
+            }
+
+    resultado_base = consultar_base_com_retry(
+        consulta_base_referencia,
+        configuracao=configuracao_retry_base,
+        sleeper=sleeper_base,
+    )
+    lotes_referencia = set(resultado_base.lotes)
     resultados: list[RegistroValidado] = []
 
 
@@ -131,16 +157,37 @@ def ler_e_validar(
                 ocorrencia = vistas[lote]
             else:
                 ocorrencia = 1
-            resultados.append(
-                processar_item(
+            if not resultado_base.sucesso:
+                # A indisponibilidade da base crítica impede uma decisão de
+                # negócio segura. O item segue para revisão sem consultar ML.
+                resultados.append(
+                    RegistroValidado(
+                        data_referencia=data_referencia,
+                        lote=lote,
+                        produto=texto(registro.get("produto")),
+                        linha=texto(registro.get("linha")),
+                        turno=texto(registro.get("turno")),
+                        status="PENDENTE_REVISAO",
+                        responsavel=texto(registro.get("responsavel")),
+                        data_inspecao=texto(registro.get("data")),
+                        observacao=texto(registro.get("observacao")),
+                        classificacao="PENDENTE_REVISAO",
+                        motivo=(
+                            "Base de referência indisponível após "
+                            f"{resultado_base.tentativas} tentativa(s)"
+                        ),
+                        acao_recomendada="Encaminhar para revisão humana",
+                    )
+                )
+            else:
+                resultados.append(processar_item(
                     registro=registro,
                     data_referencia=data_referencia,
                     lotes_referencia=lotes_referencia,
                     ocorrencia_no_dia=ocorrencia,
                     classificador=classificador,
                     auditoria_ml=auditoria_ml,
-                )
-            )
+                ))
     return resultados
 
 def formatar_rastreabilidade(ws) -> None:
