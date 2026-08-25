@@ -1,0 +1,77 @@
+{
+  "versao_modelo": "2.0.0-texto",
+  "acuracia": 1.0,
+  "quantidade_treino": 76,
+  "quantidade_teste": 20,
+  "classes": [
+    "duplicidade",
+    "erro_cadastro",
+    "erro_codigo",
+    "falta_peca"
+  ],
+  "relatorio_classificacao": {
+    "duplicidade": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 5.0
+    },
+    "erro_cadastro": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 5.0
+    },
+    "erro_codigo": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 5.0
+    },
+    "falta_peca": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 5.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 20.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 20.0
+    }
+  },
+  "matriz_confusao": [
+    [
+      5,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      5,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      5
+    ]
+  ]
+}
