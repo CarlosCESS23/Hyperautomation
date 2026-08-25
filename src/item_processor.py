@@ -16,6 +16,7 @@ from src.validacao_lotes import (
     RegistroValidado,
     validar_registro,
 )
+from src.auditoria_hibrida import AuditoriaPipelineHibrido
 
 
 def _enriquecer_resultado(
@@ -46,6 +47,7 @@ def processar_item(
     lotes_referencia: set[str],
     ocorrencia_no_dia: int,
     classificador: ClassificadorDivergencia,
+    auditoria_ml: AuditoriaPipelineHibrido | None = None,
 ) -> RegistroValidado:
     """Aplica as regras e enriquece somente divergências.
 
@@ -64,11 +66,18 @@ def processar_item(
     if resultado_regras.classificacao != "Divergência":
         return resultado_regras
 
-    decisao_hibrida = classificador.classificar(
-        resultado_regras.observacao
-    )
+    if auditoria_ml is None:
+        decisao = classificador.classificar(
+            resultado_regras.observacao
+        )
+    else:
+        decisao = auditoria_ml.classificar(
+            lote_id=resultado_regras.lote,
+            classificador=classificador.classificar,
+            observacao=resultado_regras.observacao,
+        )
 
     return _enriquecer_resultado(
         resultado_regras,
-        decisao_hibrida,
+        decisao,
     )
