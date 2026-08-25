@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import json
-import re
-import unicodedata
+
 from pathlib import Path
 
 import joblib
@@ -21,6 +20,7 @@ from sklearn.pipeline import Pipeline
 
 from src.causas_divergencia import CAUSAS_PROVAVEIS
 from src.dataset_observacoes import validar_dataset
+from src.normalizacao_text import normalizar_observacao
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -50,43 +50,6 @@ TURNO_MAP = {
     "TARDE": 1,
     "NOITE": 2,
 }
-
-
-def normalizar_observacao(observacao: str) -> str:
-    """Normaliza o texto antes da vetorização.
-
-    A normalização:
-
-    - remove espaços nas extremidades;
-    - transforma o texto em minúsculo;
-    - remove acentos;
-    - remove pontuações;
-    - remove espaços repetidos.
-    """
-
-    if not isinstance(observacao, str):
-        raise TypeError(
-            "A observação deve ser uma string"
-        )
-
-    texto_sem_acento = (
-        unicodedata.normalize("NFKD", observacao)
-        .encode("ascii", "ignore")
-        .decode("ascii")
-    )
-
-    texto_minusculo = texto_sem_acento.casefold()
-
-    texto_sem_pontuacao = re.sub(
-        r"[^a-z0-9\s]",
-        " ",
-        texto_minusculo,
-    )
-
-    return " ".join(
-        texto_sem_pontuacao.split()
-    )
-
 
 def carregar_dataset(
     caminho: Path = DATASET_PATH,
