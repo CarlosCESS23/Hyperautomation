@@ -218,3 +218,44 @@ def test_resetar_circuito():
 
     assert client.circuito_aberto is False
     assert client.falhas_consecutivas == 0
+
+@pytest.mark.unit
+def test_classificar_observacao_envia_somente_texto():
+    session = Mock()
+
+    resposta = Mock()
+    resposta.raise_for_status.return_value = None
+    resposta.json.return_value = {
+        "causa_provavel": "erro_codigo",
+        "confianca_ml": 0.88,
+        "versao_modelo": "2.0.0-texto",
+    }
+
+    session.post.return_value = resposta
+
+    client = MLClient(
+        base_url="http://api-ml-teste:8000",
+        session=session,
+    )
+
+    resultado = client.classificar_observacao(
+        observacao=(
+            "Código informado não existe."
+        )
+    )
+
+    assert resultado == {
+        "causa_provavel": "erro_codigo",
+        "confianca_ml": 0.88,
+        "versao_modelo": "2.0.0-texto",
+    }
+
+    session.post.assert_called_once_with(
+        "http://api-ml-teste:8000/predict",
+        json={
+            "observacao": (
+                "Código informado não existe."
+            )
+        },
+        timeout=3.0,
+    )
