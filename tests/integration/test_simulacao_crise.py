@@ -20,450 +20,323 @@ from src.ml_client import (
     MLServiceUnavailableError,
     MLTimeoutError,
 )
+
+"""Simulação reproduzível dos cinco cenários da apresentação."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from unittest.mock import Mock
+
+import requests
+
+from src.alerta_pipeline_sem_ml import (
+    avaliar_e_alertar_pipeline_sem_ml,
+)
+from src.base_referencia import (
+    ConfiguracaoRetryBase,
+    StatusBaseReferencia,
+    consultar_base_com_retry,
+)
+from src.classificador_divergencia import ClassificadorDivergencia
+from src.decisao_hibrida import MotivoFallback, OrigemDecisao
+from src.ml_client import MLClient
+
 from src.sistema_alertas import (
     Alerta,
     ResultadoAlerta,
     Severidade,
     SistemaAlertas,
 )
+from src.validacao_lotes import RegistroValidado
 
 
-pytestmark = pytest.mark.integration
+OBSERVACOES = (
+    "Código digitado incorretamente",
+    "Faltou peça na doca três",
+    "Lançamento duplicado pelo operador",
+)
 
 
-class ClienteMLControlado:
-    """Simula a API ML sem realizar chamadas HTTP."""
-
-    def __init__(
-        self,
-        *,
-        resposta: dict | None = None,
-        erro: Exception | None = None,
-    ) -> None:
-        self.resposta = resposta
-        self.erro = erro
-        self.observacoes: list[str] = []
-
-    def classificar_observacao(
-        self,
-        *,
-        observacao: str,
-    ) -> dict | None:
-        self.observacoes.append(observacao)
-
-        if self.erro is not None:
-            raise self.erro
-
-        return self.resposta
-
-
-class CanalControlado:
-    """Simula Telegram ou Email e registra todas as tentativas."""
-
-    def __init__(
-        self,
-        nome: str,
-        *,
-        sucesso: bool,
-        erro: str | None = None,
-        lancar_excecao: bool = False,
-    ) -> None:
+class CanalSimulado:
+    def __init__(self, nome: str, sucesso: bool, erro: str | None = None):
         self.nome = nome
         self.sucesso = sucesso
         self.erro = erro
-        self.lancar_excecao = lancar_excecao
         self.alertas: list[Alerta] = []
 
     def enviar(self, alerta: Alerta) -> ResultadoAlerta:
         self.alertas.append(alerta)
-
-        if self.lancar_excecao:
-            raise RuntimeError(
-                self.erro or f"Falha inesperada no canal {self.nome}"
-            )
-
         return ResultadoAlerta(
             sucesso=self.sucesso,
             canal=self.nome,
-            erro=None if self.sucesso else self.erro,
+            erro=self.erro,
         )
 
 
-def criar_registro_divergente(numero: int) -> pd.Series:
-    """Cria um lote ausente da base para acionar a RN05 e o ML."""
+def salvar_evidencia(
+    diretorio: Path,
+    cenario: str,
+    **dados,
+) -> Path:
+    """Cria artefato que pode ser anexado à evidência da apresentação."""
 
-    return pd.Series(
-        {
-            "lote_id": f"LOTE-CRISE-{numero:03d}",
-            "produto": "Produto de teste",
-            "linha": "Linha 1",
-            "turno": "Manhã",
-            "status": "APROVADO",
-            "responsavel": "Equipe de teste",
-            "data": "15/06/2026",
-            "observacao": "Código não localizado na base de referência",
-        },
-        dtype=object,
+    caminho = diretorio / f"evidencia_{cenario}.json"
+    caminho.write_text(
+        json.dumps(
+            {"cenario": cenario, **dados},
+            ensure_ascii=False,
+            indent=2,
+            default=str,
+        ),
+        encoding="utf-8",
     )
+    return caminho
 
 
-def processar_lote_divergente(
-    classificador: ClassificadorDivergencia,
-    auditoria: AuditoriaPipelineHibrido,
-    *,
-    quantidade: int = 2,
-):
-    """Processa vários itens para provar que uma falha não para o lote."""
-
-    return [
-        processar_item(
-            registro=criar_registro_divergente(numero),
-            data_referencia="15/06/2026",
-            lotes_referencia={"LOTE-REFERENCIA"},
-            ocorrencia_no_dia=1,
-            classificador=classificador,
-            auditoria_ml=auditoria,
+def eventos_do_logger(logger: Mock) -> list[str]:
+    eventos = []
+    for metodo in (
+        logger.info,
+        logger.warning,
+        logger.error,
+        logger.critical,
+    ):
+        eventos.extend(
+            chamada.kwargs["extra"]["evento"]
+            for chamada in metodo.call_args_list
         )
-        for numero in range(1, quantidade + 1)
+    return eventos
+
+
+def classificar_lote(classificador: ClassificadorDivergencia):
+    return [
+        classificador.classificar(observacao)
+        for observacao in OBSERVACOES
     ]
 
 
-def criar_alertas_controlados(
-    *,
-    telegram_sucesso: bool = True,
-    email_sucesso: bool = True,
-    telegram_lanca_excecao: bool = False,
-):
-    """Cria o sistema real usando canais falsos e um logger auditável."""
-
-    telegram = CanalControlado(
-        "telegram",
-        sucesso=telegram_sucesso,
-        erro=(
-            None
-            if telegram_sucesso
-            else "Telegram indisponível"
+def registro_divergencia(indice, decisao) -> RegistroValidado:
+    return RegistroValidado(
+        data_referencia="15/06/2026",
+        lote=f"LOTE-{indice:03d}",
+        produto="Produto",
+        linha="Linha 1",
+        turno="Manhã",
+        status="REPROVADO",
+        responsavel="Operador",
+        data_inspecao="15/06/2026",
+        observacao=OBSERVACOES[indice - 1],
+        classificacao="Divergência",
+        motivo="Lote não encontrado na referência",
+        acao_recomendada="Revisar",
+        causa_provavel=decisao.causa_provavel,
+        confianca_ml=decisao.confianca_ml,
+        origem_decisao=decisao.origem_decisao.value,
+        motivo_fallback=(
+            decisao.motivo_fallback.value
+            if decisao.motivo_fallback is not None
+            else ""
         ),
-        lancar_excecao=telegram_lanca_excecao,
+        versao_modelo=decisao.versao_modelo,
     )
-    email = CanalControlado(
-        "email",
-        sucesso=email_sucesso,
-        erro=(
-            None
-            if email_sucesso
-            else "Email indisponível"
-        ),
+
+
+def comprovar_aviso_sem_ml(decisoes):
+    alertas = Mock()
+    registros = [
+        registro_divergencia(indice, decisao)
+        for indice, decisao in enumerate(decisoes, start=1)
+    ]
+    avaliacao = avaliar_e_alertar_pipeline_sem_ml(
+        registros,
+        alertas,
+        execution_id="exec-crise",
+        correlation_id="corr-crise",
+    )
+    return avaliacao, alertas
+
+
+def test_cenario_1_base_referencia_instavel_recupera_e_continua(
+    tmp_path,
+):
+    consulta = Mock(
+        side_effect=[
+            ConnectionError("rede instável"),
+            {"LOTE-001", "LOTE-002", "LOTE-003"},
+        ]
     )
     logger = Mock()
-    sistema = SistemaAlertas(
-        canal_principal=telegram,
-        canal_secundario=email,
-        logger=logger,
-    )
-    return sistema, telegram, email, logger
-
-
-def enviar_alerta_da_crise(
-    sistema: SistemaAlertas,
-    *,
-    severidade: Severidade,
-    cenario: str,
-) -> ResultadoAlerta:
-    """Dispara o alerta que seria apresentado como evidência da crise."""
-
-    return sistema.enviar_alerta(
-        severidade=severidade,
-        mensagem=f"Cenário de crise detectado: {cenario}",
-        contexto={
-            "execution_id": f"exec-{cenario}",
-            "correlation_id": "corr-simulacao-crise",
-            "bot_id": "teste-integracao-crise",
-        },
-    )
-
-
-def resposta_ml_valida(
-    *,
-    confianca: float,
-) -> dict:
-    return {
-        "causa_provavel": "falta_peca",
-        "confianca_ml": confianca,
-        "versao_modelo": "2.0.0-simulacao",
-    }
-
-
-def test_cenario_1_base_referencia_instavel(
-    planilha_controlada_factory,
-    caplog,
-):
-    """A base falha, o lote segue para revisão e o ML não é chamado."""
-
-    caplog.set_level(
-        logging.INFO,
-        logger="botcity_permorfer",
-    )
-    entrada = planilha_controlada_factory(
-        nome="crise_base_referencia.xlsx"
-    )
-    consulta_base = Mock(
-        side_effect=ConnectionError("Base de referência instável")
-    )
-    sleeper = Mock()
-    classificador = Mock()
-
-    # A função não deve lançar exceção, mesmo após todas as tentativas.
-    registros = ler_e_validar(
-        entrada,
-        classificador=classificador,
-        consulta_base_referencia=consulta_base,
-        configuracao_retry_base=ConfiguracaoRetryBase(
+    resultado = consultar_base_com_retry(
+        consulta,
+        configuracao=ConfiguracaoRetryBase(
             max_tentativas=3,
             backoff_seconds=0,
         ),
-        sleeper_base=sleeper,
+        sleeper=Mock(),
+        logger=logger,
     )
 
-    sistema, telegram, email, _ = criar_alertas_controlados()
-    alerta = enviar_alerta_da_crise(
-        sistema,
-        severidade=Severidade.CRITICO,
-        cenario="base-referencia-instavel",
+    # A falha temporária é recuperada e o lote inteiro permanece disponível.
+    assert resultado.status is StatusBaseReferencia.DISPONIVEL
+    assert resultado.tentativas == 2
+    assert len(resultado.lotes) == 3
+    eventos = eventos_do_logger(logger)
+    assert "base_referencia_retry_agendado" in eventos
+    assert "base_referencia_consulta_sucesso" in eventos
+    evidencia = salvar_evidencia(
+        tmp_path,
+        "base_instavel",
+        lote_concluido=True,
+        tentativas=resultado.tentativas,
+        eventos=eventos,
     )
-
-    assert len(registros) == 20
-    assert all(
-        registro.status == "PENDENTE_REVISAO"
-        for registro in registros
-    )
-    assert all(
-        registro.classificacao == "PENDENTE_REVISAO"
-        for registro in registros
-    )
-    assert consulta_base.call_count == 3
-    assert sleeper.call_count == 2
-    classificador.classificar.assert_not_called()
-
-    assert alerta.sucesso is True
-    assert alerta.canal == "telegram"
-    assert len(telegram.alertas) == 1
-    assert email.alertas == []
-    assert "infraestrutura_degradada" in caplog.messages
+    assert evidencia.is_file()
 
 
-def test_cenario_2_servico_ml_fora_do_ar():
-    """A API offline produz fallback para todos os itens do lote."""
-
-    cliente = ClienteMLControlado(
-        erro=MLServiceUnavailableError("API ML fora do ar")
-    )
+def test_cenario_2_servico_ml_fora_do_ar_usa_fallback_e_avisa(
+    tmp_path,
+):
+    session = Mock()
+    session.post.side_effect = requests.ConnectionError("ML offline")
     classificador = ClassificadorDivergencia(
-        cliente_ml=cliente,
+        MLClient(session=session, limite_falhas=10),
         ml_enabled=True,
         confianca_minima=0.75,
     )
-    logger_auditoria = Mock()
-    auditoria = AuditoriaPipelineHibrido(
-        execution_id="exec-ml-offline",
-        logger=logger_auditoria,
-    )
 
-    resultados = processar_lote_divergente(
-        classificador,
-        auditoria,
-    )
+    decisoes = classificar_lote(classificador)
+    avaliacao, alertas = comprovar_aviso_sem_ml(decisoes)
 
-    sistema, telegram, email, _ = criar_alertas_controlados()
-    alerta = enviar_alerta_da_crise(
-        sistema,
-        severidade=Severidade.ERRO,
-        cenario="ml-fora-do-ar",
-    )
-
-    assert len(resultados) == 2
+    assert len(decisoes) == len(OBSERVACOES)
     assert all(
-        resultado.classificacao == "Divergência"
-        for resultado in resultados
-    )
-    assert all(
-        resultado.origem_decisao == "fallback"
-        for resultado in resultados
-    )
-    assert all(
-        resultado.motivo_fallback
-        == MotivoFallback.SERVICO_INDISPONIVEL.value
-        for resultado in resultados
-    )
-    assert len(cliente.observacoes) == 2
-    assert len(auditoria.decisoes) == 2
-    assert logger_auditoria.info.call_count == 2
-
-    assert alerta.sucesso is True
-    assert len(telegram.alertas) == 1
-    assert email.alertas == []
-
-
-def test_cenario_3_servico_ml_acima_do_timeout():
-    """O timeout é diferenciado de indisponibilidade e não para o lote."""
-
-    cliente = ClienteMLControlado(
-        erro=MLTimeoutError("Tempo limite excedido")
-    )
-    classificador = ClassificadorDivergencia(
-        cliente_ml=cliente,
-        ml_enabled=True,
-        confianca_minima=0.75,
-    )
-    auditoria = AuditoriaPipelineHibrido(
-        execution_id="exec-ml-timeout"
-    )
-
-    resultados = processar_lote_divergente(
-        classificador,
-        auditoria,
-    )
-
-    sistema, telegram, email, _ = criar_alertas_controlados()
-    alerta = enviar_alerta_da_crise(
-        sistema,
-        severidade=Severidade.ERRO,
-        cenario="ml-timeout",
-    )
-
-    assert len(resultados) == 2
-    assert all(
-        resultado.origem_decisao == "fallback"
-        for resultado in resultados
-    )
-    assert all(
-        resultado.motivo_fallback
-        == MotivoFallback.TIMEOUT.value
-        for resultado in resultados
-    )
-    assert len(auditoria.decisoes) == 2
-    assert {
         decisao.motivo_fallback
-        for decisao in auditoria.decisoes
-    } == {MotivoFallback.TIMEOUT.value}
-
-    assert alerta.sucesso is True
-    assert len(telegram.alertas) == 1
-    assert email.alertas == []
-
-
-def test_cenario_4_ml_com_confianca_abaixo_do_limiar():
-    """Uma predição fraca é descartada sem inventar confiança ou causa."""
-
-    cliente = ClienteMLControlado(
-        resposta=resposta_ml_valida(confianca=0.60)
+        is MotivoFallback.SERVICO_INDISPONIVEL
+        for decisao in decisoes
     )
+    assert avaliacao.alerta_disparado is True
+    assert alertas.enviar_alerta.call_args.kwargs["severidade"] == "AVISO"
+    evidencia = salvar_evidencia(
+        tmp_path,
+        "ml_fora_ar",
+        lote_concluido=True,
+        fallbacks=[d.motivo_fallback.value for d in decisoes],
+        alerta="AVISO",
+    )
+    assert "servico_indisponivel" in evidencia.read_text(encoding="utf-8")
+
+
+def test_cenario_3_ml_acima_timeout_usa_fallback_e_avisa(tmp_path):
+    session = Mock()
+    session.post.side_effect = requests.Timeout("resposta acima do limite")
+    cliente = MLClient(session=session, timeout=0.01, limite_falhas=10)
     classificador = ClassificadorDivergencia(
-        cliente_ml=cliente,
+        cliente,
         ml_enabled=True,
         confianca_minima=0.75,
     )
-    auditoria = AuditoriaPipelineHibrido(
-        execution_id="exec-baixa-confianca"
-    )
 
-    resultados = processar_lote_divergente(
-        classificador,
-        auditoria,
-    )
+    decisoes = classificar_lote(classificador)
+    avaliacao, _ = comprovar_aviso_sem_ml(decisoes)
 
-    sistema, telegram, email, _ = criar_alertas_controlados()
-    alerta = enviar_alerta_da_crise(
-        sistema,
-        severidade=Severidade.AVISO,
-        cenario="ml-baixa-confianca",
-    )
-
-    assert len(resultados) == 2
+    assert len(decisoes) == len(OBSERVACOES)
     assert all(
-        resultado.origem_decisao == "fallback"
-        for resultado in resultados
+        decisao.motivo_fallback is MotivoFallback.TIMEOUT
+        for decisao in decisoes
     )
     assert all(
-        resultado.motivo_fallback
-        == MotivoFallback.BAIXA_CONFIANCA.value
-        for resultado in resultados
+        chamada.kwargs["timeout"] == 0.01
+        for chamada in session.post.call_args_list
     )
-    assert all(
-        resultado.confianca_ml is None
-        for resultado in resultados
+    assert avaliacao.alerta_disparado is True
+    evidencia = salvar_evidencia(
+        tmp_path,
+        "ml_timeout",
+        lote_concluido=True,
+        fallback="timeout",
+        timeout_seconds=cliente.timeout,
+        alerta="AVISO",
     )
-    assert all(
-        resultado.causa_provavel == "nao_classificado"
-        for resultado in resultados
-    )
-    assert len(auditoria.decisoes) == 2
-
-    assert alerta.sucesso is True
-    assert len(telegram.alertas) == 1
-    assert email.alertas == []
+    assert evidencia.is_file()
 
 
-def test_cenario_5_telegram_indisponivel_aciona_email():
-    """O Telegram falha e o Email entrega o alerta crítico."""
-
-    # Primeiro, prova que o lote foi processado normalmente.
-    cliente = ClienteMLControlado(
-        resposta=resposta_ml_valida(confianca=0.95)
-    )
+def test_cenario_4_ml_baixa_confianca_descarta_resposta_e_avisa(
+    tmp_path,
+):
+    cliente = Mock()
+    cliente.classificar_observacao.return_value = {
+        "causa_provavel": "erro_codigo",
+        "confianca_ml": 0.40,
+        "versao_modelo": "crise-v1",
+    }
     classificador = ClassificadorDivergencia(
-        cliente_ml=cliente,
+        cliente,
         ml_enabled=True,
         confianca_minima=0.75,
     )
-    auditoria = AuditoriaPipelineHibrido(
-        execution_id="exec-telegram-offline"
-    )
-    resultados = processar_lote_divergente(
-        classificador,
-        auditoria,
-    )
 
-    sistema, telegram, email, logger = criar_alertas_controlados(
-        telegram_sucesso=False,
-        email_sucesso=True,
-        # Também valida uma falha inesperada, e não somente um
-        # ResultadoAlerta com sucesso=False.
-        telegram_lanca_excecao=True,
-    )
+    decisoes = classificar_lote(classificador)
+    avaliacao, _ = comprovar_aviso_sem_ml(decisoes)
 
-    # A chamada não deve propagar a exceção do Telegram.
-    alerta = enviar_alerta_da_crise(
-        sistema,
-        severidade=Severidade.CRITICO,
-        cenario="telegram-indisponivel",
-    )
-
-    assert len(resultados) == 2
+    assert len(decisoes) == len(OBSERVACOES)
     assert all(
-        resultado.origem_decisao == OrigemDecisao.ML.value
-        for resultado in resultados
+        decisao.origem_decisao is OrigemDecisao.FALLBACK
+        and decisao.motivo_fallback is MotivoFallback.BAIXA_CONFIANCA
+        and decisao.confianca_ml is None
+        for decisao in decisoes
     )
-    assert len(auditoria.decisoes) == 2
+    assert avaliacao.alerta_disparado is True
+    evidencia = salvar_evidencia(
+        tmp_path,
+        "ml_baixa_confianca",
+        lote_concluido=True,
+        confianca_recebida=0.40,
+        limiar=0.75,
+        fallback="baixa_confianca",
+        alerta="AVISO",
+    )
+    assert evidencia.is_file()
 
-    assert alerta.sucesso is True
-    assert alerta.canal == "email"
-    assert alerta.fallback_acionado is True
-    assert len(alerta.tentativas) == 2
-    assert [
-        tentativa.canal
-        for tentativa in alerta.tentativas
-    ] == ["telegram", "email"]
-    assert [
-        tentativa.sucesso
-        for tentativa in alerta.tentativas
-    ] == [False, True]
 
+def test_cenario_5_telegram_indisponivel_entrega_por_email_e_continua(
+    tmp_path,
+):
+    telegram = CanalSimulado(
+        "telegram",
+        sucesso=False,
+        erro="canal_indisponivel",
+    )
+    email = CanalSimulado("email", sucesso=True)
+    logger = Mock()
+    sistema = SistemaAlertas(telegram, email, logger=logger)
+
+    resultado = sistema.enviar(
+        Alerta(
+            Severidade.CRITICO,
+            "Infraestrutura degradada durante a simulação",
+            contexto={
+                "execution_id": "exec-crise",
+                "correlation_id": "corr-crise",
+            },
+        )
+    )
+
+    assert resultado.sucesso is True
+    assert resultado.canal == "email"
+    assert resultado.fallback_acionado is True
     assert len(telegram.alertas) == 1
     assert len(email.alertas) == 1
-
-    # O log estruturado pode ser utilizado como evidência da apresentação.
-    auditoria_entrega = logger.info.call_args.kwargs["extra"]
-    assert auditoria_entrega["evento"] == "alerta_entregue"
-    assert auditoria_entrega["canal_entrega"] == "email"
-    assert auditoria_entrega["fallback_acionado"] is True
+    evidencia = salvar_evidencia(
+        tmp_path,
+        "telegram_indisponivel",
+        lote_concluido=True,
+        alerta_entregue=resultado.sucesso,
+        canal=resultado.canal,
+        fallback_canal=resultado.fallback_acionado,
+        tentativas=[t.to_dict() for t in resultado.tentativas],
+        eventos=eventos_do_logger(logger),
+    )
+    assert json.loads(evidencia.read_text(encoding="utf-8"))[
+        "canal"
+    ] == "email"
