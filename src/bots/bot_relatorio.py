@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import Any, Callable, Protocol, Sequence
 
 from gerar_relatorio import gerar_excel
+from src.alerta_pipeline_sem_ml import (
+    avaliar_e_alertar_pipeline_sem_ml,
+)
 from src.validacao_lotes import RegistroValidado
 
 
@@ -204,6 +207,13 @@ def executar_bot_relatorio(
     alerta_enviado = False
     erro_alerta: str | None = None
     if sistema_alertas is not None:
+        avaliar_e_alertar_pipeline_sem_ml(
+            resultados_bot_b,
+            sistema_alertas,
+            execution_id=execution_id,
+            correlation_id=correlation_id,
+            logger=logger,
+        )
         try:
             sistema_alertas.enviar_alerta(
                 severidade="INFO",
