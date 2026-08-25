@@ -340,4 +340,10 @@ tests/e2e/screenshots/*.png
 
 screenshots
 
-inspe
+# Dataset textual versionado da atividade S10-B
+!data/
+data/*
+!data/ml/
+data/ml/*
+!data/ml/dataset_observacoes.csv
+!data/ml/README.md
