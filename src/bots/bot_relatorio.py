@@ -93,12 +93,13 @@ GeradorRelatorio = Callable[
 def consolidar_decisoes(
     registros: Sequence[RegistroValidado],
 ) -> ConsolidacaoDecisoes:
-    """Conta origens já decididas pelo Bot B, sem recalculá-las."""
+    """Conta as origens decididas pelo Bot B sem recalculá-las."""
 
     contagens = Counter(
         (registro.origem_decisao or "").strip().lower()
         for registro in registros
     )
+
     return ConsolidacaoDecisoes(
         quantidade_ml=contagens["ml"],
         quantidade_fallback=contagens["fallback"],
@@ -116,6 +117,8 @@ def _gerar_relatorio_padrao(
     caminho_saida: Path,
     momento: datetime,
 ) -> Any:
+    """Utiliza o gerador real quando nenhum gerador é injetado."""
+
     return gerar_excel(registros, caminho_saida, momento)
 
 
@@ -132,12 +135,16 @@ def executar_bot_relatorio(
 ) -> ResultadoBotRelatorio:
     """Gera o relatório uma vez, tenta alertar e encerra a cadeia.
 
-    Os registros são resultados finais do Bot B. Este bot não chama o
-    classificador e não executa qualquer regra de validação de negócio.
+    Os registros recebidos já são os resultados finais do Bot B. Este bot
+    não chama o classificador e não executa novamente as regras de negócio.
+
+    Uma falha no sistema de alertas não interrompe a geração do relatório.
     """
 
     logger = logger or LOGGER
-    gerador_relatorio = gerador_relatorio or _gerar_relatorio_padrao
+    gerador_relatorio = (
+        gerador_relatorio or _gerar_relatorio_padrao
+    )
     caminho = Path(caminho_saida)
     consolidacao = consolidar_decisoes(resultados_bot_b)
 
@@ -152,17 +159,21 @@ def executar_bot_relatorio(
         },
     )
 
+    # Impede a execução do bot sem os identificadores de rastreabilidade.
     if not execution_id.strip() or not correlation_id.strip():
         resultado = ResultadoBotRelatorio(
             sucesso=False,
             status=StatusBotRelatorio.ENTRADA_INVALIDA,
-            mensagem="execution_id e correlation_id são obrigatórios",
+            mensagem=(
+                "execution_id e correlation_id são obrigatórios"
+            ),
             execution_id=execution_id,
             correlation_id=correlation_id,
             caminho_relatorio=None,
             consolidacao=consolidacao,
             alerta_enviado=False,
         )
+
         logger.warning(
             "bot_relatorio_entrada_invalida",
             extra={
@@ -174,7 +185,7 @@ def executar_bot_relatorio(
         return resultado
 
     try:
-        # Ponto único de geração: alertas nunca repetem esta chamada.
+        # Este é o único ponto em que o relatório é gerado.
         gerador_relatorio(
             list(resultados_bot_b),
             caminho,
@@ -191,6 +202,7 @@ def executar_bot_relatorio(
             consolidacao=consolidacao,
             alerta_enviado=False,
         )
+
         logger.exception(
             "bot_relatorio_falhou",
             extra={
@@ -203,9 +215,13 @@ def executar_bot_relatorio(
 
     alerta_enviado = False
     erro_alerta: str | None = None
+
+    # O sistema de alertas é opcional. Quando ele não for informado,
+    # o relatório continua sendo concluído normalmente.
     if sistema_alertas is not None:
         try:
-            sistema_alertas.enviar_alerta(
+            # Deve existir somente uma chamada a enviar_alerta.
+            resultado_alerta = sistema_alertas.enviar_alerta(
                 severidade="INFO",
                 mensagem=(
                     "Pipeline concluído: "
@@ -216,12 +232,46 @@ def executar_bot_relatorio(
                 contexto={
                     "execution_id": execution_id,
                     "correlation_id": correlation_id,
+                    "bot_id": BOT_ID,
                     **consolidacao.to_dict(),
                 },
             )
-            alerta_enviado = True
+
+            # ResultadoAlerta possui o atributo sucesso. O getattr também
+            # mantém o Bot C compatível com canais simulados nos testes.
+            alerta_enviado = bool(
+                getattr(resultado_alerta, "sucesso", False)
+            )
+
+            if not alerta_enviado:
+                erro_resultado = getattr(
+                    resultado_alerta,
+                    "erro",
+                    None,
+                )
+                erro_alerta = (
+                    str(erro_resultado)
+                    if erro_resultado
+                    else "O alerta não foi entregue"
+                )
+
+                logger.warning(
+                    "bot_relatorio_alerta_nao_entregue",
+                    extra={
+                        "evento": (
+                            "bot_relatorio_alerta_nao_entregue"
+                        ),
+                        "bot_id": BOT_ID,
+                        "execution_id": execution_id,
+                        "correlation_id": correlation_id,
+                        "erro_alerta": erro_alerta,
+                    },
+                )
         except Exception as erro:
+            # Uma exceção do canal não pode interromper o pipeline.
+            alerta_enviado = False
             erro_alerta = str(erro)
+
             logger.exception(
                 "bot_relatorio_alerta_falhou",
                 extra={
@@ -229,7 +279,9 @@ def executar_bot_relatorio(
                     "bot_id": BOT_ID,
                     "execution_id": execution_id,
                     "correlation_id": correlation_id,
-                    "caminho_relatorio": str(caminho.resolve()),
+                    "caminho_relatorio": str(
+                        caminho.resolve()
+                    ),
                 },
             )
 
@@ -238,6 +290,7 @@ def executar_bot_relatorio(
         if sistema_alertas is None or alerta_enviado
         else StatusBotRelatorio.CONCLUIDO_SEM_ALERTA
     )
+
     resultado = ResultadoBotRelatorio(
         sucesso=True,
         status=status,
@@ -249,6 +302,7 @@ def executar_bot_relatorio(
         alerta_enviado=alerta_enviado,
         erro_alerta=erro_alerta,
     )
+
     logger.info(
         "cadeia_encerrada",
         extra={
@@ -264,7 +318,9 @@ def main(argv: list[str] | None = None) -> int:
     """Exibe ajuda para a execução orquestrada do Bot C."""
 
     parser = argparse.ArgumentParser(
-        description="Bot C: gera artefatos a partir dos resultados do Bot B",
+        description=(
+            "Bot C: gera artefatos a partir dos resultados do Bot B"
+        ),
     )
     parser.add_argument(
         "--contrato",
@@ -272,6 +328,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Exibe o contrato esperado pelo Bot C em JSON",
     )
     args = parser.parse_args(argv)
+
     if args.contrato:
         print(
             json.dumps(
@@ -286,6 +343,7 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
+
     return 0
 
 
