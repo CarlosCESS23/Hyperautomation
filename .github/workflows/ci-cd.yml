@@ -114,54 +114,6 @@ jobs:
             data/output/
           if-no-files-found: warn
           retention-days: 14
-
-  simulacao-crise:
-    name: Simulação automatizada de crise
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Baixar código
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
-
-      - name: Instalar dependências
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
-
-      - name: Preparar diretórios de evidências
-        run: mkdir -p logs reports/crise
-
-      - name: Executar os cinco cenários de crise
-        run: |
-          set -o pipefail
-          python -m pytest \
-            tests/integration/test_simulacao_crise.py \
-            -v \
-            --tb=short \
-            --junitxml=reports/crise/junit-simulacao-crise.xml \
-            2>&1 | tee logs/simulacao-crise.log
-
-      - name: Publicar evidências da simulação de crise
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: evidencias-crise-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            logs/simulacao-crise.log
-            reports/crise/
-          if-no-files-found: warn
-          retention-days: 14
-
   testes-e2e:
     name: Testes E2E
     runs-on: ubuntu-latest
@@ -348,7 +300,6 @@ jobs:
     needs:
       - testes-unitarios
       - testes-integracao
-      - simulacao-crise
       - testes-e2e
       - api-ml-container
 
@@ -357,7 +308,6 @@ jobs:
         env:
           RESULTADO_UNITARIOS: ${{ needs.testes-unitarios.result }}
           RESULTADO_INTEGRACAO: ${{ needs.testes-integracao.result }}
-          RESULTADO_CRISE: ${{ needs.simulacao-crise.result }}
           RESULTADO_E2E: ${{ needs.testes-e2e.result }}
           RESULTADO_API_ML: ${{ needs.api-ml-container.result }}
         run: |

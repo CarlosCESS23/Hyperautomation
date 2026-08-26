@@ -45,17 +45,34 @@ class FormatadorJSON(logging.Formatter):
     """Grava os eventos principais como uma linha JSON por evento."""
 
     CAMPOS_EXTRAS = (
+        # Identificação geral do evento.
         "evento",
         "bot_id",
         "execution_id",
         "correlation_id",
         "status",
+
+        # Resumo do processamento.
         "total_registros",
         "classificacoes",
         "origens_decisao",
+
+        # Decisão híbrida e fallback.
+        "lote_id",
+        "origem_decisao",
+        "causa_provavel",
+        "confianca_ml",
+        "motivo_fallback",
+        "versao_modelo",
+        "latencia_ms",
+        "registrado_em",
+
+        # Entrega de alertas.
         "canal_entrega",
         "fallback_acionado",
         "tentativas",
+
+        # Informações de erro.
         "erro",
     )
 
