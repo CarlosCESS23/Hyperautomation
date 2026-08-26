@@ -500,20 +500,79 @@ def gerar_excel(
 ) -> pd.DataFrame:
     """Gera as nove abas usando decisões de ML previamente registradas."""
     indicadores = indicadores or consolidar_indicadores(registros)
-    df = pd.DataFrame([registro.to_dict() for registro in registros])
-    decisoes_ml = decisoes_ml or ()
-    df_decisoes = pd.DataFrame(
-        [decisao.to_excel_dict() for decisao in decisoes_ml],
-        columns=(
-            "Lote ID",
-            "Classe Prevista",
-            "Probabilidade",
-            "Nível de Confiança",
-            "Latência (ms)",
-            "Registrado em (UTC)",
-            "Versão do Modelo",
-        ),
+    df = pd.DataFrame(
+        [
+            registro.to_dict()
+            for registro in registros
+        ]
     )
+    if decisoes_ml:
+        # Mantém compatibilidade com a auditoria antiga.
+        df_decisoes = pd.DataFrame(
+            [
+                decisao.to_excel_dict()
+                for decisao in decisoes_ml
+            ],
+            columns=(
+                "Lote ID",
+                "Classe Prevista",
+                "Probabilidade",
+                "Nível de Confiança",
+                "Latência (ms)",
+                "Registrado em (UTC)",
+                "Versão do Modelo",
+            ),
+        )
+    else:
+        # No fluxo atual, as decisões híbridas já estão
+        # armazenadas nos registros produzidos pelo Bot B.
+        decisoes_dos_registros = []
+
+        for registro in registros:
+            origem = (
+                    registro.origem_decisao
+                    or ""
+            ).strip().lower()
+
+            if origem not in {
+                "ml",
+                "fallback",
+            }:
+                continue
+
+            decisoes_dos_registros.append(
+                {
+                    "Lote ID": registro.lote,
+                    "Causa Provável": (
+                        registro.causa_provavel
+                    ),
+                    "Origem da Decisão": origem,
+                    "Confiança ML": (
+                        registro.confianca_ml
+                    ),
+                    "Motivo do Fallback": (
+                            registro.motivo_fallback
+                            or None
+                    ),
+                    "Versão do Modelo": (
+                        registro.versao_modelo
+                    ),
+                }
+            )
+
+        df_decisoes = pd.DataFrame(
+            decisoes_dos_registros,
+            columns=(
+                "Lote ID",
+                "Causa Provável",
+                "Origem da Decisão",
+                "Confiança ML",
+                "Motivo do Fallback",
+                "Versão do Modelo",
+            ),
+        )
+
+
     saida.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(saida, engine="openpyxl") as writer:
         pd.DataFrame().to_excel(writer, sheet_name="Resumo", index=False)
@@ -541,8 +600,45 @@ def gerar_excel(
     montar_ranking(wb["Ranking de Regras"], indicadores)
     montar_dicionario(wb["Dicionário"])
     estilizar_tabela(wb["Decisões de ML"], "TabelaDecisoesML")
-    for celula in wb["Decisões de ML"]["C"][1:]:
-        celula.number_format = "0.00%"
+    aba_decisoes = wb[
+        "Decisões de ML"
+    ]
+
+    cabecalhos_decisoes = {
+        celula.value: celula.column
+        for celula in aba_decisoes[1]
+        if celula.value
+    }
+
+    for nome_coluna in (
+            "Probabilidade",
+            "Confiança ML",
+    ):
+        numero_coluna = (
+            cabecalhos_decisoes.get(
+                nome_coluna
+            )
+        )
+
+        if numero_coluna is None:
+            continue
+
+        for linha in range(
+                2,
+                aba_decisoes.max_row + 1,
+        ):
+            celula = aba_decisoes.cell(
+                row=linha,
+                column=numero_coluna,
+            )
+
+            if isinstance(
+                    celula.value,
+                    (int, float),
+            ):
+                celula.number_format = (
+                    "0.00%"
+                )
     wb.active = wb.sheetnames.index("Resumo")
     wb.calculation.fullCalcOnLoad = True
     wb.save(saida)
