@@ -16,6 +16,9 @@ from src.auditoria_hibrida import AuditoriaPipelineHibrido
 from src.classificador_divergencia import ClassificadorDivergencia
 from src.validacao_lotes import RegistroValidado
 
+from src.dead_letter import RepositorioDeadLetter
+
+
 
 LOGGER = logging.getLogger("botcity_permorfer")
 BOT_ID = "bot-b-conferencia"
@@ -75,6 +78,7 @@ def executar_bot_conferencia(
     classificador: ClassificadorDivergencia | None = None,
     auditoria_ml: AuditoriaPipelineHibrido | None = None,
     logger: logging.Logger | None = None,
+    repositorio_dead_letter : RepositorioDeadLetter | None = None
 ) -> ResultadoBotConferencia:
     """Lê a planilha e processa todos os registros uma única vez."""
 
@@ -124,6 +128,8 @@ def executar_bot_conferencia(
             caminho,
             auditoria_ml=auditoria,
             classificador=classificador,
+            repositorio_dead_letter = repositorio_dead_letter,
+            execution_id=execution_id
         )
     except Exception as erro:
         resultado = ResultadoBotConferencia(

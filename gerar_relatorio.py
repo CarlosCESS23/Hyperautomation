@@ -43,10 +43,10 @@ from src.ml_decisions import (
     DecisaoML,
 )
 from src.auditoria_hibrida import AuditoriaPipelineHibrido
-from src.base_referencia import (
-    ConfiguracaoRetryBase,
-    consultar_base_com_retry,
-)
+from src.base_referencia import ConfiguracaoRetryBase, consultar_base_com_retry
+
+from src.dead_letter import RepositorioDeadLetter,processar_lote_com_dead_letter
+
 
 CORES = {
     "Válido": "22C55E",
@@ -78,14 +78,25 @@ def ler_e_validar(
     consulta_base_referencia: Callable[[], Collection[str]] | None = None,
     configuracao_retry_base: ConfiguracaoRetryBase | None = None,
     sleeper_base: Callable[[float], None] = sleep,
+    repositorio_dead_letter: RepositorioDeadLetter | None = None,
+    execution_id: str = "exec-processamento-local",
+    max_tentativas_dado: int = 3,
 ) -> list[RegistroValidado]:
     if classificador is None:
-        classificador = ClassificadorDivergencia.de_configuracao()
+        classificador = (
+            ClassificadorDivergencia.de_configuracao()
+        )
 
     if auditoria_ml is None:
         auditoria_ml = AuditoriaPipelineHibrido()
 
+    if repositorio_dead_letter is None:
+        repositorio_dead_letter = RepositorioDeadLetter(
+            Path("data/output/dead_letter.jsonl")
+        )
+
     planilha = pd.ExcelFile(caminho)
+
     abas_diarias = sorted(
         (aba for aba in planilha.sheet_names if aba.startswith("Insp_")),
         key=lambda aba: datetime.strptime(aba, "Insp_%d_%m_%Y"),
@@ -180,14 +191,45 @@ def ler_e_validar(
                     )
                 )
             else:
-                resultados.append(processar_item(
-                    registro=registro,
-                    data_referencia=data_referencia,
-                    lotes_referencia=lotes_referencia,
-                    ocorrencia_no_dia=ocorrencia,
-                    classificador=classificador,
-                    auditoria_ml=auditoria_ml,
-                ))
+
+                def processar_registro(
+                        _item,
+                        registro_atual=registro,
+                        data_atual=data_referencia,
+                        ocorrencia_atual=ocorrencia,
+                ) -> RegistroValidado:
+                    """
+                    Processa o registro original do Pandas.
+
+                    O parâmetro _item é exigido pelo mecanismo de
+                    dead letter, mas o processamento mantém a Series
+                    original para não perder tipos e valores.
+                    """
+
+                    return processar_item(
+                        registro=registro_atual,
+                        data_referencia=data_atual,
+                        lotes_referencia=lotes_referencia,
+                        ocorrencia_no_dia=ocorrencia_atual,
+                        classificador=classificador,
+                        auditoria_ml=auditoria_ml,
+                    )
+
+                resultado_item = (
+                    processar_lote_com_dead_letter(
+                        [registro.to_dict()],
+                        processar_registro,
+                        repositorio=repositorio_dead_letter,
+                        execution_id=execution_id,
+                        max_tentativas_dado=max_tentativas_dado,
+                    )
+                )
+
+                # Os registros processados precisam voltar para a
+                # lista utilizada pelo Bot B e pelo relatório.
+                resultados.extend(
+                    resultado_item.processados
+                )
     return resultados
 
 def formatar_rastreabilidade(ws) -> None:

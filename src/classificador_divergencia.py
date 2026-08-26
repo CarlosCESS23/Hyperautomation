@@ -96,15 +96,8 @@ class ClassificadorDivergencia:
             timeout=config.ml_timeout_seconds,
         )
 
-        return cls(
-            cliente_ml=cliente,
-            ml_enabled=(
-                config.pipeline_hibrido_enabled
-            ),
-            confianca_minima=(
-                config.ml_min_confidence
-            ),
-        )
+        return cls(cliente_ml=cliente,ml_enabled=config.ml_enabled,confianca_minima=config.ml_min_confidence)
+
 
     def classificar(
         self,
