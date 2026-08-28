@@ -43,10 +43,10 @@ from src.ml_decisions import (
     DecisaoML,
 )
 from src.auditoria_hibrida import AuditoriaPipelineHibrido
-from src.base_referencia import (
-    ConfiguracaoRetryBase,
-    consultar_base_com_retry,
-)
+from src.base_referencia import ConfiguracaoRetryBase, consultar_base_com_retry
+
+from src.dead_letter import RepositorioDeadLetter,processar_lote_com_dead_letter
+
 
 CORES = {
     "Válido": "22C55E",
@@ -78,14 +78,25 @@ def ler_e_validar(
     consulta_base_referencia: Callable[[], Collection[str]] | None = None,
     configuracao_retry_base: ConfiguracaoRetryBase | None = None,
     sleeper_base: Callable[[float], None] = sleep,
+    repositorio_dead_letter: RepositorioDeadLetter | None = None,
+    execution_id: str = "exec-processamento-local",
+    max_tentativas_dado: int = 3,
 ) -> list[RegistroValidado]:
     if classificador is None:
-        classificador = ClassificadorDivergencia.de_configuracao()
+        classificador = (
+            ClassificadorDivergencia.de_configuracao()
+        )
 
     if auditoria_ml is None:
         auditoria_ml = AuditoriaPipelineHibrido()
 
+    if repositorio_dead_letter is None:
+        repositorio_dead_letter = RepositorioDeadLetter(
+            Path("data/output/dead_letter.jsonl")
+        )
+
     planilha = pd.ExcelFile(caminho)
+
     abas_diarias = sorted(
         (aba for aba in planilha.sheet_names if aba.startswith("Insp_")),
         key=lambda aba: datetime.strptime(aba, "Insp_%d_%m_%Y"),
@@ -180,14 +191,45 @@ def ler_e_validar(
                     )
                 )
             else:
-                resultados.append(processar_item(
-                    registro=registro,
-                    data_referencia=data_referencia,
-                    lotes_referencia=lotes_referencia,
-                    ocorrencia_no_dia=ocorrencia,
-                    classificador=classificador,
-                    auditoria_ml=auditoria_ml,
-                ))
+
+                def processar_registro(
+                        _item,
+                        registro_atual=registro,
+                        data_atual=data_referencia,
+                        ocorrencia_atual=ocorrencia,
+                ) -> RegistroValidado:
+                    """
+                    Processa o registro original do Pandas.
+
+                    O parâmetro _item é exigido pelo mecanismo de
+                    dead letter, mas o processamento mantém a Series
+                    original para não perder tipos e valores.
+                    """
+
+                    return processar_item(
+                        registro=registro_atual,
+                        data_referencia=data_atual,
+                        lotes_referencia=lotes_referencia,
+                        ocorrencia_no_dia=ocorrencia_atual,
+                        classificador=classificador,
+                        auditoria_ml=auditoria_ml,
+                    )
+
+                resultado_item = (
+                    processar_lote_com_dead_letter(
+                        [registro.to_dict()],
+                        processar_registro,
+                        repositorio=repositorio_dead_letter,
+                        execution_id=execution_id,
+                        max_tentativas_dado=max_tentativas_dado,
+                    )
+                )
+
+                # Os registros processados precisam voltar para a
+                # lista utilizada pelo Bot B e pelo relatório.
+                resultados.extend(
+                    resultado_item.processados
+                )
     return resultados
 
 def formatar_rastreabilidade(ws) -> None:
@@ -458,20 +500,79 @@ def gerar_excel(
 ) -> pd.DataFrame:
     """Gera as nove abas usando decisões de ML previamente registradas."""
     indicadores = indicadores or consolidar_indicadores(registros)
-    df = pd.DataFrame([registro.to_dict() for registro in registros])
-    decisoes_ml = decisoes_ml or ()
-    df_decisoes = pd.DataFrame(
-        [decisao.to_excel_dict() for decisao in decisoes_ml],
-        columns=(
-            "Lote ID",
-            "Classe Prevista",
-            "Probabilidade",
-            "Nível de Confiança",
-            "Latência (ms)",
-            "Registrado em (UTC)",
-            "Versão do Modelo",
-        ),
+    df = pd.DataFrame(
+        [
+            registro.to_dict()
+            for registro in registros
+        ]
     )
+    if decisoes_ml:
+        # Mantém compatibilidade com a auditoria antiga.
+        df_decisoes = pd.DataFrame(
+            [
+                decisao.to_excel_dict()
+                for decisao in decisoes_ml
+            ],
+            columns=(
+                "Lote ID",
+                "Classe Prevista",
+                "Probabilidade",
+                "Nível de Confiança",
+                "Latência (ms)",
+                "Registrado em (UTC)",
+                "Versão do Modelo",
+            ),
+        )
+    else:
+        # No fluxo atual, as decisões híbridas já estão
+        # armazenadas nos registros produzidos pelo Bot B.
+        decisoes_dos_registros = []
+
+        for registro in registros:
+            origem = (
+                    registro.origem_decisao
+                    or ""
+            ).strip().lower()
+
+            if origem not in {
+                "ml",
+                "fallback",
+            }:
+                continue
+
+            decisoes_dos_registros.append(
+                {
+                    "Lote ID": registro.lote,
+                    "Causa Provável": (
+                        registro.causa_provavel
+                    ),
+                    "Origem da Decisão": origem,
+                    "Confiança ML": (
+                        registro.confianca_ml
+                    ),
+                    "Motivo do Fallback": (
+                            registro.motivo_fallback
+                            or None
+                    ),
+                    "Versão do Modelo": (
+                        registro.versao_modelo
+                    ),
+                }
+            )
+
+        df_decisoes = pd.DataFrame(
+            decisoes_dos_registros,
+            columns=(
+                "Lote ID",
+                "Causa Provável",
+                "Origem da Decisão",
+                "Confiança ML",
+                "Motivo do Fallback",
+                "Versão do Modelo",
+            ),
+        )
+
+
     saida.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(saida, engine="openpyxl") as writer:
         pd.DataFrame().to_excel(writer, sheet_name="Resumo", index=False)
@@ -499,8 +600,45 @@ def gerar_excel(
     montar_ranking(wb["Ranking de Regras"], indicadores)
     montar_dicionario(wb["Dicionário"])
     estilizar_tabela(wb["Decisões de ML"], "TabelaDecisoesML")
-    for celula in wb["Decisões de ML"]["C"][1:]:
-        celula.number_format = "0.00%"
+    aba_decisoes = wb[
+        "Decisões de ML"
+    ]
+
+    cabecalhos_decisoes = {
+        celula.value: celula.column
+        for celula in aba_decisoes[1]
+        if celula.value
+    }
+
+    for nome_coluna in (
+            "Probabilidade",
+            "Confiança ML",
+    ):
+        numero_coluna = (
+            cabecalhos_decisoes.get(
+                nome_coluna
+            )
+        )
+
+        if numero_coluna is None:
+            continue
+
+        for linha in range(
+                2,
+                aba_decisoes.max_row + 1,
+        ):
+            celula = aba_decisoes.cell(
+                row=linha,
+                column=numero_coluna,
+            )
+
+            if isinstance(
+                    celula.value,
+                    (int, float),
+            ):
+                celula.number_format = (
+                    "0.00%"
+                )
     wb.active = wb.sheetnames.index("Resumo")
     wb.calculation.fullCalcOnLoad = True
     wb.save(saida)

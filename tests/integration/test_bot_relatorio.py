@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from unittest.mock import Mock
+from dataclasses import replace
 
 from src.bots.bot_relatorio import (
     StatusBotRelatorio,
@@ -141,3 +142,102 @@ def test_falha_do_relatorio_nao_tenta_notificar(
     assert resultado.status is StatusBotRelatorio.ERRO_RELATORIO
     gerador.assert_called_once()
     alertas.enviar_alerta.assert_not_called()
+
+def test_alerta_de_conclusao_possui_resumo_operacional(
+    tmp_path,
+):
+    saida = (
+        tmp_path
+        / "relatorio_conferencia.xlsx"
+    )
+
+    registro_valido = replace(
+        criar_registro(""),
+        lote="LOTE-VALIDO",
+        classificacao="Válido",
+        causa_provavel="",
+    )
+
+    divergencia_ml = replace(
+        criar_registro("ml"),
+        lote="LOTE-ML",
+        classificacao="Divergência",
+    )
+
+    divergencia_fallback = replace(
+        criar_registro("fallback"),
+        lote="LOTE-FALLBACK",
+        classificacao="Divergência",
+    )
+
+    erro_entrada = replace(
+        criar_registro(""),
+        lote="LOTE-ERRO",
+        classificacao="Erro de Entrada",
+        causa_provavel="",
+    )
+
+    registros = [
+        registro_valido,
+        divergencia_ml,
+        divergencia_fallback,
+        erro_entrada,
+    ]
+
+    gerador = Mock()
+    alertas = Mock()
+
+    alertas.enviar_alerta.return_value = Mock(
+        sucesso=True,
+        erro=None,
+    )
+
+    resultado = executar_bot_relatorio(
+        registros,
+        saida,
+        execution_id="exec-resumo-001",
+        correlation_id="corr-resumo-001",
+        sistema_alertas=alertas,
+        gerador_relatorio=gerador,
+        momento=datetime(
+            2026,
+            8,
+            27,
+            10,
+            30,
+        ),
+    )
+
+    assert resultado.sucesso is True
+
+    alertas.enviar_alerta.assert_called_once()
+
+    chamada = (
+        alertas.enviar_alerta
+        .call_args
+        .kwargs
+    )
+
+    mensagem = chamada["mensagem"]
+
+    assert "Status: CONCLUÍDO" in mensagem
+    assert "Total de registros: 4" in mensagem
+    assert "Válidos: 1" in mensagem
+    assert "Divergências: 2" in mensagem
+    assert "Ambíguos: 0" in mensagem
+    assert "Erros de entrada: 1" in mensagem
+    assert "Registros que exigem atenção: 3" in mensagem
+
+    assert "Decisões por ML: 1" in mensagem
+    assert "Decisões por fallback: 1" in mensagem
+    assert "Sem origem híbrida: 2" in mensagem
+
+    assert "exec-resumo-001" in mensagem
+    assert "corr-resumo-001" in mensagem
+    assert str(saida.resolve()) in mensagem
+
+    contexto = chamada["contexto"]
+
+    assert contexto["total_registros"] == 4
+    assert contexto["total_divergencias"] == 2
+    assert contexto["total_erros_entrada"] == 1

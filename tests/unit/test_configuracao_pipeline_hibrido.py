@@ -7,7 +7,7 @@ pytestmark = pytest.mark.unit
 
 
 VARIAVEIS_PIPELINE = (
-    "PIPELINE_HIBRIDO_ENABLED",
+    "ML_ENABLED",
     "ML_API_URL",
     "ML_MIN_CONFIDENCE",
     "ML_TIMEOUT_SECONDS",
@@ -32,13 +32,13 @@ def test_pipeline_hibrido_fica_desativado_por_padrao(
 
     resultado = config.obter_configuracao()
 
-    assert resultado.pipeline_hibrido_enabled is False
+    assert resultado.ml_enabled is False
     assert resultado.ml_api_url == "http://localhost:8000"
     assert resultado.ml_min_confidence == 0.75
     assert resultado.ml_timeout_seconds == 3.0
 
 
-def test_carrega_configuracao_do_pipeline_pelo_ambiente(
+def test_carrega_configuracao_do_ml_pelo_ambiente(
     monkeypatch,
 ):
     monkeypatch.setattr(
@@ -47,8 +47,10 @@ def test_carrega_configuracao_do_pipeline_pelo_ambiente(
         lambda: None,
     )
 
+    limpar_variaveis(monkeypatch)
+
     monkeypatch.setenv(
-        "PIPELINE_HIBRIDO_ENABLED",
+        "ML_ENABLED",
         "true",
     )
     monkeypatch.setenv(
@@ -66,11 +68,30 @@ def test_carrega_configuracao_do_pipeline_pelo_ambiente(
 
     resultado = config.obter_configuracao()
 
-    assert resultado.pipeline_hibrido_enabled is True
+    assert resultado.ml_enabled is True
     assert resultado.ml_api_url == "http://api_ml:8000"
     assert resultado.ml_min_confidence == 0.85
     assert resultado.ml_timeout_seconds == 5.0
 
+def test_ml_enabled_false_desativa_ml(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        config,
+        "carregar_ambiente",
+        lambda: None,
+    )
+
+    limpar_variaveis(monkeypatch)
+
+    monkeypatch.setenv(
+        "ML_ENABLED",
+        "false",
+    )
+
+    resultado = config.obter_configuracao()
+
+    assert resultado.ml_enabled is False
 
 @pytest.mark.parametrize(
     "valor",

@@ -271,3 +271,101 @@ def test_todas_as_divergencias_sao_preservadas(tmp_path):
     }
 
     workbook.close()
+
+def test_aba_decisoes_ml_recebe_decisoes_do_fluxo_real(
+    tmp_path,
+):
+    saida = (
+        tmp_path
+        / "relatorio_com_auditoria_hibrida.xlsx"
+    )
+
+    registros = [
+        criar_registro(
+            lote="LOTE-ML",
+            classificacao="Divergência",
+            causa_provavel="erro_codigo",
+            origem_decisao="ml",
+            confianca_ml=0.93,
+            versao_modelo="2.0.0-texto",
+        ),
+        criar_registro(
+            lote="LOTE-FALLBACK",
+            classificacao="Divergência",
+            causa_provavel="nao_classificado",
+            origem_decisao="fallback",
+            motivo_fallback="timeout",
+        ),
+        criar_registro(
+            lote="LOTE-VALIDO",
+            classificacao="Válido",
+        ),
+    ]
+
+    gerar_excel(
+        registros=registros,
+        saida=saida,
+        momento=datetime(
+            2026,
+            6,
+            26,
+            12,
+        ),
+    )
+
+    workbook = load_workbook(
+        saida,
+        data_only=True,
+    )
+
+    worksheet = workbook[
+        "Decisões de ML"
+    ]
+
+    # Somente os registros que passaram pela
+    # decisão híbrida devem aparecer nessa aba.
+    assert worksheet.max_row - 1 == 2
+
+    linhas = ler_registros_da_aba(
+        worksheet
+    )
+
+    registros_por_lote = {
+        linha["Lote ID"]: linha
+        for linha in linhas
+    }
+
+    assert set(registros_por_lote) == {
+        "LOTE-ML",
+        "LOTE-FALLBACK",
+    }
+
+    decisao_ml = registros_por_lote[
+        "LOTE-ML"
+    ]
+
+    assert decisao_ml[
+        "Origem da Decisão"
+    ] == "ml"
+
+    assert decisao_ml[
+        "Causa Provável"
+    ] == "erro_codigo"
+
+    assert decisao_ml[
+        "Confiança ML"
+    ] == pytest.approx(0.93)
+
+    decisao_fallback = registros_por_lote[
+        "LOTE-FALLBACK"
+    ]
+
+    assert decisao_fallback[
+        "Origem da Decisão"
+    ] == "fallback"
+
+    assert decisao_fallback[
+        "Motivo do Fallback"
+    ] == "timeout"
+
+    workbook.close()

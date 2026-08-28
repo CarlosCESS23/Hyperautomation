@@ -50,6 +50,7 @@ class Configuracao:
     url_base: str
     interface_navegador: bool
     caminho_evidencia: str
+    ml_enabled: bool
 
     # Configuração do novo pipeline híbrido.
     pipeline_hibrido_enabled: bool = False
@@ -73,6 +74,8 @@ def obter_configuracao() -> Configuracao:
         default=3.0,
         nome_variavel="ML_TIMEOUT_SECONDS",
     )
+
+    ml_enabled = _as_bool(os.getenv('ML_ENABLED'),default=False)
 
     if not 0 <= ml_min_confidence <= 1:
         raise ValueError(
@@ -134,7 +137,9 @@ def obter_configuracao() -> Configuracao:
         ).rstrip("/"),
         ml_min_confidence=ml_min_confidence,
         ml_timeout_seconds=ml_timeout_seconds,
+        ml_enabled = ml_enabled
     )
+
 
 
 def validar_conexao(config: Configuracao) -> None:

@@ -114,6 +114,133 @@ def consolidar_decisoes(
         total_registros=len(registros),
     )
 
+def consolidar_classificacoes(registros: Sequence[RegistroValidado]) -> dict[str,int]:
+    """Consolida o resultado das regras de negócio."""
+
+    contagens = Counter(
+        registro.classificacao
+        for registro in registros
+    )
+
+    total = len(registros)
+    validos = contagens["Válido"]
+    divergencias = contagens["Divergência"]
+    ambiguos = contagens["Ambíguo"]
+    erros_entrada = contagens["Erro de Entrada"]
+    pendentes_revisao = contagens[
+        "PENDENTE_REVISAO"
+    ]
+
+    classificacoes_conhecidas = (
+            validos
+            + divergencias
+            + ambiguos
+            + erros_entrada
+            + pendentes_revisao
+    )
+
+    return {
+        "total_registros": total,
+        "total_validos": validos,
+        "total_divergencias": divergencias,
+        "total_ambiguos": ambiguos,
+        "total_erros_entrada": erros_entrada,
+        "total_pendentes_revisao": pendentes_revisao,
+        "total_outras_classificacoes": (
+                total
+                - classificacoes_conhecidas
+        ),
+        "total_atencao": total - validos,
+    }
+
+def montar_mensagem_conclusao(
+    *,
+    resumo: dict[str, int],
+    consolidacao: ConsolidacaoDecisoes,
+    execution_id: str,
+    correlation_id: str,
+    caminho_relatorio: Path,
+) -> str:
+    """Monta uma mensagem legível para Telegram e Email."""
+
+    linhas = [
+        "Pipeline de conferência concluído.",
+        "",
+        "Status: CONCLUÍDO",
+        "",
+        "Resumo dos registros:",
+        (
+            "- Total de registros: "
+            f"{resumo['total_registros']}"
+        ),
+        (
+            "- Válidos: "
+            f"{resumo['total_validos']}"
+        ),
+        (
+            "- Divergências: "
+            f"{resumo['total_divergencias']}"
+        ),
+        (
+            "- Ambíguos: "
+            f"{resumo['total_ambiguos']}"
+        ),
+        (
+            "- Erros de entrada: "
+            f"{resumo['total_erros_entrada']}"
+        ),
+        (
+            "- Registros que exigem atenção: "
+            f"{resumo['total_atencao']}"
+        ),
+    ]
+
+    if resumo["total_pendentes_revisao"]:
+        linhas.append(
+            "- Pendentes de revisão: "
+            f"{resumo['total_pendentes_revisao']}"
+        )
+
+    if resumo["total_outras_classificacoes"]:
+        linhas.append(
+            "- Outras classificações: "
+            f"{resumo['total_outras_classificacoes']}"
+        )
+
+    linhas.extend(
+        [
+            "",
+            "Decisão híbrida:",
+            (
+                "- Decisões por ML: "
+                f"{consolidacao.quantidade_ml}"
+            ),
+            (
+                "- Decisões por fallback: "
+                f"{consolidacao.quantidade_fallback}"
+            ),
+            (
+                "- Sem origem híbrida: "
+                f"{consolidacao.quantidade_sem_origem}"
+            ),
+            "",
+            "Rastreabilidade:",
+            f"- Execution ID: {execution_id}",
+            f"- Correlation ID: {correlation_id}",
+            (
+                "- Relatório: "
+                f"{caminho_relatorio.resolve()}"
+            ),
+            "",
+            (
+                "Consulte o relatório anexado para "
+                "ver os lotes e as regras acionadas."
+            ),
+        ]
+    )
+
+    return "\n".join(linhas)
+
 
 def _gerar_relatorio_padrao(
     registros: list[RegistroValidado],
@@ -150,6 +277,11 @@ def executar_bot_relatorio(
     )
     caminho = Path(caminho_saida)
     consolidacao = consolidar_decisoes(resultados_bot_b)
+    resumo_classificacoes = (
+        consolidar_classificacoes(
+            resultados_bot_b
+        )
+    )
 
     logger.info(
         "bot_relatorio_iniciado",
@@ -158,6 +290,7 @@ def executar_bot_relatorio(
             "bot_id": BOT_ID,
             "execution_id": execution_id,
             "correlation_id": correlation_id,
+            **resumo_classificacoes,
             **consolidacao.to_dict(),
         },
     )
@@ -233,16 +366,19 @@ def executar_bot_relatorio(
             # Deve existir somente uma chamada a enviar_alerta.
             resultado_alerta = sistema_alertas.enviar_alerta(
                 severidade="INFO",
-                mensagem=(
-                    "Pipeline concluído: "
-                    f"{consolidacao.quantidade_ml} decisões por ML e "
-                    f"{consolidacao.quantidade_fallback} por fallback."
+                mensagem=montar_mensagem_conclusao(
+                    resumo=resumo_classificacoes,
+                    consolidacao=consolidacao,
+                    execution_id=execution_id,
+                    correlation_id=correlation_id,
+                    caminho_relatorio=caminho,
                 ),
                 anexo=caminho,
                 contexto={
                     "execution_id": execution_id,
                     "correlation_id": correlation_id,
                     "bot_id": BOT_ID,
+                    **resumo_classificacoes,
                     **consolidacao.to_dict(),
                 },
             )

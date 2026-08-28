@@ -25,6 +25,68 @@ from src.ml_client import (
 
 pytestmark = pytest.mark.unit
 
+def test_configuracao_ml_enabled_false_impede_chamada_http(
+    monkeypatch,
+):
+    clientes_criados = []
+
+    class ClienteMLControlado:
+        def __init__(
+            self,
+            *,
+            base_url,
+            timeout,
+        ):
+            self.base_url = base_url
+            self.timeout = timeout
+            self.chamadas = []
+            clientes_criados.append(self)
+
+        def classificar_observacao(
+            self,
+            *,
+            observacao,
+        ):
+            self.chamadas.append(observacao)
+
+            raise AssertionError(
+                "O cliente HTTP não deveria ser chamado"
+            )
+
+    configuracao = SimpleNamespace(
+        ml_enabled=False,
+        ml_api_url="http://api_ml:8000",
+        ml_timeout_seconds=3.0,
+        ml_min_confidence=0.75,
+    )
+
+    monkeypatch.setattr(
+        modulo_classificador,
+        "MLClient",
+        ClienteMLControlado,
+    )
+
+    classificador = (
+        ClassificadorDivergencia.de_configuracao(
+            configuracao
+        )
+    )
+
+    resultado = classificador.classificar(
+        "Produto sem uma peça."
+    )
+
+    assert len(clientes_criados) == 1
+    assert clientes_criados[0].chamadas == []
+
+    assert resultado.origem_decisao == (
+        OrigemDecisao.FALLBACK
+    )
+
+    assert resultado.motivo_fallback == (
+        MotivoFallback.ML_DESATIVADO
+    )
+
 def test_ml_enabled_desativa_pipeline(
     monkeypatch,
 ):
@@ -41,7 +103,7 @@ def test_ml_enabled_desativa_pipeline(
 
     resultado = config.obter_configuracao()
 
-    assert resultado.pipeline_hibrido_enabled is False
+    assert resultado.ml_enabled is False
 class ClienteControlado:
     def __init__(
         self,
@@ -285,7 +347,7 @@ def test_fabrica_aplica_configuracao(
         ml_api_url="http://api-configurada:8000",
         ml_timeout_seconds=2.50,
         ml_min_confidence=0.82,
-        pipeline_hibrido_enabled=False,
+        ml_enabled=False,
     )
 
     monkeypatch.setattr(
