@@ -34,6 +34,8 @@ from src.sistema_alertas import (
     Alerta,
     ResultadoAlerta,
     SistemaAlertas,
+    AdaptadorEmail,
+    AdaptadorTelegram
 )
 
 
@@ -168,41 +170,49 @@ def criar_sistema_alertas(
     modo: str,
     logger: logging.Logger,
 ) -> SistemaAlertas | None:
-    """Seleciona alerta local, real ou desativado."""
+    """Seleciona os canais usados na execução manual."""
 
     if modo == "nenhum":
         return None
+
     if modo == "console":
         return SistemaAlertas(
             canal_principal=CanalConsole(),
             logger=logger,
         )
+
+    if modo == "email":
+        canal_email = (
+            AdaptadorEmail.de_ambiente(
+                logger=logger,
+            )
+        )
+
+        return SistemaAlertas(
+            canal_principal=canal_email,
+            logger=logger,
+        )
+
+    if modo == "telegram":
+        canal_telegram = (
+            AdaptadorTelegram.de_ambiente(
+                logger=logger,
+            )
+        )
+
+        return SistemaAlertas(
+            canal_principal=canal_telegram,
+            logger=logger,
+        )
+
     if modo == "reais":
-        return SistemaAlertas.de_ambiente(logger=logger)
-    raise ValueError(f"Modo de alerta desconhecido: {modo}")
+        # Telegram é o principal e Email é o fallback.
+        return SistemaAlertas.de_ambiente(
+            logger=logger,
+        )
 
-
-def _alertar_falha(
-    sistema_alertas: SistemaAlertas | None,
-    *,
-    severidade: str,
-    mensagem: str,
-    execution_id: str,
-    correlation_id: str,
-    etapa: str,
-) -> None:
-    if sistema_alertas is None:
-        return
-
-    # SistemaAlertas já converte falhas de canal em resultados controlados.
-    sistema_alertas.enviar_alerta(
-        severidade=severidade,
-        mensagem=mensagem,
-        contexto={
-            "execution_id": execution_id,
-            "correlation_id": correlation_id,
-            "bot_id": etapa,
-        },
+    raise ValueError(
+        f"Modo de alerta desconhecido: {modo}"
     )
 
 
@@ -373,11 +383,16 @@ def main() -> int:
     )
     parser.add_argument(
         "--alertas",
-        choices=("console", "reais", "nenhum"),
+        choices=("console", 'email','telegram',"reais" ,"nenhum"),
         default="console",
         help=(
-            "console demonstra localmente; reais usa Telegram/Email do .env; "
-            "nenhum desativa notificações"
+            """
+            console: exibe localmente;
+            email: somente usa o SMTP
+            telegram: usa somente o Bot Telegram
+            reais: usa Telegram com Email como fallback
+            nenhum: desativa as notificações
+            """
         ),
     )
     parser.add_argument(
