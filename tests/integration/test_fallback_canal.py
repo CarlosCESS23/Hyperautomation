@@ -67,6 +67,7 @@ def criar_alerta(
     [
         Severidade.ERRO,
         Severidade.CRITICO,
+        Severidade.AVISO
     ],
 )
 def test_falha_telegram_aciona_email(

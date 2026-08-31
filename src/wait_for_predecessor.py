@@ -97,8 +97,44 @@ def wait_for_predecessor(
         )
 
 
-def _status(tarefa: Any) -> str:
-    valor = getattr(tarefa, "status", "")
+def _normalizar_status(
+    valor: Any,
+) -> str:
+    if valor is None:
+        return ""
+
     if hasattr(valor, "value"):
         valor = valor.value
+
     return str(valor).strip().upper()
+
+
+def _status(tarefa: Any) -> str:
+    """
+    Obtém o estado tanto de objetos simulados
+    quanto de objetos reais do Maestro.
+    """
+
+    status = _normalizar_status(
+        getattr(tarefa, "status", None)
+    )
+
+    if status:
+        return status
+
+    estado = _normalizar_status(
+        getattr(tarefa, "state", None)
+    )
+
+    finalizacao = _normalizar_status(
+        getattr(
+            tarefa,
+            "finish_status",
+            None,
+        )
+    )
+
+    if estado == "FINISHED" and finalizacao:
+        return finalizacao
+
+    return estado or finalizacao

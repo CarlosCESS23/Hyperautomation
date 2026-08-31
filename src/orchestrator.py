@@ -9,9 +9,9 @@ from typing import Any, Mapping, Protocol
 
 LOGGER = logging.getLogger("botcity_permorfer")
 
-BOT_A_ENTRADA = "gustavo_nunes-entrada-v1"
-BOT_B_CONFERENCIA = "gustavo_nunes-conferencia-v1"
-BOT_C_RELATORIO = "gustavo_nunes-relatorio-v1"
+BOT_A_ENTRADA = "carlos_souza-entrada-v1"
+BOT_B_CONFERENCIA = "carlos_souza-conferencia-v1"
+BOT_C_RELATORIO = "carlos_souza-relatorio-v1"
 
 
 @dataclass(frozen=True)
@@ -48,6 +48,7 @@ def criar_tarefa_sucessora(
     *,
     activity_label: str,
     predecessor: str,
+    predecessor_task_id: str,
     resultado_predecessor: str,
     execution_id: str,
     correlation_id: str,
@@ -61,6 +62,7 @@ def criar_tarefa_sucessora(
     campos_obrigatorios = {
         "activity_label": activity_label,
         "predecessor": predecessor,
+        "predecessor_task_id": predecessor_task_id,
         "resultado_predecessor": resultado_predecessor,
         "execution_id": execution_id,
         "correlation_id": correlation_id,
@@ -81,7 +83,12 @@ def criar_tarefa_sucessora(
     payload.update(
         {
             "predecessor": predecessor,
-            "resultado_predecessor": resultado_predecessor,
+            "predecessor_task_id": (
+                predecessor_task_id
+            ),
+            "resultado_predecessor": (
+                resultado_predecessor
+            ),
             "execution_id": execution_id,
             "correlation_id": correlation_id,
         }
@@ -109,18 +116,20 @@ def criar_tarefa_sucessora(
 def disparar_bot_b(
     maestro: MaestroComCreateTask,
     *,
+    predecessor_task_id: str,
     resultado_predecessor: str,
     execution_id: str,
     correlation_id: str,
     parametros: Mapping[str, object] | None = None,
     **opcoes: Any,
 ) -> Any:
-    """Dispara o Bot B após o encerramento controlado do Bot A."""
+    """Dispara o Bot B após o encerramento do Bot A."""
 
     return criar_tarefa_sucessora(
         maestro,
         activity_label=BOT_B_CONFERENCIA,
         predecessor=BOT_A_ENTRADA,
+        predecessor_task_id=predecessor_task_id,
         resultado_predecessor=resultado_predecessor,
         execution_id=execution_id,
         correlation_id=correlation_id,
@@ -132,18 +141,20 @@ def disparar_bot_b(
 def disparar_bot_c(
     maestro: MaestroComCreateTask,
     *,
+    predecessor_task_id: str,
     resultado_predecessor: str,
     execution_id: str,
     correlation_id: str,
     parametros: Mapping[str, object] | None = None,
     **opcoes: Any,
 ) -> Any:
-    """Dispara o Bot C após o encerramento controlado do Bot B."""
+    """Dispara o Bot C após o encerramento do Bot B."""
 
     return criar_tarefa_sucessora(
         maestro,
         activity_label=BOT_C_RELATORIO,
         predecessor=BOT_B_CONFERENCIA,
+        predecessor_task_id=predecessor_task_id,
         resultado_predecessor=resultado_predecessor,
         execution_id=execution_id,
         correlation_id=correlation_id,

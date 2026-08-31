@@ -482,7 +482,15 @@ SEVERIDADES_COM_FALLBACK = frozenset(
     {
         Severidade.ERRO,
         Severidade.CRITICO,
+        Severidade.AVISO
     }
+)
+
+SEVERIDADES_COM_LOG_CRITICO = frozenset(
+        {
+            Severidade.ERRO,
+            Severidade.CRITICO,
+        }
 )
 
 
@@ -584,7 +592,7 @@ class SistemaAlertas:
             self._logger.info("alerta_entregue", extra=extra)
             return
 
-        if alerta.severidade in SEVERIDADES_COM_FALLBACK:
+        if alerta.severidade in SEVERIDADES_COM_LOG_CRITICO:
             self._logger.critical(
                 "ALERTA_NAO_ENTREGUE",
                 extra=extra,

@@ -20,37 +20,138 @@ from src.wait_for_predecessor import (
 )
 
 
+def test_cadeia_preserva_task_id_do_predecessor():
+    maestro = Mock()
+
+    tarefa_b = SimpleNamespace(
+        id=200,
+    )
+
+    tarefa_c = SimpleNamespace(
+        id=300,
+    )
+
+    maestro.create_task.side_effect = [
+        tarefa_b,
+        tarefa_c,
+    ]
+
+    criada_b = disparar_bot_b(
+        maestro,
+        predecessor_task_id="100",
+        resultado_predecessor=(
+            "pronto_para_conferencia"
+        ),
+        execution_id="exec-cadeia-001",
+        correlation_id="corr-cadeia-001",
+        parametros={
+            "caminho_entrada": (
+                "/tmp/inspecoes.xlsx"
+            ),
+        },
+    )
+
+    criada_c = disparar_bot_c(
+        maestro,
+        predecessor_task_id=str(criada_b.id),
+        resultado_predecessor=(
+            "conferencia_concluida"
+        ),
+        execution_id="exec-cadeia-001",
+        correlation_id="corr-cadeia-001",
+        parametros={
+            "resultado_bot_b": (
+                "/tmp/resultado_bot_b.json"
+            ),
+        },
+    )
+
+    assert criada_b.id == 200
+    assert criada_c.id == 300
+
+    chamadas = maestro.create_task.call_args_list
+
+    parametros_bot_b = (
+        chamadas[0].kwargs["parameters"]
+    )
+
+    parametros_bot_c = (
+        chamadas[1].kwargs["parameters"]
+    )
+
+    assert (
+        parametros_bot_b["predecessor_task_id"]
+        == "100"
+    )
+
+    assert (
+        parametros_bot_c["predecessor_task_id"]
+        == "200"
+    )
+
+    assert (
+        parametros_bot_b["execution_id"]
+        == parametros_bot_c["execution_id"]
+        == "exec-cadeia-001"
+    )
+
+    assert (
+        parametros_bot_b["correlation_id"]
+        == parametros_bot_c["correlation_id"]
+        == "corr-cadeia-001"
+    )
+
+
 def test_tres_bots_possuem_nomenclatura_de_registro():
-    nomes = [bot.activity_label for bot in BOTS_REGISTRADOS]
+    nomes = [
+        bot.activity_label
+        for bot in BOTS_REGISTRADOS
+    ]
 
     assert nomes == [
-        "gustavo_nunes-entrada-v1",
-        "gustavo_nunes-conferencia-v1",
-        "gustavo_nunes-relatorio-v1",
+        "carlos_souza-entrada-v1",
+        "carlos_souza-conferencia-v1",
+        "carlos_souza-relatorio-v1",
     ]
+
     assert len(set(nomes)) == 3
 
 
 def test_bot_a_dispara_bot_b_com_rastreabilidade_completa():
     maestro = Mock()
-    tarefa = SimpleNamespace(task_id="task-b-001")
+
+    tarefa = SimpleNamespace(
+        task_id="task-b-001",
+    )
+
     maestro.create_task.return_value = tarefa
 
     criada = disparar_bot_b(
         maestro,
-        resultado_predecessor="pronto_para_conferencia",
+        predecessor_task_id="task-a-001",
+        resultado_predecessor=(
+            "pronto_para_conferencia"
+        ),
         execution_id="exec-001",
         correlation_id="corr-001",
-        parametros={"caminho_entrada": "/tmp/lote.xlsx"},
+        parametros={
+            "caminho_entrada": "/tmp/lote.xlsx",
+        },
     )
 
     assert criada is tarefa
+
     maestro.create_task.assert_called_once_with(
         activity_label=BOT_B_CONFERENCIA,
         parameters={
             "caminho_entrada": "/tmp/lote.xlsx",
             "predecessor": BOT_A_ENTRADA,
-            "resultado_predecessor": "pronto_para_conferencia",
+            "predecessor_task_id": (
+                "task-a-001"
+            ),
+            "resultado_predecessor": (
+                "pronto_para_conferencia"
+            ),
             "execution_id": "exec-001",
             "correlation_id": "corr-001",
         },
@@ -62,32 +163,72 @@ def test_bot_a_dispara_bot_b_com_rastreabilidade_completa():
 def test_bot_b_dispara_bot_c_com_rastreabilidade_completa():
     maestro = Mock()
 
-    disparar_bot_c(
-        maestro,
-        resultado_predecessor="conferencia_concluida",
-        execution_id="exec-002",
-        correlation_id="corr-002",
-        parametros={"resultado_bot_b": "resultados/lote.json"},
+    tarefa = SimpleNamespace(
+        task_id="task-c-001",
     )
 
-    parametros = maestro.create_task.call_args.kwargs["parameters"]
-    assert maestro.create_task.call_args.kwargs["activity_label"] == (
-        BOT_C_RELATORIO
+    maestro.create_task.return_value = tarefa
+
+    criada = disparar_bot_c(
+        maestro,
+        predecessor_task_id="task-b-001",
+        resultado_predecessor=(
+            "conferencia_concluida"
+        ),
+        execution_id="exec-002",
+        correlation_id="corr-002",
+        parametros={
+            "resultado_bot_b": (
+                "resultados/lote.json"
+            ),
+        },
     )
-    assert parametros["predecessor"] == BOT_B_CONFERENCIA
-    assert parametros["resultado_predecessor"] == (
-        "conferencia_concluida"
+
+    assert criada is tarefa
+
+    maestro.create_task.assert_called_once_with(
+        activity_label=BOT_C_RELATORIO,
+        parameters={
+            "resultado_bot_b": (
+                "resultados/lote.json"
+            ),
+            "predecessor": BOT_B_CONFERENCIA,
+            "predecessor_task_id": (
+                "task-b-001"
+            ),
+            "resultado_predecessor": (
+                "conferencia_concluida"
+            ),
+            "execution_id": "exec-002",
+            "correlation_id": "corr-002",
+        },
+        test=False,
+        priority=0,
     )
-    assert parametros["execution_id"] == "exec-002"
-    assert parametros["correlation_id"] == "corr-002"
 
 
 def test_espera_termina_quando_predecessor_conclui():
     maestro = Mock()
-    pendente = SimpleNamespace(status="RUNNING")
-    concluida = SimpleNamespace(status="FINISHED")
-    maestro.get_task.side_effect = [pendente, concluida]
-    tempos = iter((0.0, 0.0))
+
+    pendente = SimpleNamespace(
+        status="RUNNING",
+    )
+
+    concluida = SimpleNamespace(
+        status="FINISHED",
+    )
+
+    maestro.get_task.side_effect = [
+        pendente,
+        concluida,
+    ]
+
+    tempos = iter(
+        (
+            0.0,
+            0.0,
+        )
+    )
 
     resultado = wait_for_predecessor(
         maestro,
@@ -99,6 +240,7 @@ def test_espera_termina_quando_predecessor_conclui():
     )
 
     assert resultado is concluida
+
     assert maestro.get_task.call_args_list == [
         call("task-a-001"),
         call("task-a-001"),
@@ -107,10 +249,24 @@ def test_espera_termina_quando_predecessor_conclui():
 
 def test_timeout_nao_deixa_dependencia_bloqueada():
     maestro = Mock()
-    maestro.get_task.return_value = SimpleNamespace(status="RUNNING")
-    tempos = iter((0.0, 0.0, 5.0))
 
-    with pytest.raises(TimeoutDependenciaError):
+    maestro.get_task.return_value = (
+        SimpleNamespace(
+            status="RUNNING",
+        )
+    )
+
+    tempos = iter(
+        (
+            0.0,
+            0.0,
+            5.0,
+        )
+    )
+
+    with pytest.raises(
+        TimeoutDependenciaError,
+    ):
         wait_for_predecessor(
             maestro,
             "task-b-002",
@@ -125,13 +281,22 @@ def test_timeout_nao_deixa_dependencia_bloqueada():
 
 def test_falha_controlada_do_predecessor_e_detectada():
     maestro = Mock()
-    maestro.get_task.return_value = SimpleNamespace(status="FAILED")
 
-    with pytest.raises(DependenciaFalhouError):
+    maestro.get_task.return_value = (
+        SimpleNamespace(
+            status="FAILED",
+        )
+    )
+
+    with pytest.raises(
+        DependenciaFalhouError,
+    ):
         wait_for_predecessor(
             maestro,
             "task-a-erro",
             sleeper=Mock(),
         )
 
-    maestro.get_task.assert_called_once_with("task-a-erro")
+    maestro.get_task.assert_called_once_with(
+        "task-a-erro"
+    )
