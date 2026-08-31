@@ -42,6 +42,7 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
 
       - name: Preparar diretórios de evidências
@@ -88,6 +89,7 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
 
       - name: Preparar diretórios de evidências
@@ -135,6 +137,7 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
           python -m pip install -r requirements-dev.txt
 
       - name: Instalar Chromium e dependências do sistema
@@ -165,6 +168,134 @@ jobs:
             screenshots/
             tests/e2e/screenshots/
             data/output/
+          if-no-files-found: warn
+          retention-days: 14
+
+  simulacao-crise:
+    name: Simulação de crise
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Preparar diretórios de evidências
+        run: mkdir -p logs reports/crise data/output
+
+      - name: Executar simulação de crise
+        run: |
+          set -o pipefail
+          python -m pytest \
+            tests/integration/test_simulacao_crise.py \
+            -v \
+            --tb=short \
+            --junitxml=reports/crise/junit-crise.xml \
+            2>&1 | tee logs/simulacao-crise.log
+
+      - name: Publicar evidências da simulação
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencias-crise-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            logs/simulacao-crise.log
+            reports/crise/
+            data/output/
+          if-no-files-found: warn
+          retention-days: 14
+
+  pacotes-maestro:
+    name: Build dos bots para o Maestro
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Preparar diretórios
+        run: mkdir -p logs reports/maestro dist/maestro
+
+      - name: Gerar pacotes dos três bots
+        run: |
+          set -o pipefail
+          bash scripts/build_bots_maestro.sh \
+            2>&1 | tee logs/build-bots-maestro.log
+
+      - name: Validar pacotes
+        run: |
+          pacotes=(
+            "dist/maestro/gustavo_nunes-entrada-v1.zip"
+            "dist/maestro/gustavo_nunes-conferencia-v1.zip"
+            "dist/maestro/gustavo_nunes-relatorio-v1.zip"
+          )
+
+          for pacote in "${pacotes[@]}"; do
+            echo "Validando ${pacote}"
+
+            if [ ! -f "$pacote" ]; then
+              echo "Pacote não encontrado: ${pacote}"
+              exit 1
+            fi
+
+            unzip -t "$pacote"
+
+            conteudo="$(unzip -Z1 "$pacote")"
+
+            for arquivo_obrigatorio in \
+              bot.py \
+              requirements.txt \
+              gerar_relatorio.py; do
+              if ! printf '%s\n' "$conteudo" |
+                grep -qx "$arquivo_obrigatorio"; then
+                echo "${arquivo_obrigatorio} ausente em ${pacote}"
+                exit 1
+              fi
+            done
+
+            if ! printf '%s\n' "$conteudo" |
+              grep -q '^src/'; then
+              echo "Diretório src ausente em ${pacote}"
+              exit 1
+            fi
+
+            if printf '%s\n' "$conteudo" |
+              grep -Eq '(^|/)\.env($|\.)|__pycache__|\.pyc$'; then
+              echo "O pacote possui arquivos proibidos: ${pacote}"
+              exit 1
+            fi
+
+            nome="$(basename "${pacote%.zip}")"
+
+            unzip -l "$pacote" \
+              > "reports/maestro/${nome}-conteudo.txt"
+          done
+
+      - name: Publicar pacotes e evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pacotes-maestro-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            dist/maestro/*.zip
+            logs/build-bots-maestro.log
+            reports/maestro/
           if-no-files-found: warn
           retention-days: 14
 
@@ -297,25 +428,32 @@ jobs:
     name: Todas as camadas aprovadas
     runs-on: ubuntu-latest
     if: always()
+
     needs:
       - testes-unitarios
       - testes-integracao
+      - simulacao-crise
       - testes-e2e
       - api-ml-container
+      - pacotes-maestro
 
     steps:
       - name: Verificar resultado de todas as camadas
         env:
           RESULTADO_UNITARIOS: ${{ needs.testes-unitarios.result }}
           RESULTADO_INTEGRACAO: ${{ needs.testes-integracao.result }}
+          RESULTADO_CRISE: ${{ needs.simulacao-crise.result }}
           RESULTADO_E2E: ${{ needs.testes-e2e.result }}
           RESULTADO_API_ML: ${{ needs.api-ml-container.result }}
+          RESULTADO_MAESTRO: ${{ needs.pacotes-maestro.result }}
+
         run: |
           echo "Testes unitários: ${RESULTADO_UNITARIOS}"
           echo "Testes de integração: ${RESULTADO_INTEGRACAO}"
           echo "Simulação de crise: ${RESULTADO_CRISE}"
           echo "Testes E2E: ${RESULTADO_E2E}"
           echo "API ML em container: ${RESULTADO_API_ML}"
+          echo "Pacotes do Maestro: ${RESULTADO_MAESTRO}"
 
           falhou=0
 
@@ -324,7 +462,9 @@ jobs:
             "$RESULTADO_INTEGRACAO" \
             "$RESULTADO_CRISE" \
             "$RESULTADO_E2E" \
-            "$RESULTADO_API_ML"; do
+            "$RESULTADO_API_ML" \
+            "$RESULTADO_MAESTRO"; do
+
             if [ "$resultado" != "success" ]; then
               falhou=1
             fi
