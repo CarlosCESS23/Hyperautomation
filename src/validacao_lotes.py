@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -57,6 +57,13 @@ class RegistroValidado:
     acao_recomendada: str
     regra_aplicada: str = ""
 
+    # Enriquecimento híbrido.
+    causa_provavel: str = ""
+    confianca_ml: float | None = None
+    origem_decisao: str = ""
+    motivo_fallback: str = ""
+    versao_modelo: str = ""
+
     def __post_init__(self) -> None:
         if isinstance(self.regra_aplicada, tuple):
             object.__setattr__(self, "regra_aplicada", ", ".join(self.regra_aplicada))
@@ -69,7 +76,9 @@ class RegistroValidado:
             if regra.strip()
         )
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self) -> dict[str, Any]:
+        """Converte o registro para as colunas do relatório final."""
+
         nomes = {
             "data_referencia": "Data de Referência",
             "lote": "Lote",
@@ -84,8 +93,19 @@ class RegistroValidado:
             "motivo": "Motivo",
             "acao_recomendada": "Ação Recomendada",
             "regra_aplicada": "Regra Aplicada",
+
+            # Campos de rastreabilidade do pipeline híbrido.
+            "causa_provavel": "Causa Provável",
+            "origem_decisao": "Origem da Decisão",
+            "confianca_ml": "Confiança ML",
+            "motivo_fallback": "Motivo do Fallback",
+            "versao_modelo": "Versão do Modelo",
         }
-        return {nomes[chave]: valor for chave, valor in asdict(self).items()}
+
+        return {
+            nome_excel: getattr(self, campo)
+            for campo, nome_excel in nomes.items()
+        }
 
 
 def validar_registro(

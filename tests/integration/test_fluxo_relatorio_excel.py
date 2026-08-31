@@ -36,7 +36,7 @@ CABECALHOS_ENTRADA : Final = (
     "data",
     "observacao",
 )
-CABECALHOS_RELATORIO : Final= (
+CABECALHOS_RELATORIO : Final = (
     "Data de Referência",
     "Lote",
     "Produto",
@@ -50,6 +50,11 @@ CABECALHOS_RELATORIO : Final= (
     "Motivo",
     "Ação Recomendada",
     "Regra Aplicada",
+    "Causa Provável",
+    "Origem da Decisão",
+    "Confiança ML",
+    "Motivo do Fallback",
+    "Versão do Modelo",
 )
 CLASSIFICACOES_ESPERADAS : Final = {
     "LOTE-VALIDO": "Válido",

@@ -32,14 +32,14 @@ def test_obtem_configuracao_com_defaults(monkeypatch):
 def test_valida_conexao_e_informa_campos_ausentes():
     base = config.Configuracao(
         "", "", "", True, True, "fila", "cred", "user", "pass",
-        "http://localhost", True, "evidencia.png",
+        "http://localhost", True, "evidencia.png",ml_enabled=True
     )
     with pytest.raises(RuntimeError, match="MAESTRO_SERVER, MAESTRO_LOGIN, MAESTRO_KEY"):
         config.validar_conexao(base)
 
     desabilitada = config.Configuracao(
         "server", "login", "key", False, True, "fila", "cred", "user", "pass",
-        "http://localhost", True, "evidencia.png",
+        "http://localhost", True, "evidencia.png",ml_enabled=True
     )
     with pytest.raises(RuntimeError, match="MAESTRO_ENABLED"):
         config.validar_conexao(desabilitada)

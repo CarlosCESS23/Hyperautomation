@@ -1,122 +1,276 @@
-"""Definição de configuração de treinamento do modelo"""
+"""Treinamento do classificador textual de causas prováveis."""
 
-#Importação de bibliotecas necessárias
+from __future__ import annotations
+
+import json
+
 from pathlib import Path
-import random
 
 import joblib
 import pandas as pd
 
-# Importação de Modelo RandomForest
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+)
+from sklearn.pipeline import Pipeline
+
+from src.causas_divergencia import CAUSAS_PROVAVEIS
+from src.dataset_observacoes import validar_dataset
+from src.normalizacao_text import normalizar_observacao
+
 
 BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data" / "ml"
+MODELS_DIR = BASE_DIR / "models"
 
-DATA_DIR = BASE_DIR / 'data'
-MODELS_DIR = BASE_DIR / 'models'
+DATASET_PATH = DATA_DIR / "dataset_observacoes.csv"
+MODEL_PATH = MODELS_DIR / "classificador_causas.pkl"
+METRICS_PATH = MODELS_DIR / "metricas_classificador_causas.json"
 
-DATASET_PATH = DATA_DIR / 'dataset_lotes.csv'
-MODEL_PATH = MODELS_DIR / 'classificador_lotes.pkl'
+MODEL_VERSION = "2.0.0-texto"
+SEMENTE_MODELO = 42
 
-STATUS_MAP =  {
-    'APROVADO' : 0,
-    'REPROVADO' : 1,
-    'PENDENTE' : 2,
-    'EM_ANALISE' : 3,
+
+# Compatibilidade temporária com a API antiga.
+# Estas constantes serão removidas quando a API for adaptada
+# para receber somente a observação textual na Issue 05.
+STATUS_MAP = {
+    "APROVADO": 0,
+    "REPROVADO": 1,
+    "PENDENTE": 2,
+    "EM_ANALISE": 3,
 }
 
 TURNO_MAP = {
-    'MANHA': 0,
-    'TARDE': 1,
-    'NOITE': 2
+    "MANHA": 0,
+    "TARDE": 1,
+    "NOITE": 2,
 }
 
+def carregar_dataset(
+    caminho: Path = DATASET_PATH,
+) -> pd.DataFrame:
+    """Carrega e valida o dataset textual."""
 
-def gerar_amostra():
-    """Gerar para cada unidades para o dataframe"""
-    status_raw = random.choice(list(STATUS_MAP.keys()))
-    turno = random.choice(list(TURNO_MAP.keys()))
+    if not caminho.exists():
+        raise FileNotFoundError(
+            f"Dataset não encontrado: {caminho}. "
+            "Execute: python -m src.dataset_observacoes"
+        )
 
-    tem_obs = random.choice([0,1])
+    dataset = pd.read_csv(caminho)
 
-    if status_raw == 'APROVADO':
-        classe = 'valido_automatico'
-    elif status_raw == 'REPROVADO':
-        if tem_obs:
-            classe = 'recusar_automatico'
-        else:
-            classe = 'revisar'
-    elif status_raw == 'PENDENTE':
-        classe = 'revisar'
-    else:
-        classe = 'revisar'
+    validar_dataset(dataset)
 
-    return {
-        'status_raw' : STATUS_MAP[status_raw],
-        'turno': TURNO_MAP[turno],
-        'tem_obs': tem_obs,
-        'classe': classe
-    }
+    return dataset
 
 
-def gerar_dataset(quantidade: int = 300)-> pd.DataFrame:
-    """Gerando dataframe com as amostras"""
-    registros = [gerar_amostra() for _ in range(quantidade)]
+def separar_dataset(
+    dataset: pd.DataFrame,
+) -> tuple[
+    pd.Series,
+    pd.Series,
+    pd.Series,
+    pd.Series,
+]:
+    """Separa observações e causas de treino e teste."""
 
-    return pd.DataFrame(registros)
+    validar_dataset(dataset)
 
-def treinar_modelo(df: pd.DataFrame):
-    X = df[
-        [
-        'status_raw',
-        'turno',
-        'tem_obs'
-    ]
+    registros_treino = dataset[
+        dataset["particao"] == "treino"
     ]
 
-    y = df['classe']
+    registros_teste = dataset[
+        dataset["particao"] == "teste"
+    ]
 
-    # Separando as amostras para o treino e para validação, sendo 80% para treino
-    X_train, X_test,y_train,y_test = train_test_split(
-        X, y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y)
+    if registros_treino.empty:
+        raise ValueError(
+            "O conjunto de treino não pode estar vazio"
+        )
 
-    # Criação do modelo
-    modelo = RandomForestClassifier(
-        n_estimators=100,
-        random_state=42
+    if registros_teste.empty:
+        raise ValueError(
+            "O conjunto de teste não pode estar vazio"
+        )
+
+    x_treino = registros_treino["observacao"]
+    y_treino = registros_treino["causa"]
+
+    x_teste = registros_teste["observacao"]
+    y_teste = registros_teste["causa"]
+
+    return (
+        x_treino,
+        x_teste,
+        y_treino,
+        y_teste,
     )
 
-    modelo.fit(X_train, y_train)
 
-    previsoes = modelo.predict(X_test)
+def criar_pipeline() -> Pipeline:
+    """Cria o pipeline completo de texto e classificação."""
 
-    print(classification_report(y_test,previsoes))
+    return Pipeline(
+        steps=[
+            (
+                "tfidf",
+                TfidfVectorizer(
+                    preprocessor=normalizar_observacao,
+                    lowercase=False,
+                    ngram_range=(1, 2),
+                    min_df=1,
+                    max_features=3000,
+                ),
+            ),
+            (
+                "classificador",
+                LogisticRegression(
+                    max_iter=1000,
+                    random_state=SEMENTE_MODELO,
+                    class_weight="balanced",
+                ),
+            ),
+        ]
+    )
+
+
+def treinar_modelo(
+    dataset: pd.DataFrame,
+) -> Pipeline:
+    """Treina o classificador com a partição de treino."""
+
+    (
+        x_treino,
+        _,
+        y_treino,
+        _,
+    ) = separar_dataset(dataset)
+
+    modelo = criar_pipeline()
+
+    modelo.fit(
+        x_treino,
+        y_treino,
+    )
 
     return modelo
 
-def main():
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+def avaliar_modelo(
+    modelo: Pipeline,
+    dataset: pd.DataFrame,
+) -> dict:
+    """Avalia o modelo utilizando somente a partição de teste."""
 
-    dataset = gerar_dataset()
+    (
+        x_treino,
+        x_teste,
+        _,
+        y_teste,
+    ) = separar_dataset(dataset)
 
-    dataset.to_csv(
-        DATASET_PATH,
-        index=False
+    previsoes = modelo.predict(x_teste)
+
+    classes = sorted(CAUSAS_PROVAVEIS)
+
+    relatorio = classification_report(
+        y_teste,
+        previsoes,
+        labels=classes,
+        output_dict=True,
+        zero_division=0,
     )
+
+    matriz = confusion_matrix(
+        y_teste,
+        previsoes,
+        labels=classes,
+    )
+
+    return {
+        "versao_modelo": MODEL_VERSION,
+        "acuracia": float(
+            accuracy_score(
+                y_teste,
+                previsoes,
+            )
+        ),
+        "quantidade_treino": int(len(x_treino)),
+        "quantidade_teste": int(len(x_teste)),
+        "classes": classes,
+        "relatorio_classificacao": relatorio,
+        "matriz_confusao": matriz.tolist(),
+    }
+
+
+def salvar_artefatos(
+    modelo: Pipeline,
+    metricas: dict,
+    caminho_modelo: Path = MODEL_PATH,
+    caminho_metricas: Path = METRICS_PATH,
+) -> None:
+    """Salva o pipeline treinado e suas métricas."""
+
+    caminho_modelo.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    caminho_metricas.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    joblib.dump(
+        modelo,
+        caminho_modelo,
+    )
+
+    caminho_metricas.write_text(
+        json.dumps(
+            metricas,
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def main() -> None:
+    """Executa treinamento, avaliação e persistência."""
+
+    dataset = carregar_dataset()
 
     modelo = treinar_modelo(dataset)
 
-    joblib.dump(modelo, MODEL_PATH)
+    metricas = avaliar_modelo(
+        modelo,
+        dataset,
+    )
 
-    print(f'Dataset salvo em: {DATASET_PATH}')
-    print(f'Modelo salvo em {MODEL_PATH}')
+    salvar_artefatos(
+        modelo,
+        metricas,
+    )
 
-if __name__ == '__main__':
+    print(
+        json.dumps(
+            metricas,
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+    print()
+    print(f"Modelo salvo em: {MODEL_PATH}")
+    print(f"Métricas salvas em: {METRICS_PATH}")
+
+
+if __name__ == "__main__":
     main()

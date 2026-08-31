@@ -1,57 +1,146 @@
 # Changelog
 
-Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
+Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 
-O formato segue o padrão [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
+O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
+e o versionamento segue [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
-## [1.2.0] - 2026-08-24
+### Planejado
+
+- Automatizar a atualização dos bots no Maestro após a criação das três
+  automações e validação das credenciais do ambiente.
+- Substituir gradualmente segredos locais pelas Credenciais do Maestro.
+- Ampliar as evidências da apresentação com métricas das execuções reais.
+
+## [2.0.0] - 2026-08-31
 
 ### Adicionado
 
-- Serviço `api_ml` com FastAPI, endpoints `GET /health` e `POST /predict` e carregamento do modelo Random Forest durante a inicialização.
-- Cliente resiliente `MLClient` para isolar o consumo da API e abrir o circuit breaker após cinco falhas consecutivas.
-- Camada `item_processor` para consultar o Machine Learning somente após a classificação das regras RN01–RN12.
-- Auditoria das chamadas online e offline, com status, latência, classe prevista, probabilidade, nível de confiança e detalhe do erro.
-- Aba `Decisões de ML` no relatório Excel, preenchida com as chamadas realmente realizadas durante o processamento.
-- Fallback `REVISAO_ML_OFFLINE` para registros ambíguos quando a API não fornece uma predição.
-- Teste integrado de sabotagem da API, cobrindo sete chamadas auditadas, cinco tentativas HTTP e abertura do circuit breaker.
+- Pipeline distribuído em três bots: entrada, conferência e relatório.
+- Entrypoints específicos para execução dos Bots A, B e C pelo BotCity Runner.
+- Cliente do Maestro compatível com execução local e `from_sys_args()` no
+  Runner.
+- Criação automática das tarefas sucessoras A → B → C.
+- Propagação de `predecessor`, `predecessor_task_id`,
+  `resultado_predecessor`, `execution_id` e `correlation_id`.
+- Publicação da planilha validada pelo Bot A como artefato no Maestro.
+- Download de artefatos do predecessor pelos Bots B e C.
+- Serialização do resultado intermediário do Bot B em JSON.
+- Publicação do relatório Excel final pelo Bot C.
+- Camada `maestro_artifacts` para localização, download e upload de arquivos.
+- Retentativas para erros de dados e envio de itens não processados para dead
+  letter.
+- Logs estruturados das transições entre os três bots.
+- Alertas pelo Telegram como canal principal.
+- E-mail como fallback para eventos `ERRO` e `CRÍTICO`.
+- Auditoria do canal tentado, canal de entrega, falhas e acionamento do
+  fallback.
+- Resumo operacional no corpo dos alertas e suporte a anexos.
+- Simulação automatizada dos cenários de crise: base instável, ML indisponível,
+  timeout de ML, confiança abaixo do limiar e Telegram indisponível.
+- Empacotamento independente dos três bots para o Maestro.
+- Validação dos pacotes ZIP no CI, incluindo bloqueio de `.env`, `.pyc` e
+  `__pycache__`.
+- Fallback de `caminho_entrada` para `CAMINHO_ENTRADA` no ambiente local do
+  Runner.
+- Testes unitários dos executores Maestro, cliente, artefatos e transferência
+  do resultado do Bot B.
+- Testes de integração da orquestração, rastreabilidade, canais de alerta,
+  dead letter e simulação de crise.
 
 ### Alterado
 
-- O fluxo de leitura passou a processar todas as dez abas diárias antes de retornar os registros validados.
-- Lotes duplicados passaram a ser preservados para que a segunda ocorrência continue permitindo a aplicação da RN11.
-- Uma única instância de `AuditoriaDecisoesML` passou a acompanhar o fluxo completo e alimentar o log e o relatório Excel.
-- A API passou a normalizar `EM ANALISE`, `EM ANÁLISE` e `EM_ANALISE` para a codificação esperada pelo modelo.
-- O healthcheck do serviço `api_ml` passou a validar o JSON de `/health` e considerar o container saudável somente quando `modelo_carregado` é `true`.
+- Labels e Bot IDs padronizados para:
+  - `carlos_souza-entrada-v1`;
+  - `carlos_souza-conferencia-v1`;
+  - `carlos_souza-relatorio-v1`.
+- O processamento monolítico passou a disponibilizar uma cadeia orquestrada
+  sem remover a possibilidade de demonstração local.
+- O Bot A passou a aceitar `caminho_entrada` pela tarefa e, quando ausente,
+  consultar `CAMINHO_ENTRADA` no `.env` do Fedora.
+- O Bot B passou a receber a planilha por artefato, evitando depender do caminho
+  de arquivos da tarefa predecessora.
+- O Bot C passou a receber o resultado intermediário por artefato e publicar o
+  relatório final no Orquestrador.
+- O modelo de classificação foi alterado de `RandomForest` para
+  `LogisticRegression`, reduzindo tamanho e complexidade e facilitando a
+  interpretação das probabilidades no dataset controlado.
+- A decisão híbrida passou a registrar origem da decisão, causa provável,
+  confiança, motivo do fallback, versão do modelo e latência.
+- O CI foi separado em jobs de testes unitários, integração, crise, E2E, API ML
+  e pacotes do Maestro.
+- O gate final do CI passou a considerar explicitamente a simulação de crise e
+  o empacotamento do Maestro.
+- O README passou a documentar Fedora, ML local, Docker Compose, cadeia de bots,
+  alertas, testes, CI e deploy pelo Easy Deploy.
 
 ### Corrigido
 
-- Retorno antecipado de `ler_e_validar()`, que encerrava o processamento após a primeira aba e fazia o E2E encontrar somente dois dos vinte registros esperados.
-- Descarte de lotes duplicados causado pelo processamento condicionado ao bloco da primeira ocorrência.
-- Exceção ao auditar respostas `None` durante a indisponibilidade da API ML.
-- `NameError` da função auxiliar `_campo`, mantendo-a disponível no escopo do módulo.
-- Ausência de `payload_ml` na chamada do classificador dentro do fluxo de auditoria.
-- Falha de coleta do Pytest causada por arquivos unitário e de integração com o mesmo nome de módulo.
-- Ausência das decisões offline no log estruturado e na aba `Decisões de ML`.
+- Retorno ausente na leitura e validação da planilha que produzia
+  `NoneType is not iterable`.
+- Auditoria de ML que não preservava todas as decisões quando a API falhava.
+- Referência inexistente `_campo` durante a criação de registros de auditoria.
+- Payload ausente nas chamadas do cliente ML.
+- Incompatibilidades de configuração de `ml_api_url`,
+  `pipeline_hibrido_enabled` e valores booleanos.
+- Grafia da mensagem de validação de valor numérico.
+- Importação e serialização da função de normalização do modelo.
+- Importação ausente de `unicodedata` no treinamento.
+- Ausência de `causa_provavel` nos dados utilizados pelos relatórios.
+- Decisão bem-sucedida de ML sem classe prevista.
+- Auditoria vazia durante a sabotagem controlada da API ML.
+- Fallback de alertas que não acionava o e-mail após falha do Telegram.
+- Exceções de canais de alerta que interrompiam o pipeline.
+- Chamadas duplicadas e dependência nula do sistema de alertas no Bot C.
+- Preservação de registros duplicados necessários para identificação da RN11.
+- Encaminhamento de erros de dados para dead letter sem interromper o lote.
+- Geração do relatório após a presença de registros enviados para dead letter.
+- Propagação incorreta ou fixa do `predecessor_task_id`.
+- Importações circulares entre executores e testes do Maestro.
+- Localização de artefatos ausente nos executores dos Bots B e C.
+- Divergência entre o payload esperado e o payload enviado ao criar tarefas no
+  Maestro.
+- Job final do CI que consultava `RESULTADO_CRISE` sem possuir o job ou a
+  variável correspondente.
+- Caminho inexistente do teste `test_simulacao_crise.py` na execução do CI.
+- Contaminação de testes unitários pelo valor real de `CAMINHO_ENTRADA` do
+  `.env`.
+
+### Segurança
+
+- Arquivos `.env` foram excluídos dos pacotes enviados ao Maestro.
+- Logs e mensagens de erro não exibem tokens do Telegram nem senhas SMTP.
+- Credenciais permanecem fora do controle de versão.
+- O e-mail utiliza senha de aplicativo e TLS quando configurados.
+
+### Validado
+
+- Suítes unitárias, de integração e dos executores Maestro executadas com
+  sucesso após as correções.
+- Build e healthcheck da API ML pelo Docker Compose.
+- Envio real de e-mail por SMTP.
+- Fallback de Telegram para e-mail em falha controlada.
+- Execução real da cadeia A → B → C no BotCity Maestro.
+- Geração e publicação do relatório Excel final pelo Bot C.
 
 ## [1.1.0] - 2026-08-03
 
 ### Adicionado
 
 - Automação web com Playwright para login e cadastro de lotes.
-- Locators semânticos, esperas dinâmicas, tratamento de timeout e evidências em screenshot.
+- Locators semânticos, esperas dinâmicas e evidências em screenshot.
 - Logs estruturados em JSON com `bot_id` e `execution_id`.
-- Containerização do bot e orquestração inicial com Docker Compose.
+- Containerização inicial e orquestração com Docker Compose.
 
 ### Alterado
 
-- Atualização das dependências e da configuração de URLs para execução local e em contêiner.
+- Atualização das dependências e URLs para execução local e em container.
 
 ## [1.0.0]
 
 ### Corrigido
 
-- Correção do erro de importação relativa no ambiente de testes.
-- Substituição de importações relativas por absolutas e adição dos arquivos `__init__.py` nas pastas `src/` e `tests/`.
+- Importações relativas incompatíveis com o ambiente de testes.
+- Adição dos arquivos `__init__.py` necessários para os pacotes Python.
