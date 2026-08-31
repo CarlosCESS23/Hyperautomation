@@ -9,9 +9,9 @@ from typing import Any, Mapping, Protocol
 
 LOGGER = logging.getLogger("botcity_permorfer")
 
-BOT_A_ENTRADA = "gustavo_nunes-entrada-v1"
-BOT_B_CONFERENCIA = "gustavo_nunes-conferencia-v1"
-BOT_C_RELATORIO = "gustavo_nunes-relatorio-v1"
+BOT_A_ENTRADA = "carlos_souza-entrada-v1"
+BOT_B_CONFERENCIA = "carlos_souza-conferencia-v1"
+BOT_C_RELATORIO = "carlos_souza-relatorio-v1"
 
 
 @dataclass(frozen=True)

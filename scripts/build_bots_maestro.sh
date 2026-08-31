@@ -78,16 +78,16 @@ montar_pacote() {
 }
 
 montar_pacote \
-    "gustavo_nunes-entrada-v1" \
+    "carlos_souza-entrada-v1" \
     "deploy/maestro/bot_a/bot.py" \
     "true"
 
 montar_pacote \
-    "gustavo_nunes-conferencia-v1" \
+    "carlos_souza-conferencia-v1" \
     "deploy/maestro/bot_b/bot.py"
 
 montar_pacote \
-    "gustavo_nunes-relatorio-v1" \
+    "carlos_souza-relatorio-v1" \
     "deploy/maestro/bot_c/bot.py"
 
 echo

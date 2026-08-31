@@ -112,7 +112,14 @@ def test_bot_a_cria_tarefa_bot_b_e_finaliza_com_sucesso():
     )
 
 
-def test_bot_a_sem_caminho_finaliza_com_falha():
+def test_bot_a_sem_caminho_finaliza_com_falha(
+    monkeypatch,
+):
+    monkeypatch.delenv(
+        "CAMINHO_ENTRADA",
+        raising=False,
+    )
+
     maestro = Mock()
 
     maestro.get_execution.return_value = (
@@ -197,4 +204,47 @@ def test_bot_a_rejeita_entrada_e_nao_cria_bot_b():
         total_items=1,
         processed_items=0,
         failed_items=1,
+    )
+
+def test_bot_a_utiliza_caminho_do_ambiente(
+    monkeypatch,
+):
+    caminho = "/tmp/inspecoes.xlsx"
+
+    monkeypatch.setenv(
+        "CAMINHO_ENTRADA",
+        caminho,
+    )
+
+    maestro = Mock()
+
+    maestro.get_execution.return_value = (
+        SimpleNamespace(
+            task_id=103,
+            parameters={},
+        )
+    )
+
+    resultado = criar_resultado_bot_a_sucesso()
+
+    executor_bot_a = Mock(
+        return_value=resultado,
+    )
+
+    disparador_bot_b = Mock(
+        return_value=SimpleNamespace(
+            id=200,
+        ),
+    )
+
+    executar_tarefa_bot_a(
+        maestro=maestro,
+        executor_bot_a=executor_bot_a,
+        disparador_bot_b=disparador_bot_b,
+    )
+
+    executor_bot_a.assert_called_once_with(
+        caminho,
+        execution_id=None,
+        correlation_id=None,
     )

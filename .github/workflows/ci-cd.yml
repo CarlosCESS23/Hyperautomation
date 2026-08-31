@@ -241,9 +241,9 @@ jobs:
       - name: Validar pacotes
         run: |
           pacotes=(
-            "dist/maestro/gustavo_nunes-entrada-v1.zip"
-            "dist/maestro/gustavo_nunes-conferencia-v1.zip"
-            "dist/maestro/gustavo_nunes-relatorio-v1.zip"
+            "dist/maestro/carlos_souza-entrada-v1.zip"
+            "dist/maestro/carlos_souza-conferencia-v1.zip"
+            "dist/maestro/carlos_souza-relatorio-v1.zip"
           )
 
           for pacote in "${pacotes[@]}"; do

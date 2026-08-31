@@ -1,10 +1,11 @@
 """Ponto de entrada do Bot A para o BotCity Maestro."""
 
 from __future__ import annotations
-
+from dotenv import load_dotenv
 import logging
 from pathlib import Path
 from typing import Any, Callable
+import os
 
 from botcity.maestro import (
     AutomationTaskFinishStatus,
@@ -24,6 +25,14 @@ from src.orchestrator import (
 LOGGER = logging.getLogger(
     "botcity_permorfer"
 )
+
+
+CAMINHO_PROJETO = Path('/home/carloscess/Documentos/projetoAX/Atividades/Hyperautomation')
+
+CAMINHO_ARQUIVO_ENV = (CAMINHO_PROJETO/ '.env')
+
+load_dotenv(dotenv_path=CAMINHO_ARQUIVO_ENV)
+
 
 
 def _texto_opcional(
@@ -75,10 +84,13 @@ def executar_tarefa_bot_a(
         execucao.parameters or {}
     )
 
-    caminho_entrada = _texto_opcional(
-        parametros.get(
-            "caminho_entrada"
-        )
+    caminho_entrada = (
+            _texto_opcional(
+                parametros.get("caminho_entrada")
+            )
+            or _texto_opcional(
+        os.getenv("CAMINHO_ENTRADA")
+    )
     )
 
     if caminho_entrada is None:

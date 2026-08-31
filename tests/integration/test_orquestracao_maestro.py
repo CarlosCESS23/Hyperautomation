@@ -109,9 +109,9 @@ def test_tres_bots_possuem_nomenclatura_de_registro():
     ]
 
     assert nomes == [
-        "gustavo_nunes-entrada-v1",
-        "gustavo_nunes-conferencia-v1",
-        "gustavo_nunes-relatorio-v1",
+        "carlos_souza-entrada-v1",
+        "carlos_souza-conferencia-v1",
+        "carlos_souza-relatorio-v1",
     ]
 
     assert len(set(nomes)) == 3
