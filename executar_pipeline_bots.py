@@ -47,19 +47,6 @@ class FormatadorJSON(logging.Formatter):
     """Grava os eventos principais como uma linha JSON por evento."""
 
     CAMPOS_EXTRAS = (
-        # Identificação geral do evento.
-        "evento",
-        "bot_id",
-        "execution_id",
-        "correlation_id",
-        "status",
-
-        # Resumo do processamento.
-        "total_registros",
-        "classificacoes",
-        "origens_decisao",
-
-        # Decisão híbrida e fallback.
         "lote_id",
         "origem_decisao",
         "causa_provavel",
@@ -68,13 +55,22 @@ class FormatadorJSON(logging.Formatter):
         "versao_modelo",
         "latencia_ms",
         "registrado_em",
-
-        # Entrega de alertas.
+        "evento",
+        "bot_id",
+        "bot_origem",
+        "bot_destino",
+        "execution_id",
+        "correlation_id",
+        "resultado_predecessor",
+        "task_id",
+        "predecessor_task_id",
+        "status",
+        "total_registros",
+        "classificacoes",
+        "origens_decisao",
         "canal_entrega",
         "fallback_acionado",
         "tentativas",
-
-        # Informações de erro.
         "erro",
     )
 
@@ -214,7 +210,41 @@ def criar_sistema_alertas(
     raise ValueError(
         f"Modo de alerta desconhecido: {modo}"
     )
+def _alertar_falha(
+    sistema_alertas: SistemaAlertas | None,
+    *,
+    severidade: str,
+    mensagem: str,
+    execution_id: str,
+    correlation_id: str,
+    etapa: str,
+) -> None:
+    """Envia um alerta sem permitir que sua falha interrompa o pipeline."""
 
+    if sistema_alertas is None:
+        return
+
+    try:
+        sistema_alertas.enviar_alerta(
+            severidade=severidade,
+            mensagem=mensagem,
+            contexto={
+                "execution_id": execution_id,
+                "correlation_id": correlation_id,
+                "bot_id": etapa,
+            },
+        )
+    except Exception as erro:
+        LOGGER.exception(
+            "falha_ao_enviar_alerta_do_pipeline",
+            extra={
+                "evento": "falha_ao_enviar_alerta_do_pipeline",
+                "bot_id": etapa,
+                "execution_id": execution_id,
+                "correlation_id": correlation_id,
+                "erro": str(erro),
+            },
+        )
 
 def _gerador_completo(
     origem: Path,
@@ -261,6 +291,30 @@ def _mostrar_resumo_bot_b(resultado: ResultadoBotConferencia) -> None:
     print(f"  Decisões auditadas: {resultado.decisoes_auditadas}")
     print(f"  Origens: {resultado.origens_decisao}")
 
+def registrar_transicao_pipeline(
+    logger: logging.Logger,
+    *,
+    bot_origem: str,
+    bot_destino: str,
+    resultado_predecessor: str,
+    execution_id: str,
+    correlation_id: str,
+) -> None:
+    """Registra a passagem controlada entre dois bots."""
+
+    logger.info(
+        "transicao_pipeline",
+        extra={
+            "evento": "transicao_pipeline",
+            "bot_origem": bot_origem,
+            "bot_destino": bot_destino,
+            "resultado_predecessor": (
+                resultado_predecessor
+            ),
+            "execution_id": execution_id,
+            "correlation_id": correlation_id,
+        },
+    )
 
 def executar_pipeline(
     origem: Path,
@@ -298,7 +352,19 @@ def executar_pipeline(
     parametros_b = resultado_a.parametros_bot_b
     assert parametros_b is not None
 
+    registrar_transicao_pipeline(
+        logger,
+        bot_origem="bot-a-entrada",
+        bot_destino="bot-b-conferencia",
+        resultado_predecessor=(
+            resultado_a.status.value
+        ),
+        execution_id=resultado_a.execution_id,
+        correlation_id=resultado_a.correlation_id,
+    )
+
     print("[2/3] BOT B — aplicação das RN01-RN12 e ML/fallback")
+
     resultado_b = executar_bot_conferencia(
         parametros_b.caminho_entrada,
         execution_id=parametros_b.execution_id,
@@ -324,6 +390,17 @@ def executar_pipeline(
         )
 
     _mostrar_resumo_bot_b(resultado_b)
+
+    registrar_transicao_pipeline(
+        logger,
+        bot_origem="bot-b-conferencia",
+        bot_destino="bot-c-relatorio",
+        resultado_predecessor=(
+            resultado_b.status.value
+        ),
+        execution_id=resultado_b.execution_id,
+        correlation_id=resultado_b.correlation_id,
+    )
 
     print("\n[3/3] BOT C — relatório, dashboard e alertas")
     resultado_c = executar_bot_relatorio(
