@@ -1,5 +1,6 @@
 # --- Framework de Automação Web e Nuvem ---
 botcity-maestro-sdk>=0.9.0
+botcity-framework-core
 playwright>=1.40.0
 
 # --- Manipulação de Dados e Planilhas ---

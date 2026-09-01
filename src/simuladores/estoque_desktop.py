@@ -129,6 +129,12 @@ class AplicacaoEstoque:
             "<Control-f>",
             self._focar_busca,
         )
+
+        self._raiz.bind(
+            "<Control-e>",
+            self._copiar_pagina_visivel,
+        )
+
         self._campo_busca.focus_set()
 
     def _construir_cabecalho(self) -> None:
@@ -528,6 +534,17 @@ class AplicacaoEstoque:
             hover_color=COR_AZUL_HOVER,
         )
         self._botao_proximo.grid(row=0, column=2)
+        ctk.CTkLabel(
+            rodape,
+            text="Ctrl+E: copiar página visível",
+            text_color=COR_TEXTO_SECUNDARIO,
+            font=ctk.CTkFont(size=11),
+        ).grid(
+            row=1,
+            column=0,
+            columnspan=3,
+            pady=(8, 0),
+        )
 
     def _focar_busca(self, _evento=None) -> str:
         self._campo_busca.focus_set()
@@ -548,6 +565,64 @@ class AplicacaoEstoque:
         self._pagina_atual = 1
         self._atualizar_tabela()
         self._campo_busca.focus_set()
+
+    def _copiar_pagina_visivel(
+            self,
+            _evento=None,
+    ) -> str:
+        """
+        Copia para o clipboard somente os registros
+        apresentados na página atual.
+        """
+
+        pagina = paginar_registros(
+            self._registros_filtrados,
+            pagina=self._pagina_atual,
+            tamanho_pagina=self._tamanho_pagina,
+        )
+
+        cabecalho = (
+            "lote_id",
+            "produto",
+            "quantidade_disponivel",
+            "localizacao",
+            "status_estoque",
+        )
+
+        linhas = [
+            "\t".join(cabecalho)
+        ]
+
+        for registro in pagina.registros:
+            linha = (
+                registro.lote_id,
+                registro.produto,
+                str(
+                    registro.quantidade_disponivel
+                ),
+                registro.localizacao,
+                registro.status_estoque,
+            )
+
+            linhas.append(
+                "\t".join(linha)
+            )
+
+        conteudo = "\n".join(linhas)
+
+        self._raiz.clipboard_clear()
+        self._raiz.clipboard_append(conteudo)
+
+        # Garante que o conteúdo permaneça no clipboard
+        # depois que o evento terminar.
+        self._raiz.update()
+
+        self._status.set(
+            f"Página {pagina.pagina_atual} copiada | "
+            f"{len(pagina.registros)} registro(s)"
+        )
+
+        return "break"
 
     def pagina_anterior(self) -> None:
         if self._pagina_atual > 1:
@@ -631,13 +706,28 @@ class AplicacaoEstoque:
                 else "disabled"
             )
         )
-        self._botao_proximo.configure(
-            state=(
-                "normal"
-                if pagina.pagina_atual < pagina.total_paginas
-                else "disabled"
-            )
+        possui_proxima_pagina = (
+                pagina.pagina_atual
+                < pagina.total_paginas
         )
+
+        if possui_proxima_pagina:
+            self._botao_proximo.configure(
+                state="normal",
+                text="Próxima",
+                fg_color=COR_AZUL,
+                hover_color=COR_AZUL_HOVER,
+            )
+
+            # Restaura o botão caso ele tenha sido
+            # ocultado anteriormente.
+            self._botao_proximo.grid()
+
+        else:
+            # Na última página o botão desaparece.
+            # Assim, o BotCity não encontra a imagem
+            # botao_proximo.png e encerra a coleta.
+            self._botao_proximo.grid_remove()
 
 
 def construir_parser() -> argparse.ArgumentParser:
