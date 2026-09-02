@@ -347,3 +347,8 @@ data/*
 data/ml/*
 !data/ml/dataset_observacoes.csv
 !data/ml/README.md
+
+#SQLite
+data/state/*.sqlite3
+data/state/*.sqlite3-shm
+data/state/*.sqlite3-wal
