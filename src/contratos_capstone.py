@@ -259,3 +259,91 @@ class ArtefatoConsolidacao(ContratoBase):
     def total_registros(self) -> int:
         return len(self.registros)
 
+class RegistroClassificado(ContratoBase):
+    """Registro consolidado enriquecido pelo pipeline híbrido."""
+
+    registro: RegistroConsolidado
+    causa_provavel: TextoObrigatorio
+    origem_decisao: TextoObrigatorio
+    confianca_ml: Annotated[
+        float,
+        Field(ge=0, le=1),
+    ] | None = None
+    motivo_fallback: TextoObrigatorio | None = None
+    versao_modelo: str = ""
+
+    @model_validator(mode="after")
+    def validar_decisao(self) -> Self:
+        """Valida as combinações de ML e fallback."""
+
+        if self.origem_decisao not in {
+            "ml",
+            "fallback",
+        }:
+            raise ValueError(
+                "origem_decisao deve ser ml ou fallback"
+            )
+
+        if self.origem_decisao == "ml":
+            if self.confianca_ml is None:
+                raise ValueError(
+                    "decisão ML exige confianca_ml"
+                )
+
+            if self.motivo_fallback is not None:
+                raise ValueError(
+                    "decisão ML não pode possuir "
+                    "motivo_fallback"
+                )
+
+            if not self.versao_modelo.strip():
+                raise ValueError(
+                    "decisão ML exige versao_modelo"
+                )
+
+        if self.origem_decisao == "fallback":
+            if self.confianca_ml is not None:
+                raise ValueError(
+                    "fallback não pode possuir "
+                    "confianca_ml"
+                )
+
+            if self.motivo_fallback is None:
+                raise ValueError(
+                    "fallback exige motivo_fallback"
+                )
+
+        return self
+
+    @property
+    def lote_id(self) -> str:
+        """Facilita o acesso ao lote no relatório."""
+
+        return self.registro.lote_id
+
+    @property
+    def classificacao_final(self) -> str:
+        """
+        A classificação de negócio continua sendo determinística.
+
+        O ML sugere somente a causa provável.
+        """
+
+        return (
+            self.registro
+            .classificacao_deterministica
+        )
+
+
+class ArtefatoClassificacaoML(ContratoBase):
+    """Artefato produzido pelo Bot E e entregue ao Bot F."""
+
+    auditoria: EnvelopeAuditoria
+    registros: tuple[
+        RegistroClassificado,
+        ...,
+    ] = ()
+
+    @property
+    def total_registros(self) -> int:
+        return len(self.registros)
