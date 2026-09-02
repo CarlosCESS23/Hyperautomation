@@ -31,3 +31,5 @@ matplotlib>=3.10
 
 #Interface gráfica
 customtkinter>=5.2,<6
+
+jinja2
